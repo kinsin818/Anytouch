@@ -1,0 +1,18 @@
+# other agents' workspaces (never commit, never delete)
+.dumate/
+.workbuddy/
+
+# gradle / build
+.gradle/
+build/
+*/build
+**/build/
+local.properties
+
+# ide
+.idea/
+*.iml
+
+# os
+Thumbs.db
+Desktop.ini
