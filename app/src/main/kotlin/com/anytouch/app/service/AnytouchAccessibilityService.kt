@@ -1,9 +1,14 @@
 package com.anytouch.app.service
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.ServiceInfo
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.anytouch.app.AppState
+import com.anytouch.app.TaskRequest
 import com.anytouch.app.executor.NodeTaskRunner
 import com.anytouch.app.platform.AccessibilityDevice
 import com.anytouch.app.safety.KillSwitch
@@ -47,7 +52,7 @@ class AnytouchAccessibilityService : AccessibilityService() {
                     Log.w(TAG, "S1SMOKE busy, request ${request.id} ignored")
                     return@collect
                 }
-                runTask(request.json, ui)
+                runTask(request, ui)
             }
         }
     }
@@ -74,9 +79,12 @@ class AnytouchAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    private suspend fun runTask(json: String, ui: OverlayUi) {
+    private suspend fun runTask(request: TaskRequest, ui: OverlayUi) {
+        val json = request.json
         KillSwitch.reset()
         AppState.running.value = true
+        // 执行期挂前台服务：cached 进程会被 doze 冻结，定位轮询将停摆（模拟器实测复现）
+        startForegroundCompat()
         ui.showStopBall { KillSwitch.stop() }
         val report = try {
             val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
@@ -84,6 +92,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 device = AccessibilityDevice(this),
                 confirmer = { verdict -> ui.awaitSecondConfirm(verdict) },
             ).run(actions)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e // 取消不是任务失败，向上层传播，不伪造回执
         } catch (e: Exception) {
             invalidTaskReport(e)
         }
@@ -93,8 +103,35 @@ class AnytouchAccessibilityService : AccessibilityService() {
             "S1SMOKE ok=${report.results.count { it.ok }} total=${report.results.size} " +
                 "stopped=${report.stopped} stop=${report.stopCommand?.payload?.get("stop_reason") ?: "-"}",
         )
+        report.results.lastOrNull()?.recovery?.let { rec ->
+            Log.i(TAG, "S1SMOKE-DETAIL code=${rec.code} msg=${rec.message.take(300)}")
+        }
         ui.hideStopBall()
         AppState.running.value = false
+        stopForegroundCompat()
+        // 消费完毕即清空：StateFlow 重放语义会在服务重绑时把旧任务再执行一次（模拟器实测）
+        AppState.consume(request)
+    }
+
+    private fun startForegroundCompat() {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "任务执行", NotificationManager.IMPORTANCE_LOW))
+        val notification = Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("Anytouch 正在执行任务")
+            .setContentText("悬浮球可随时全局停止")
+            .setSmallIcon(android.R.drawable.sym_def_app_icon)
+            .setOngoing(true)
+            .build()
+        // 34 起带 type 的三参形式优先；ROM 不接受 specialUse 时退回两参（仅失去类型细分，不失去前台态）
+        runCatching {
+            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        }.onFailure {
+            runCatching { startForeground(NOTIF_ID, notification) }
+        }
+    }
+
+    private fun stopForegroundCompat() {
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
     }
 
     private fun invalidTaskReport(e: Exception) = NodeTaskRunner.Report(
@@ -125,5 +162,7 @@ class AnytouchAccessibilityService : AccessibilityService() {
 
     private companion object {
         const val TAG = "AnytouchRun"
+        const val CHANNEL_ID = "executor"
+        const val NOTIF_ID = 1
     }
 }

@@ -23,4 +23,9 @@ object AppState {
     fun submit(json: String) {
         taskRequests.value = TaskRequest(System.nanoTime(), json)
     }
+
+    /** 执行完毕作废请求（仅当队列头仍是该请求）：StateFlow 重放语义会在服务重绑时把旧任务再执行一次。 */
+    fun consume(request: TaskRequest) {
+        if (taskRequests.value?.id == request.id) taskRequests.value = null
+    }
 }

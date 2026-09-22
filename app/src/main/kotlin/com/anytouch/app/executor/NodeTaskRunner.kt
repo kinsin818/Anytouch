@@ -41,7 +41,7 @@ class NodeTaskRunner(
     private val matcher: HighRiskMatcher = HighRiskMatcher.default(),
     private val confirmer: suspend (SafetyVerdict.RequiresSecondConfirm) -> Boolean = { false },
     private val killSwitch: KillSwitch = KillSwitch,
-    private val locateTimeoutMs: Long = 4000,
+    private val locateTimeoutMs: Long = 15_000,
     private val locatePollMs: Long = 250,
     private val confirmTimeoutMs: Long = 15_000,
     private val settleMs: Long = 350,

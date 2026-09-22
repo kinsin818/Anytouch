@@ -4,6 +4,7 @@
     <!-- S1 红线：无任何网络权限。BYOK 网络仅在 S3 由用户显式配置后引入。
          旧的系统弹窗悬浮权限已按军令 L1 移除：悬浮球/二次确认走 TYPE_ACCESSIBILITY_OVERLAY -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -26,6 +27,7 @@
             android:name=".service.AnytouchAccessibilityService"
             android:exported="false"
             android:label="Anytouch 执行器"
+            android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />

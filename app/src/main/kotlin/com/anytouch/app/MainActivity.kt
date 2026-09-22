@@ -82,8 +82,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_TASK_JSON = "task_json"
 
-        /** 冒烟任务：设置首页 → System → About phone → Android version（en-US 镜像口径）。门禁显式放行。 */
+        /** 冒烟任务：Connected devices → Connection preferences → Bluetooth（模拟器实测可三级钻取；真机口径属 T3）。门禁显式放行。 */
         const val SAMPLE_TASK =
-            """[{"action_id":"open-system","type":"click","source":"node","value":{"text":"System"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"open-about","type":"click","source":"node","value":{"text":"About phone"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"version-tap","type":"click","source":"node","value":{"text":"Android version"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""
+            """[{"action_id":"cd","type":"click","source":"node","value":{"text":"Connected devices"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"cp","type":"click","source":"node","value":{"text":"Connection preferences"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"bt","type":"click","source":"node","value":{"text":"Bluetooth"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""
     }
 }

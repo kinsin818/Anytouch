@@ -1,0 +1,49 @@
+==== 1/6 检查 emulator/AVD
+==== 2/6 启动模拟器（若未运行）
+==== 3/6 安装 APK
+==== 4/6 开启无障碍服务（先清空再写入，强制重绑：force-stop/安装后系统不会自动回绑）
+  服务已绑定
+==== 5/6 预热一轮（首次页面加载慢，不计入统计前先人工看一轮）
+==== 6/6 跑 20 轮任务并计定位成功率
+Warning: Activity not started, its current task has been brought to the front
+  run 1: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 2: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 3: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 4: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 5: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 6: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 7: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 8: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 9: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 10: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 11: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 12: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 13: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 14: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 15: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 16: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 17: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 18: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 19: OK
+Warning: Activity not started, its current task has been brought to the front
+  run 20: OK
+==== 定位成功率: 20/20 = 100.0%
+SMOKE PASS (模拟器口径; 真机口径属 T3)

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- flagReportViewIds：不加则 AccessibilityNodeInfo.viewIdResourceName 全为 null（一阶 resource-id 定位在真机形同虚设，模拟器实测）。
+     flagIncludeNotImportantViews：补齐被标为非重要而被裁掉的节点（如 Settings 网络页 Airplane mode 标题）。 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews"
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100" />

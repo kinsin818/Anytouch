@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.anytouch.app.locator.UiBounds
 import com.anytouch.app.locator.UiNode
 
@@ -58,8 +59,23 @@ interface NodeActions {
 
 class AccessibilityDevice(private val service: AccessibilityService) : NodeActions {
 
-    override suspend fun root(): UiNode? =
-        service.rootInActiveWindow?.let { AccessibilityUiNode(it) }
+    override suspend fun root(): UiNode? {
+        service.rootInActiveWindow?.let { return AccessibilityUiNode(it) }
+        // 模拟器实测：个别窗口 rootInActiveWindow 为 null 但窗口列表含应用窗口——按焦点/层级扫描兜底。
+        // 该 ROM 上仍有"窗口在场但 root 恒 null"的页面（Settings Internet 页、permissioncontroller 角色页），
+        // 系系统侧 a11y 树未下发；已在 accessibility_config 补 flagReportViewIds/flagIncludeNotImportantViews
+        // （否则 viewIdResourceName 全 null、非重要节点被裁，模拟器实测）。真机口径属 T3。
+        val windows = service.windows ?: return null
+        val ordered = windows
+            .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .sortedWith(
+                compareByDescending<AccessibilityWindowInfo> { it.isFocused }
+                    .thenByDescending { it.isActive }
+                    .thenByDescending { it.layer },
+            )
+        for (w in ordered) w.root?.let { return AccessibilityUiNode(it) }
+        return null
+    }
 
     override fun click(node: UiNode): Boolean {
         val target = (node as? AccessibilityUiNode)?.nearestClickableSelfOrAncestor() ?: return false
