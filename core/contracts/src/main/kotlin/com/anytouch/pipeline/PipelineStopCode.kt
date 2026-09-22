@@ -8,4 +8,6 @@ package com.anytouch.pipeline
 object PipelineStopCode {
     const val SAFETY_GATE_BLOCKED = "SAFETY_GATE_BLOCKED"
     const val INVALID_INPUT = "INVALID_INPUT"
+    /** 在跑任务被服务生命周期（系统重启/解绑无障碍服务）取消——非用户停止、非任务失败。 */
+    const val SERVICE_INTERRUPTED = "SERVICE_INTERRUPTED"
 }

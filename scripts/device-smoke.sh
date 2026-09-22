@@ -2,7 +2,8 @@
 # Anytouch 设备回归冒烟（模拟器口径）：把 evidence/S2 设备补记里逐条手打的命令固化成机器可重跑的断言。
 # 用法：bash scripts/device-smoke.sh   （需恰好 1 台 adb 设备、已装 debug APK、无障碍服务已绑）
 # 退出码：0=全部通过；1=有失败；2=前置不满足。产品路径零坐标注入、零网络，纯 adb + logcat 回执断言；
-# 唯一例外 C6 用 `input tap` 点悬浮停止球（测试通道模拟用户手指，不属产品定位方式）。
+# 例外（均为测试通道动作，脚本内留痕）：C6/C7 用 `input tap` 点悬浮停止球（模拟用户手指，非产品定位）；
+# C8 真实切换无障碍服务开关（settings put）复现"执行中被系统解绑"，case 尾重绑恢复。
 set -u
 
 fail=0
@@ -109,6 +110,33 @@ if printf '%s' "$r7" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
 else
     bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]（若归因 PASSWORD:password=触点又被面板吞了）"
 fi
+
+# ---------- C8 执行中解绑：服务生命周期取消必须留 SERVICE_INTERRUPTED 回执痕（第 7/8 颗雷回归锁） ----------
+# 背景：runTask 取消路径曾跳过收尾（running 永挂=执行器永久失能），finally 化后又发现"任务无声消失、
+# 报告层无痕"是同类黑洞。本 case 真实切换无障碍服务开关（测试通道动作），case 尾重绑恢复环境。
+MSYS_NO_PATHCONV=1 adb logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"i1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
+sleep 4  # 任务进入 15s 定位轮询中途
+MSYS_NO_PATHCONV=1 adb shell settings put secure enabled_accessibility_services null >/dev/null 2>&1
+r8=0
+for _ in 1 2 3 4 5 6 7 8; do
+    r8=$(MSYS_NO_PATHCONV=1 adb logcat -d -s AnytouchRun:W 2>/dev/null | grep 'run cancelled by service lifecycle' | grep -c 'SERVICE_INTERRUPTED' || true)
+    [ "${r8:-0}" -ge 1 ] && break
+    sleep 1
+done
+# 重绑恢复环境（后续 C8b 与下一轮冒烟的前置）
+MSYS_NO_PATHCONV=1 adb shell settings put secure enabled_accessibility_services "com.anytouch.app/.service.AnytouchAccessibilityService" >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell settings put secure accessibility_enabled 1 >/dev/null 2>&1
+sleep 3
+if [ "${r8:-0}" -ge 1 ]; then
+    pass "C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执"
+else
+    bad "C8 执行中解绑 :: 期望日志含 [run cancelled ... SERVICE_INTERRUPTED]，实际 [$r8]（回执黑洞复发）"
+fi
+
+# ---------- C8b 解绑后自愈：新任务必须照常执行并出正确归因（防 running 悬挂复发） ----------
+run_case "C8b 解绑重绑后执行器自愈" "stop=\"NODE_NOT_FOUND\"" \
+    "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"x2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" 60
 
 echo
 if [ "$fail" -eq 0 ]; then echo "device-smoke: ALL PASS"; else echo "device-smoke: 有失败项"; fi

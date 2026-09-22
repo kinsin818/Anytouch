@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.put
 
 /**
@@ -105,7 +106,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // 取消不是任务失败，不伪造 S1SMOKE 回执——但必须留痕（设备实证：无痕取消曾把
                 // "服务被系统重启"伪装成无事发生，running 悬挂吞掉后续全部任务）。
-                Log.w(TAG, "S1SMOKE run cancelled by service lifecycle (${e.message ?: e.javaClass.simpleName}), 回执缺席以此行为准")
+                // 回执层同罪：不写中断回执的话，用户界面停留在上一条陈旧报告上，丢单无痕。
+                val receipt = interruptedRunReport(e.message ?: e.javaClass.simpleName)
+                AppState.lastRunReport.value = receipt
+                Log.w(TAG, "S1SMOKE run cancelled by service lifecycle (${e.message ?: e.javaClass.simpleName}), 回执缺席以此行为准 receipt=$receipt")
                 throw e
             } catch (e: Exception) {
                 invalidTaskReport(e)
@@ -182,3 +186,30 @@ class AnytouchAccessibilityService : AccessibilityService() {
         const val NOTIF_ID = 1
     }
 }
+
+/**
+ * 服务生命周期取消在跑任务时的中断回执（与 encodeReport 同构，UI/测试通道统一消费）。
+ * results 故意为空且不携带已执行步——取消点之后的派发状态不可知，宁可标"不可信"也不给出
+ * 可能被误读为完整记录的假象。顶层函数（非类成员），JVM 单测可直接调用。
+ */
+internal fun interruptedRunReport(reason: String): String = buildJsonObject {
+    put("stopped", true)
+    put("results", buildJsonArray { })
+    put(
+        "stop_command",
+        ContractJson.instance.encodeToJsonElement(
+            Command.serializer(),
+            Command(
+                commandId = "service-interrupted-${System.nanoTime()}",
+                type = "stop",
+                source = "accessibility_service",
+                payload = buildJsonObject {
+                    put("stop_code", PipelineStopCode.SERVICE_INTERRUPTED)
+                    put("stop_reason", reason)
+                    put("note", "任务被服务生命周期中断；results 缺失，不代表已执行/未执行内容")
+                },
+                confirm = "stopped",
+            ),
+        ),
+    )
+}.toString()
