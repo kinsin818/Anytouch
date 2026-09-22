@@ -1,0 +1,34 @@
+STAGE-12 evidence: ./gradlew :app:testDebugUnitTest --tests "com.anytouch.app.safety.*" --rerun  (2026-09-22, 从零实跑)
+以下 PASSED 行与 testsuite 统计出自本次运行生成的 JUnit XML(app/build/test-results/testDebugUnitTest/)。
+注::app 未配置 testLogging,PASSED 明细取自 JUnit XML 而非 stdout,testsuite 行为原始统计。
+
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 2s
+24 actionable tasks: 1 executed, 23 up-to-date
+---- per-case (JUnit XML) ----
+testsuite name="com.anytouch.app.safety.HighRiskMatcherTest" tests="12" skipped="0" failures="0" errors="0"
+PASSED  英文关键词大小写不敏感命中  [0 failures]
+PASSED  三字段全空或null不崩溃且放行  [0 failures]
+PASSED  词表装载为空表视为坏装载默认拒绝  [0 failures]
+PASSED  已支付金额展示文本同样命中支付类（宁可多一次二次确认）  [0 failures]
+PASSED  普通设置节点三字段均未命中则放行  [0 failures]
+PASSED  七类中文关键词逐一命中  [0 failures]
+PASSED  多类同中按声明顺序取最高优先级为主判并全量留痕  [0 failures]
+PASSED  snake_case的resourceId命中子串匹配路径  [0 failures]
+PASSED  contentDesc字段同样受检  [0 failures]
+PASSED  发送键盘命中发送类而非支付类  [0 failures]
+PASSED  未初始化matcher默认拒绝  [0 failures]
+PASSED  词表装载抛异常则任何动作默认拒绝  [0 failures]
+testsuite name="com.anytouch.app.safety.KillSwitchTest" tests="4" skipped="0" failures="0" errors="0"
+PASSED  stop幂等且首信号不被覆盖  [0 failures]
+PASSED  初始为运行态且flow可见当前信号  [0 failures]
+PASSED  reset恢复运行态可再次停止  [0 failures]
+PASSED  stop后isStopped与flow同时翻转并携带现场  [0 failures]
+testsuite name="com.anytouch.app.safety.SafetyQueueRunnerTest" tests="6" skipped="0" failures="0" errors="0"
+PASSED  高危步无人确认则整条队列以SAFETY_GATE_BLOCKED中止  [0 failures]
+PASSED  高危步经二次确认后放行执行  [0 failures]
+PASSED  队列中途kill则剩余步中止  [0 failures]
+PASSED  全绿队列逐步执行且无停止回执  [0 failures]
+PASSED  词表坏时首步即拒且执行器零调用  [0 failures]
+PASSED  开跑前已被kill则一步不执行并产Command风格回执  [0 failures]
