@@ -60,3 +60,11 @@ adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_jso
 # 面板约 10-12s 出现；不碰=15s 超时拒（stop="PASSWORD:password"）
 # 点"取消"(390,1294) 或"确认执行"(702,1294)（adb input tap 仅测试操作，非产品通道）
 ```
+
+## 补案（09-22 10:04 UTC）：上方'重放风险'已固化为 TTL 修复
+风险观察里的 StateFlow 头重放不是不可达问题——它等价于'用户注入 4 分钟后服务恰好重绑，旧任务无人值守自动开跑'，违背用户意图驱动执行。已修：
+- TaskRequest 带 submittedAtMs，TaskPolicy.TTL_MS=60s；服务 collect 时过期即 consume+Log.w 丢弃；busy 分支同样 consume（防滞留重放）
+- JVM 新增 AppStateTest 3 用例（TTL 边界×2 + submit/consume 语义），全套 111 例绿
+- 设备实证过期即弃：解绑服务(grep=0)→注入→8s 零执行→65s 后重绑→日志只出 'stale request ... expired, dropped'（10:03:22.882），无 S1SMOKE 执行行
+- device-smoke 5/5 重跑无回归（10:03:40→10:04:27 全 PASS）
+残余观察不变：面板挂起时并发 uiautomator dump 的回执僵持仍留档待 T2/T3。

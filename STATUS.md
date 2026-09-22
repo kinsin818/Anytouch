@@ -5,7 +5,7 @@
 
 ## 一句话进度
 
-S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁决锁定补案）与 STAGE-22 RecorderSession 均已验收（**7 worker 交付 / 1 口头虚报拒收**，全 recorder 39/39 绿；STAGE-22 一次通过 16/16，三条契约严读法主窗采纳补记军令）。设备联调 **type_text 全链路结案**：曾定性"SET_TEXT 虚报雷"，根因查明为主窗自家 Compose 状态漏 `remember`（复核另修两处缺陷：句柄活读替代线索重定位、grep 误证撤回）；修复后模拟器双通道实证 ok——经典 EditText 跨 App ok=2/2、自家 Compose ok=1/1，落字复核 fail-closed 与 PASTE 兜底作为执行器契约保留（`evidence/S2/stage21-device-action-coverage.md` 补记+双截图）。实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论；type_text 修复后又录 S2 输入链 demo（click 搜索框→写入 wifi→点中 Wi-Fi 结果，ok=3/3，`evidence/S2/demo/`）。高危二次确认链设备实证补两个真 bug（overlay 必须挂服务 context；决策即撤面板），三路径闭环：超时拒/取消拒/确认放行 ok=3/3（`evidence/S2/stage-highrisk-confirm-device.md`）。
+S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁决锁定补案）与 STAGE-22 RecorderSession 均已验收（**7 worker 交付 / 1 口头虚报拒收**，全 recorder 39/39 绿；STAGE-22 一次通过 16/16，三条契约严读法主窗采纳补记军令）。设备联调 **type_text 全链路结案**：曾定性"SET_TEXT 虚报雷"，根因查明为主窗自家 Compose 状态漏 `remember`（复核另修两处缺陷：句柄活读替代线索重定位、grep 误证撤回）；修复后模拟器双通道实证 ok——经典 EditText 跨 App ok=2/2、自家 Compose ok=1/1，落字复核 fail-closed 与 PASTE 兜底作为执行器契约保留（`evidence/S2/stage21-device-action-coverage.md` 补记+双截图）。实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论；type_text 修复后又录 S2 输入链 demo（click 搜索框→写入 wifi→点中 Wi-Fi 结果，ok=3/3，`evidence/S2/demo/`）。高危二次确认链设备实证补两个真 bug（overlay 必须挂服务 context；决策即撤面板），三路径闭环：超时拒/取消拒/确认放行 ok=3/3；顺带把设备复现的"陈旧注入重绑偷跑"修成 60s TTL 即弃（全套 111 例绿、smoke 5/5，`evidence/S2/stage-highrisk-confirm-device.md`）。
 
 ## 阶段面板
 

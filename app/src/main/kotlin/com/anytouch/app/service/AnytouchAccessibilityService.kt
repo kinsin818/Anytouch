@@ -50,8 +50,15 @@ class AnytouchAccessibilityService : AccessibilityService() {
         scope.launch {
             AppState.taskRequests.collect { request ->
                 if (request == null) return@collect
+                if (AppState.isExpired(request)) {
+                    // 陈旧注入即弃：绝不因"服务恰好重绑"而偷跑用户早已放弃的任务（设备实测复现过）
+                    Log.w(TAG, "S1SMOKE stale request ${request.id} expired, dropped")
+                    AppState.consume(request)
+                    return@collect
+                }
                 if (AppState.running.value) {
-                    Log.w(TAG, "S1SMOKE busy, request ${request.id} ignored")
+                    Log.w(TAG, "S1SMOKE busy, request ${request.id} dropped")
+                    AppState.consume(request) // 忙中丢弃也要作废，否则滞留队列头会在重绑时重放
                     return@collect
                 }
                 runTask(request, ui)
