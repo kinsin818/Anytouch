@@ -1,0 +1,112 @@
+Anytouch | STAGE-11 | 节点树三级定位 — 单测证据
+仓库: D:\Anytouch (基线 commit 5049b05)
+命令: ./gradlew :app:testDebugUnitTest --tests "com.anytouch.app.locator.*" --rerun -I <仓库外临时 init 脚本>
+说明: app 模块的 testLogging 未开启，而 build.gradle.kts 属冻结文件；为拿到逐用例 PASSED 行，
+      用仓库外的 init 脚本临时注入 testLogging 配置（仓库零改动），--rerun 强制真跑而非 UP-TO-DATE。
+结果: 29 个用例全 PASSED / 0 FAILED / BUILD SUCCESSFUL
+---------------------------------------------------------------------------
+$ cd /d/Anytouch && ./gradlew :app:testDebugUnitTest --tests "com.anytouch.app.locator.*" --rerun -I <临时 init 脚本：仅开 testLogging，仓库零改动>
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+
+> Task :app:testDebugUnitTest
+
+NodeTreeLocatorTest > 二阶落空后三阶语法非法，两阶记录都在 miss 里 PASSED
+
+NodeTreeLocatorTest > 一阶落空自动走二阶，尝试链留两阶记录 PASSED
+
+NodeTreeLocatorTest > L3 前段命中为叶子时后段无范围可扫 PASSED
+
+NodeTreeLocatorTest > L1 唯一 resource-id 命中并留下 nodeRef 与活句柄 PASSED
+
+NodeTreeLocatorTest > L3 段内序号越界精确到段 PASSED
+
+NodeTreeLocatorTest > L1 多命中按 instance 取文档序 PASSED
+
+NodeTreeLocatorTest > L2 trim 后全等命中 PASSED
+
+NodeTreeLocatorTest > L2 contentDescription 等值命中并在 matchedBy 留痕 PASSED
+
+NodeTreeLocatorTest > L3 军令原例三段路径命中深层第三可点节点 PASSED
+
+NodeTreeLocatorTest > L3 中间段落空时精确报告段号与扫描范围 PASSED
+
+NodeTreeLocatorTest > L3 段内无序号取第一个可点节点且不受 instance 影响 PASSED
+
+NodeTreeLocatorTest > L3 通配段与空格分隔容错 PASSED
+
+NodeTreeLocatorTest > L1 instance 越界只报 miss 不降级 PASSED
+
+NodeTreeLocatorTest > L2 禁止 contains 式模糊命中 PASSED
+
+NodeTreeLocatorTest > 无任何线索的请求产出三阶 NOT_ATTEMPTED 而非猜测 PASSED
+
+NodeTreeLocatorTest > L3 前两阶落空由路径兜住且三阶尝试链完整 PASSED
+
+NodeTreeLocatorTest > L2 深层嵌套可命中 PASSED
+
+NodeTreeLocatorTest > 根节点为空时三阶一律 NOT_ATTEMPTED PASSED
+
+NodeTreeLocatorTest > L3 后代深度可变，段在锚点子树内按层序就近取 PASSED
+
+NodeTreeLocatorTest > 三阶线索齐备全空时逐级留痕 PASSED
+
+NodeTreeLocatorTest > 空串 resource-id 记为非法而非静默跳过 PASSED
+
+NodeTreeLocatorTest > L2 空串线索记为非法 PASSED
+
+NodeTreeLocatorTest > L1 可命中根节点自身 PASSED
+
+NodeTreeLocatorTest > L2 多命中按文档序深度优先取 instance PASSED
+
+NodeTreeLocatorTest > L3 谓词组合：class 短名与全名、id entry、package 与 text 与 scrollable PASSED
+
+NodeTreeLocatorTest > L3 路径语法非法一律记 INVALID_QUERY 不猜 PASSED
+
+NodeTreeLocatorTest > L2 text 与 desc 同时给出时按节点先后取命中 PASSED
+
+NodeTreeLocatorTest > L1 resource-id 整串全等，同名 entry 跨包不算命中 PASSED
+
+NodeTreeLocatorTest > L1 定位不读坐标，bounds 相同的两节点靠 resource-id 分辨 PASSED
+
+[Incubating] Problems report is available at: file:///D:/Anytouch/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2s
+24 actionable tasks: 1 executed, 23 up-to-date
