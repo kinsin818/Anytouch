@@ -296,7 +296,13 @@ class NodeTaskRunner(
                 (action.value?.string("direction") ?: "forward") != "backward",
             )
 
-            ActionType.TYPE_TEXT -> device.setText(textTarget(), action.value?.string("input") ?: "")
+            ActionType.TYPE_TEXT -> {
+                val t = textTarget()
+                val input = action.value?.string("input") ?: ""
+                // 真机实测（K40/MIUI 搜索框）：SET_TEXT 可"明示拒绝"返回 false——兜底通道必须在这条边
+                // 也上场，而非只治"虚报 true"；成败终裁仍是下方落字复核，paste 派发被接收≠落字。
+                device.setText(t, input) || device.pasteText(t, input)
+            }
             else -> false
         }
         if (!performed) {
