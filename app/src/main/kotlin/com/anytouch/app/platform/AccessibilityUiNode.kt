@@ -1,6 +1,9 @@
 package com.anytouch.app.platform
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
@@ -55,6 +58,15 @@ interface NodeActions {
     fun click(node: UiNode): Boolean
     fun scroll(node: UiNode, forward: Boolean): Boolean
     fun setText(node: UiNode, text: String): Boolean
+
+    /** 输入前置聚焦：Compose/系统框在未取得焦点时 SET_TEXT/PASTE 可能派发成功但不落字（模拟器实测）。 */
+    fun focus(node: UiNode): Boolean = false
+
+    /** 兜底输入通道：聚焦+剪贴板+ACTION_PASTE。返回 false=通道不可用（成败仍以执行器落字复核为准）。 */
+    fun pasteText(node: UiNode, text: String): Boolean = false
+
+    /** 句柄活读：落字复核必须读"派发时那个节点"，按原线索重定位会在线索被输入改变后误配他节点（实测踩坑）。 */
+    fun textOf(node: UiNode): String? = node.text
 }
 
 class AccessibilityDevice(private val service: AccessibilityService) : NodeActions {
@@ -92,11 +104,35 @@ class AccessibilityDevice(private val service: AccessibilityService) : NodeActio
         return target.info.performAction(action)
     }
 
+    override fun focus(node: UiNode): Boolean {
+        val target = node as? AccessibilityUiNode ?: return false
+        return target.info.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+    }
+
     override fun setText(node: UiNode, text: String): Boolean {
         val target = node as? AccessibilityUiNode ?: return false
         val args = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
         }
         return target.info.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+    }
+
+    /**
+     * 模拟器实测：ACTION_SET_TEXT 在系统搜索框谎称不支持（false）、在自家 Compose 框谎报成功（true 不落字）——
+     * 剪贴板+ACTION_PASTE 为兜底通道；无障碍服务写剪贴板属 privileged 来源（Android 10+ 后台限制豁免待真机复核，T3）。
+     * 本方法返回值只代表"派发是否被接收"，落字与否由执行器复核定夺。
+     */
+    override fun pasteText(node: UiNode, text: String): Boolean {
+        val target = node as? AccessibilityUiNode ?: return false
+        target.info.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        val clipboard = service.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return false
+        clipboard.setPrimaryClip(ClipData.newPlainText("anytouch.type", text))
+        return target.info.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    }
+
+    /** refresh()=向源 App 现取该节点最新状态；返回 false=句柄已失效（树重建），交执行器决定重定位。 */
+    override fun textOf(node: UiNode): String? {
+        val info = (node as? AccessibilityUiNode)?.info ?: return node.text
+        return if (info.refresh()) info.text?.toString() else null
     }
 }

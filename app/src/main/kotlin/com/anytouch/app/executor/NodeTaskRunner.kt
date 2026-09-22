@@ -5,6 +5,7 @@ import com.anytouch.app.locator.LocatorMiss
 import com.anytouch.app.locator.LocatorRequest
 import com.anytouch.app.locator.LocatorResult
 import com.anytouch.app.locator.NodeTreeLocator
+import com.anytouch.app.locator.UiNode
 import com.anytouch.app.platform.NodeActions
 import com.anytouch.app.safety.HighRiskMatcher
 import com.anytouch.app.safety.KillSwitch
@@ -45,6 +46,8 @@ class NodeTaskRunner(
     private val locatePollMs: Long = 250,
     private val confirmTimeoutMs: Long = 15_000,
     private val settleMs: Long = 350,
+    private val landedTimeoutMs: Long = 4_000,
+    private val focusSettleMs: Long = 800,
 ) {
 
     data class Report(
@@ -213,6 +216,14 @@ class NodeTaskRunner(
             }
         }
 
+        // Compose 输入框在未获焦时 SET_TEXT/PASTE 会"派发成功但不落字"（模拟器实测：ACTION_FOCUS 后
+        // IME 约 90ms 才挂上）。先聚焦、沉降、对活树重取节点（IME 弹起会换掉旧句柄）再派发。
+        suspend fun textTarget(): UiNode {
+            if (action.type != ActionType.TYPE_TEXT) return hit.node
+            device.focus(hit.node)
+            delay(focusSettleMs)
+            return (locator.locate(device.root(), request) as? LocatorHit)?.node ?: hit.node
+        }
         val performed = when (action.type) {
             ActionType.CLICK -> device.click(hit.node)
             ActionType.SCROLL -> device.scroll(
@@ -220,7 +231,7 @@ class NodeTaskRunner(
                 (action.value?.string("direction") ?: "forward") != "backward",
             )
 
-            ActionType.TYPE_TEXT -> device.setText(hit.node, action.value?.string("input") ?: "")
+            ActionType.TYPE_TEXT -> device.setText(textTarget(), action.value?.string("input") ?: "")
             else -> false
         }
         if (!performed) {
@@ -237,28 +248,44 @@ class NodeTaskRunner(
                 gateReceipt(action, index, "perform_failed").toCommand(),
             )
         }
+        var usedPasteRoute = false
         if (action.type == ActionType.TYPE_TEXT) {
-            // 模拟器实测：Compose 输入框 ACTION_SET_TEXT 返回 true 却可能不落字（快照 text 不刷新）——
-            // performAction 布尔不作数，重读活树验证"字确实进了框"，否则回执翻为失败（fail-closed）。
+            // 模拟器实测两面虚报：performAction 布尔不作数，落字复核以"派发句柄的活读"为准（refresh）。
+            // 不可按原线索重定位复核：线索文本会被输入本身改掉（hint 消失），重定位会配到别的节点造成假阴性
+            // （Settings 搜索框实测：文本已落成功却被复核判失败）。仅句柄失效时才回退线索重定位。
             val input = action.value?.string("input") ?: ""
             delay(settleMs)
-            val actual = locator.locate(device.root(), request).let { (it as? LocatorHit)?.node?.text?.trim() }
-            if (input.isNotBlank() && actual?.contains(input.trim()) != true) {
-                return StepOutcome(
-                    failure(
-                        action,
-                        StopReason(
-                            code = StopCode.EXECUTOR_ERROR,
-                            severity = StopSeverity.STOP,
-                            message = "SET_TEXT 未落字（performAction=true 为虚报）: 期望包含 \"$input\"",
-                            evidence = buildJsonObject {
-                                put("expected", input)
-                                put("actual", actual ?: "<重定位未命中>")
-                            },
+            var target = hit.node
+            var landedText = awaitLanded(target, input)
+            if (input.isNotBlank() && landedText?.contains(input.trim()) != true) {
+                device.focus(target)
+                delay(focusSettleMs)
+                landedText = device.textOf(target)
+                if (landedText == null) {
+                    target = (locator.locate(device.root(), request) as? LocatorHit)?.node ?: target
+                }
+                if (device.pasteText(target, input)) {
+                    usedPasteRoute = true
+                    delay(settleMs)
+                    landedText = awaitLanded(target, input)
+                }
+                if (landedText?.contains(input.trim()) != true) {
+                    return StepOutcome(
+                        failure(
+                            action,
+                            StopReason(
+                                code = StopCode.EXECUTOR_ERROR,
+                                severity = StopSeverity.STOP,
+                                message = "SET_TEXT${if (usedPasteRoute) "/PASTE" else ""} 未落字（performAction=true 为虚报）: 期望包含 \"$input\"",
+                                evidence = buildJsonObject {
+                                    put("expected", input)
+                                    put("actual", landedText ?: "<句柄失效或无文本>")
+                                },
+                            ),
                         ),
-                    ),
-                    gateReceipt(action, index, "set_text_unverified", StopCode.EXECUTOR_ERROR).toCommand(),
-                )
+                        gateReceipt(action, index, "set_text_unverified", StopCode.EXECUTOR_ERROR).toCommand(),
+                    )
+                }
             }
         }
         if (action.type == ActionType.CLICK || action.type == ActionType.SCROLL) {
@@ -271,8 +298,21 @@ class NodeTaskRunner(
                 put("matched_by", hit.matchedBy)
                 put("index_path", hit.nodeRef.indexPath)
                 if (secondConfirmed) put("second_confirmed", true)
+                if (usedPasteRoute) put("route", "paste_fallback")
             },
         )
+    }
+
+    /** 落字复核轮询：活读派发句柄（device.textOf→refresh），零真实等待外的误判。返回末次读数。 */
+    private suspend fun awaitLanded(node: UiNode, input: String): String? {
+        val deadline = System.currentTimeMillis() + landedTimeoutMs
+        var text: String? = null
+        while (true) {
+            text = device.textOf(node)?.trim()
+            if (text?.contains(input.trim()) == true) return text
+            if (System.currentTimeMillis() >= deadline) return text
+            delay(locatePollMs)
+        }
     }
 
     /** 页面切换期定位轮询：超时前每 [locatePollMs] 重取一次活树；root 未就绪时定位器自身记 miss。 */

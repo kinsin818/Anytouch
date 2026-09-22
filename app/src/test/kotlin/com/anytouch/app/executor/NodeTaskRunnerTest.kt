@@ -34,6 +34,7 @@ class NodeTaskRunnerTest {
         val performed = mutableListOf<String>()
         var succeed = true
         var mutateTree = true
+        var pasteWorks = false
 
         override suspend fun root(): UiNode? = root
 
@@ -52,6 +53,13 @@ class NodeTaskRunnerTest {
             // 仿真如真实设备成功路径：字要落进树——执行器落字复核会把只回 true 的假设备判为虚报。
             if (mutateTree) (node as? TestUi)?.text = text
             return succeed
+        }
+
+        override fun pasteText(node: UiNode, text: String): Boolean {
+            if (!pasteWorks) return false
+            performed += "paste:$text"
+            (node as? TestUi)?.text = text
+            return true
         }
     }
 
@@ -88,6 +96,7 @@ class NodeTaskRunnerTest {
         locateTimeoutMs = 0,
         locatePollMs = 10,
         settleMs = 0,
+        landedTimeoutMs = 0,
         confirmTimeoutMs = 200,
     )
 
@@ -307,6 +316,19 @@ class NodeTaskRunnerTest {
         assertEquals("EXECUTOR_ERROR", recovery.code)
         assertTrue("未落字" in recovery.message, "消息必须点破虚报性质: ${recovery.message}")
         assertEquals("set_text_unverified", payloadString(report.stopCommand!!, "stop_reason"))
+    }
+
+    @Test
+    fun `type_text SET_TEXT虚报后paste兜底落字 成功且details记route`() = runBlocking {
+        val device = FakeDevice(settingsTree()).apply { mutateTree = false; pasteWorks = true }
+        val report = runnerFor(device).run(
+            decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        assertEquals(listOf("setText:hi", "paste:hi"), device.performed, "先 SET_TEXT 复核未落字，才允许派发兜底")
+        assertFalse(report.stopped)
+        val result = report.results.single()
+        assertTrue(result.ok)
+        assertEquals("paste_fallback", (result.details["route"] as? kotlinx.serialization.json.JsonPrimitive)?.content)
     }
 
     @Test

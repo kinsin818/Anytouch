@@ -22,3 +22,4 @@
 - 冒烟脚本坑：组件名双段非法、force-stop 后不回绑（delete+re-put 强制重绑）、set -e 下 `grep -q && {}` 地雷、Git Bash 吞空参/路径转换。
 - 工具教训：Edit 返回成功后仍须对关键前置文件 Read 复核（一次 import 替换实际未落盘）。
 - 证据纪律自纠（本窗）：刷新 stage21-test-output.txt 时误覆盖 worker 区块——违反"证据只追加不覆盖"；已从 git HEAD 回填原文并在文件内标注。设备联调新发现 **ACTION_SET_TEXT 虚报**（performAction=true 不落字），主窗已加落字复核+回归锁定+设备复跑取证（evidence/S2/stage21-device-action-coverage.md）。
+- 主窗自纠二批（type_text 全链路，09-22 09:20 UTC 结案）：①所谓"Compose 通道虚报"根因实为主窗自家 MainActivity 状态漏 `remember`（写进的值下一帧被样例重置）——排查方向此前全押在系统侧，教训：**先证自家代码，再疑平台**；②"paste 实测已落字"系 grep 单行 XML 计数的误读（命中的是屏上失败报告文本），已撤回并以截图重证；③落字复核按原线索重定位有假阴性缺陷（hint 被输入吃掉后配到别的节点），改为派发句柄 refresh() 活读。修复后双通道设备实证：经典 EditText 跨 App ok=2/2、自家 Compose ok=1/1，108 例全绿 + ci-local PASS（evidence/S2/img/ 双截图）。

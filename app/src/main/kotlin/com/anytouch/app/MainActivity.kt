@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -43,7 +44,9 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     Modifier.fillMaxSize().semantics { testTagsAsResourceId = true },
                 ) {
-                    var taskJson by mutableStateOf(initial)
+                    // 必须 remember：裸 mutableStateOf 在每次重组合都新建实例，输入写进去又被初值冲掉
+                    // （模拟器实测 SET_TEXT/PASTE 的 onValueChange 都触发了，值却在下一帧回到样例——排查两小时的"虚报"实为自家状态丢失）。
+                    var taskJson by remember { mutableStateOf(initial) }
                     Column(
                         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),

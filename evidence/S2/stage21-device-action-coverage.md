@@ -55,3 +55,47 @@ adb logcat -d -s AnytouchRun:*   # 期望 S1SMOKE ok=2 total=2 stopped=false
 adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"task_input\",\"input\":\"setText device proof\"},\"safety\":{\"viewport_ok\":true,\"click_enabled\":true}}]' --ez keep_fg true"
 adb logcat -d -s AnytouchRun:*   # 期望 stop="set_text_unverified"（修复前此处是假绿 ok=1）
 ```
+
+---
+
+## 补记（2026-09-22 09:23 UTC）：type_text 双通道设备实证 + 两处自纠
+
+> 本节覆盖上节"期望 stop=set_text_unverified"的复跑口径（该回执属修复中间态，留档不删）。
+
+### 结论
+
+| 通道 | 目标 | 回执 | 证据 |
+| --- | --- | --- | --- |
+| type_text（直发 SET_TEXT） | Settings 搜索框（经典 EditText，跨 App，按 hint text 定位） | `S1SMOKE ok=2 total=2 stopped=false`（09:23:07.023） | img/stage21-type-classic-edittext.png（框内 "hello control final"，结果列表实时刷新） |
+| type_text（直发 SET_TEXT） | 自家 Compose OutlinedTextField（resource_id=task_input，keep_fg） | `S1SMOKE ok=1 total=1 stopped=false`（09:21:28.667） | img/stage21-type-compose-selftarget.png（框内 "compose proof9"，屏上报告 details.level=RESOURCE_ID） |
+
+PASTE 兜底通道：设备端本轮未触发（直发已落字）；其派发/复核逻辑由 JVM 用例锁住（NodeTaskRunnerTest 18 例内 2 例专测虚报翻失败与 route=paste_fallback）。
+
+### 根因（此前"Compose 虚报"定性的真相）
+
+**自家 MainActivity 的 Compose 状态缺陷，不是系统/Compose 通道问题。**
+`var taskJson by mutableStateOf(initial)` 写在 Surface 内容 lambda 里、**没有 remember**：每次重组合都新建状态实例并以样例 JSON 重置——SET_TEXT/PASTE 的 onValueChange 其实每次都执行了（AnytouchUI 探针日志：`onValueChange len=14 head='compose proof8'`），但下一帧 `compose pass taskJson.len=412` 把值冲回。修复：`remember { mutableStateOf(initial) }`。
+
+### 自纠两条（证据纪律）
+
+1. **"paste 已实测落字"系误判**：当时 `grep -c proof2 ui5.xml` 命中 1 行，实为屏上失败报告文本（单行 XML 里 grep 计数不含归属信息），非输入框内容。该结论撤回。
+2. **落字复核按原线索重定位是设计缺陷**：输入会改变线索本身（hint 文本被真值替换后，按 hint 重定位会配到页面其他同名文本节点），造成"已落字却判失败"的假阴性（Settings 搜索框 09:14:10 回执即此假阴性，截图证明文本已入框）。修复：复核改为对派发句柄 `AccessibilityNodeInfo.refresh()` 活读（`NodeActions.textOf`），仅句柄失效时回退线索重定位；JVM 假树语义不变，108 例全绿。
+
+### 保留的防御（不因根因修复而回退）
+
+- performAction 布尔不作数、落字复核定成败（fail-closed）——虚报在第三方 App 上依然可能发生，这是执行器契约而非本 App 补丁。
+- focus→settle→派发顺序 + PASTE 兜底 + `route=paste_fallback` 回执留痕。
+- landedTimeoutMs=4000 / focusSettleMs=800：第三方 Compose 框重组合延迟的实测余量。
+
+### 复跑（当前口径）
+
+```bash
+# 经典 EditText 跨 App（期望 ok=2 total=2 stopped=false）
+adb shell "am start -n com.android.settings/.Settings" && adb logcat -c
+adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"cs\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},\"safety\":{\"viewport_ok\":true,\"click_enabled\":true}},{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"hello control final\"},\"safety\":{\"viewport_ok\":true,\"click_enabled\":true}}]'"
+adb logcat -d -s AnytouchRun:*
+
+# Compose 自目标（期望 ok=1 total=1 stopped=false）
+adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"task_input\",\"input\":\"compose proof9\"},\"safety\":{\"viewport_ok\":true,\"click_enabled\":true}}]' --ez keep_fg true"
+adb logcat -d -s AnytouchRun:*
+```
