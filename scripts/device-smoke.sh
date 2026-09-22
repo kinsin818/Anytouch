@@ -92,6 +92,24 @@ else
     bad "C6 停止球即时响应 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r6]"
 fi
 
+# ---------- C7 面板挂起期点球：确认面板(touch-modal 雷, FLAG_NOT_TOUCH_MODAL)不得吞掉停止球触点 ----------
+# 链同 C5（超时默认拒绝），但 +9s 时面板应已弹出，点球后必须 ≤5s 出 user_stop（而非等满 15s 的 PASSWORD 归因）。
+MSYS_NO_PATHCONV=1 adb shell am force-stop com.android.settings >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+sleep 5
+MSYS_NO_PATHCONV=1 adb logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"p1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},$SAFE},{\"action_id\":\"p2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"password\"},$SAFE},{\"action_id\":\"p3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Passwords & accounts\"},$SAFE}]'" >/dev/null 2>&1
+sleep 9  # p1 开搜索、p2 落字、p3 命中 PASSWORD 词表 → 面板弹出挂起
+T0=$(date +%s)
+MSYS_NO_PATHCONV=1 adb shell input tap 1002 1272 >/dev/null 2>&1
+r7=$(wait_receipt C7 10)
+dt=$(( $(date +%s) - T0 ))
+if printf '%s' "$r7" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
+    pass "C7 面板挂起期点球即停 :: ${dt}s :: $r7"
+else
+    bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]（若归因 PASSWORD:password=触点又被面板吞了）"
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then echo "device-smoke: ALL PASS"; else echo "device-smoke: 有失败项"; fi
 exit "$fail"
