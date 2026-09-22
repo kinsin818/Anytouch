@@ -5,5 +5,6 @@
 | 日期 | Order | Worker | 事件 | 类别 | 结果 |
 |---|---|---|---|---|---|
 | 2026-09-22 | ANYTOUCH-S0 | STAGE-01 契约移植 | 一次通过：主窗逐字段 diff 一致，独立重跑 13/13 绿 | 无 | ACCEPTED |
+| 2026-09-22 | ANYTOUCH-S0 | STAGE-02 Mock闭环与CI | 一次通过：读码合格，独立重跑 19/19 绿 + ci-local exit 0；worker 自留痕 2 处坑（脚本自匹配/远程CI未验） | 无 | ACCEPTED |
 
-累计：交付 1 次，拒收 0 次，Retry 0 次。
+累计：交付 2 次，拒收 0 次，Retry 0 次。

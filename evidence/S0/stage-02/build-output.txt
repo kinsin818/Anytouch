@@ -1,0 +1,58 @@
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :core:contracts:assemble
+> Task :core:contracts:compileTestKotlin
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+
+> Task :core:contracts:test
+
+ContractsTest > commandSampleFromContractsDoc() PASSED
+
+ContractsTest > actionResultRoundTrip() PASSED
+
+ContractsTest > actionRoundTrip() PASSED
+
+ContractsTest > stopReasonSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanRoundTrip() PASSED
+
+ContractsTest > commandRoundTrip() PASSED
+
+ContractsTest > actionResultSampleFromContractsDoc() PASSED
+
+ContractsTest > stopReasonRoundTrip() PASSED
+
+ContractsTest > defaultSemanticsAndUnknownFields() PASSED
+
+ContractsTest > observationRoundTrip() PASSED
+
+ContractsTest > actionSampleFromContractsDoc() PASSED
+
+ContractsTest > observationSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanSampleFromContractsDoc() PASSED
+
+PipelineTest > safety gate viewport blocks chain with STOP receipt() PASSED
+
+PipelineTest > empty input yields empty result list without stopping() PASSED
+
+PipelineTest > normal chain executes all actions and echoes landed() PASSED
+
+PipelineTest > safety gate click disabled blocks first action only() PASSED
+
+PipelineTest > mock backend directly honors gates and echo() PASSED
+
+PipelineTest > dirty input fails loudly instead of faking success() PASSED
+
+> Task :core:contracts:check
+> Task :core:contracts:build
+
+BUILD SUCCESSFUL in 3s
+4 actionable tasks: 4 executed
+EXIT CODE: 0

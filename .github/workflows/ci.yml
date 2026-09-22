@@ -1,0 +1,25 @@
+# Anytouch S0 CI —— STAGE-02
+# 说明：
+# - 依赖解析走阿里云镜像源（见 settings.gradle.kts 的 pluginManagement / dependencyResolutionManagement），
+#   在无法访问镜像源的网络环境下会退到 mavenCentral/google，属预期行为。
+# - 本 workflow 不引用任何 GitHub secrets；S0 阶段远程可跑性未验证（本地无 GitHub remote），属预期遗留。
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build and test (all modules)
+        run: ./gradlew build --no-daemon

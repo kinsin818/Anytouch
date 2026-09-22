@@ -1,0 +1,77 @@
+==> [1/3] gradle build (:core:contracts)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :core:contracts:assemble UP-TO-DATE
+> Task :core:contracts:compileTestKotlin UP-TO-DATE
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+> Task :core:contracts:test UP-TO-DATE
+> Task :core:contracts:check UP-TO-DATE
+> Task :core:contracts:build UP-TO-DATE
+
+BUILD SUCCESSFUL in 1s
+4 actionable tasks: 4 up-to-date
+==> [2/3] gradle test (:core:contracts, --rerun-tasks)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :core:contracts:compileTestKotlin
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+
+> Task :core:contracts:test
+
+ContractsTest > commandSampleFromContractsDoc() PASSED
+
+ContractsTest > actionResultRoundTrip() PASSED
+
+ContractsTest > actionRoundTrip() PASSED
+
+ContractsTest > stopReasonSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanRoundTrip() PASSED
+
+ContractsTest > commandRoundTrip() PASSED
+
+ContractsTest > actionResultSampleFromContractsDoc() PASSED
+
+ContractsTest > stopReasonRoundTrip() PASSED
+
+ContractsTest > defaultSemanticsAndUnknownFields() PASSED
+
+ContractsTest > observationRoundTrip() PASSED
+
+ContractsTest > actionSampleFromContractsDoc() PASSED
+
+ContractsTest > observationSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanSampleFromContractsDoc() PASSED
+
+PipelineTest > safety gate viewport blocks chain with STOP receipt() PASSED
+
+PipelineTest > empty input yields empty result list without stopping() PASSED
+
+PipelineTest > normal chain executes all actions and echoes landed() PASSED
+
+PipelineTest > safety gate click disabled blocks first action only() PASSED
+
+PipelineTest > mock backend directly honors gates and echo() PASSED
+
+PipelineTest > dirty input fails loudly instead of faking success() PASSED
+
+BUILD SUCCESSFUL in 3s
+4 actionable tasks: 4 executed
+==> [3/3] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+==> ci-local PASS
+EXIT CODE: 0
