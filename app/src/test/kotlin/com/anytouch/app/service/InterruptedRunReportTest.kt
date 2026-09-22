@@ -36,4 +36,24 @@ class InterruptedRunReportTest {
         val idB = b.getValue("command_id").jsonPrimitive.content
         assertTrue(idA != idB, "两次调用 commandId 不得相同: $idA")
     }
+
+    @Test
+    fun `过期丢弃回执带 REQUEST_EXPIRED 且注明未开始执行`() {
+        val root = Json.parseToJsonElement(
+            droppedRunReport("REQUEST_EXPIRED", "注入超过 60s 未被消费即作废", "任务未开始执行即被作废"),
+        ).jsonObject
+        val payload = root.getValue("stop_command").jsonObject.getValue("payload").jsonObject
+        assertEquals("REQUEST_EXPIRED", payload.getValue("stop_code").jsonPrimitive.content)
+        assertTrue(payload.getValue("note").jsonPrimitive.content.contains("未开始执行"))
+        assertTrue(root.getValue("results").jsonArray.isEmpty())
+    }
+
+    @Test
+    fun `忙中丢弃回执注明会被执行中任务覆写`() {
+        val payload = Json.parseToJsonElement(
+            droppedRunReport("REQUEST_BUSY", "已有任务在执行", "执行中任务稍后会覆写本报告"),
+        ).jsonObject.getValue("stop_command").jsonObject.getValue("payload").jsonObject
+        assertEquals("REQUEST_BUSY", payload.getValue("stop_code").jsonPrimitive.content)
+        assertTrue(payload.getValue("note").jsonPrimitive.content.contains("覆写"))
+    }
 }

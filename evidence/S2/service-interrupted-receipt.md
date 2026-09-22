@@ -57,3 +57,27 @@ adb shell "am start ... task_json '[...新任务...]'"
 
 - **"不伪造回执"的对称义务是"不隐瞒中断"**：取消路径不写报告=把系统级失败伪装成"没有发生过"，与虚报成功同罪。
 - 全局状态机（running/report）的每一条退出边都要问一遍：用户此刻看到什么？"什么都没看到"通常就是答案里的缺陷。
+
+---
+
+# 追加：第 9 项——过期/忙中丢弃边补写回执（注入总线全退出边留痕）
+
+## 改动
+
+`interruptedRunReport` 泛化为 `droppedRunReport(stopCode, reason, note)`；TTL 过期丢弃与 busy 丢弃两条分支同样写
+`lastRunReport`（REQUEST_EXPIRED / REQUEST_BUSY）。`PipelineStopCode` 只增两常量。JVM +2 例（全套 119 绿）。
+
+## 设备实证（同进程 pid 14641）
+
+- **过期边**：解绑状态注入 → 等 62s（超 TTL）→ 重绑 → 11:06:49.577 W 行含 `REQUEST_EXPIRED` receipt，
+  全程 `S1SMOKE ok=` 计数=0（**确未执行，作废+留痕+不偷跑三合一**）；UI dump 含 REQUEST_EXPIRED
+  （截图 `img/expired-drop-receipt-ui-1107.png`）。
+- **busy 边——实测推翻既有口径（如实留痕）**：向"执行中再注入"实测两次，第二条并未被 busy 丢弃，
+  而是被 StateFlow conflation 并入队列、首任务完成后串行执行（11:05:14 / 11:05:29 两条回执）。
+  结论：正常架构下 busy 分支不可达（collect 内联执行，观察 running==true 只可能来自泄漏——第 7 颗雷已修），
+  属防御性 guard；其回执为保险丝留痕，JVM 测覆盖 builder 语义。"忙中即弃"的旧注释口径以本段为准修正为
+  "忙中并队串行，guard 分支防泄漏态偷跑"。
+
+## 回归
+
+全套 119 绿、ci-local 红线 PASS、device-smoke 9/9（第 3 轮，含 C8/C8b 未受扰动）。

@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.anytouch.app.AppState
+import com.anytouch.app.TaskPolicy
 import com.anytouch.app.TaskRequest
 import com.anytouch.app.executor.NodeTaskRunner
 import com.anytouch.app.platform.AccessibilityDevice
@@ -53,12 +54,25 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 if (request == null) return@collect
                 if (AppState.isExpired(request)) {
                     // 陈旧注入即弃：绝不因"服务恰好重绑"而偷跑用户早已放弃的任务（设备实测复现过）
-                    Log.w(TAG, "S1SMOKE stale request ${request.id} expired, dropped")
+                    // 丢弃也必须留痕（第 9 项）：无声吞注入=报告层黑洞，与虚报成功同罪。
+                    val receipt = droppedRunReport(
+                        PipelineStopCode.REQUEST_EXPIRED,
+                        "注入超过 ${TaskPolicy.TTL_MS / 1000}s 未被消费即作废（防重绑偷跑）",
+                    )
+                    AppState.lastRunReport.value = receipt
+                    Log.w(TAG, "S1SMOKE stale request ${request.id} expired, dropped receipt=$receipt")
                     AppState.consume(request)
                     return@collect
                 }
                 if (AppState.running.value) {
-                    Log.w(TAG, "S1SMOKE busy, request ${request.id} dropped")
+                    // 设备实测：正常架构下此分支不可达——执行中新注入被 StateFlow conflation 并队，
+                    // 首任务完成后串行执行；能走到这里说明 running 已泄漏（第 7 颗雷形态），防线即弃+留痕。
+                    val receipt = droppedRunReport(
+                        PipelineStopCode.REQUEST_BUSY,
+                        "已有任务在执行，新注入即弃（单执行器语义；执行中任务稍后会覆写本报告）",
+                    )
+                    AppState.lastRunReport.value = receipt
+                    Log.w(TAG, "S1SMOKE busy, request ${request.id} dropped receipt=$receipt")
                     AppState.consume(request) // 忙中丢弃也要作废，否则滞留队列头会在重绑时重放
                     return@collect
                 }
@@ -188,28 +202,33 @@ class AnytouchAccessibilityService : AccessibilityService() {
 }
 
 /**
- * 服务生命周期取消在跑任务时的中断回执（与 encodeReport 同构，UI/测试通道统一消费）。
- * results 故意为空且不携带已执行步——取消点之后的派发状态不可知，宁可标"不可信"也不给出
- * 可能被误读为完整记录的假象。顶层函数（非类成员），JVM 单测可直接调用。
+ * 注入总线每条"任务未走正常执行收尾"的退出边（生命周期取消/过期丢弃/忙中丢弃）都必须写回执——
+ * 与 encodeReport 同构，UI/测试通道统一消费。results 一律为空：中断场景派发状态不可知，
+ * 丢弃场景根本未开始执行；note 讲清语义，避免空 results 被误读为"执行过且零步成功"。
+ * 顶层函数（非类成员），JVM 单测可直接调用。
  */
-internal fun interruptedRunReport(reason: String): String = buildJsonObject {
-    put("stopped", true)
-    put("results", buildJsonArray { })
-    put(
-        "stop_command",
-        ContractJson.instance.encodeToJsonElement(
-            Command.serializer(),
-            Command(
-                commandId = "service-interrupted-${System.nanoTime()}",
-                type = "stop",
-                source = "accessibility_service",
-                payload = buildJsonObject {
-                    put("stop_code", PipelineStopCode.SERVICE_INTERRUPTED)
-                    put("stop_reason", reason)
-                    put("note", "任务被服务生命周期中断；results 缺失，不代表已执行/未执行内容")
-                },
-                confirm = "stopped",
+internal fun droppedRunReport(stopCode: String, reason: String, note: String = "任务未走正常执行收尾；results 缺失，不代表已执行/未执行内容"): String =
+    buildJsonObject {
+        put("stopped", true)
+        put("results", buildJsonArray { })
+        put(
+            "stop_command",
+            ContractJson.instance.encodeToJsonElement(
+                Command.serializer(),
+                Command(
+                    commandId = "dropped-${stopCode.lowercase()}-${System.nanoTime()}",
+                    type = "stop",
+                    source = "accessibility_service",
+                    payload = buildJsonObject {
+                        put("stop_code", stopCode)
+                        put("stop_reason", reason)
+                        put("note", note)
+                    },
+                    confirm = "stopped",
+                ),
             ),
-        ),
-    )
-}.toString()
+        )
+    }.toString()
+
+internal fun interruptedRunReport(reason: String): String =
+    droppedRunReport(PipelineStopCode.SERVICE_INTERRUPTED, reason)
