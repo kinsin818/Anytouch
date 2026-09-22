@@ -15,3 +15,12 @@ PASS C5 高危超时默认拒绝 :: S1SMOKE ok=2 total=3 stopped=true stop="PASS
 device-smoke: ALL PASS (5/5)
 
 ## 追加：TTL 修复后全量重跑（2026-09-22 10:04 UTC）5/5 PASS（时间戳 10:03:40.642→10:04:27.275，各行同上一轮断言）
+
+===== 09-22 10:17-10:19 停止球响应性修复后回归（第3轮）=====
+[0;32mPASS[0m C1 混合链(scroll+click Settings) :: 09-22 10:17:56.985 31510 31510 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C2 type_text 经典EditText :: 09-22 10:18:02.179 31510 31510 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C3 type_text Compose自目标 :: 09-22 10:18:04.979 31510 31510 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-22 10:18:20.695 31510 31510 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m C5 高危超时默认拒绝 :: 09-22 10:18:43.469 31510 31510 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+
+PASS: device-smoke: ALL PASS (5/5)

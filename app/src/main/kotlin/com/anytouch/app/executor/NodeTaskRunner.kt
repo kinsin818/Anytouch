@@ -20,7 +20,13 @@ import com.anytouch.contracts.StopCode
 import com.anytouch.contracts.StopReason
 import com.anytouch.contracts.StopSeverity
 import com.anytouch.pipeline.PipelineStopCode
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -115,6 +121,11 @@ class NodeTaskRunner(
             }
             results += outcome.result
             stopCommand = outcome.stopCommand
+            if (stopCommand == null && killSwitch.isStopped() && index == actions.size - 1) {
+                // 末步执行中按下停止：后面没有"步首查询"可命中，此处在步界补发回执，
+                // 否则整队会以 stopped=false 收官（中间步的停止由下一步步首检查归因，语义更准）。
+                stopCommand = killReceipt(action, index, killSwitch.snapshot()!!).toCommand()
+            }
             if (stopCommand != null) break
         }
 
@@ -142,6 +153,25 @@ class NodeTaskRunner(
         }
 
         val located = locateWithRetry(request)
+        if (located == null) {
+            val kill = killSwitch.snapshot()
+                ?: KillSwitch.KillSignal(reason = "user_stop", source = "kill_switch", sequence = 0)
+            return StepOutcome(
+                failure(
+                    action,
+                    StopReason(
+                        code = StopCode.USER_STOP,
+                        severity = StopSeverity.STOP,
+                        message = "用户在定位期间按下停止",
+                        evidence = buildJsonObject {
+                            put("stop_reason", kill.reason)
+                            put("stop_source", kill.source)
+                        },
+                    ),
+                ),
+                killReceipt(action, index, kill).toCommand(),
+            )
+        }
         val hit = located as? LocatorHit
         if (hit == null) {
             val miss = located as LocatorMiss
@@ -182,8 +212,44 @@ class NodeTaskRunner(
             SafetyVerdict.Clear -> Unit
 
             is SafetyVerdict.RequiresSecondConfirm -> {
-                val confirmed = withTimeoutOrNull(confirmTimeoutMs) { confirmer(verdict) } ?: false
-                if (!confirmed) {
+                // 等确认期间必须响应全局停止：轮询 KillSwitch 抢先取消确认等待，
+                // 停止信号到回执的延迟 ≤ locatePollMs（悬浮球点了就停，不再拖满 15s 超时）。
+                val confirmed: Boolean? = coroutineScope {
+                    val waiter = async { withTimeoutOrNull(confirmTimeoutMs) { confirmer(verdict) } ?: false }
+                    val killer = launch {
+                        while (!killSwitch.isStopped() && waiter.isActive) delay(locatePollMs)
+                        if (killSwitch.isStopped()) waiter.cancel()
+                    }
+                    try {
+                        waiter.await()
+                    } catch (e: CancellationException) {
+                        if (coroutineContext[Job]?.isActive != true) throw e
+                        null
+                    } finally {
+                        killer.cancel()
+                    }
+                }
+                if (confirmed == true) {
+                    secondConfirmed = true
+                } else {
+                    val kill = killSwitch.snapshot()
+                    if (kill != null) {
+                        return StepOutcome(
+                            failure(
+                                action,
+                                StopReason(
+                                    code = StopCode.USER_STOP,
+                                    severity = StopSeverity.STOP,
+                                    message = "用户在二次确认等待期按下停止",
+                                    evidence = buildJsonObject {
+                                        put("stop_reason", kill.reason)
+                                        put("stop_source", kill.source)
+                                    },
+                                ),
+                            ),
+                            killReceipt(action, index, kill).toCommand(),
+                        )
+                    }
                     return StepOutcome(
                         failure(
                             action,
@@ -197,7 +263,6 @@ class NodeTaskRunner(
                         gateReceipt(action, index, verdict.matchedRule.ruleId).toCommand(),
                     )
                 }
-                secondConfirmed = true
             }
 
             is SafetyVerdict.Denied -> {
@@ -270,6 +335,23 @@ class NodeTaskRunner(
                     landedText = awaitLanded(target, input)
                 }
                 if (landedText?.contains(input.trim()) != true) {
+                    killSwitch.snapshot()?.let { kill ->
+                        return StepOutcome(
+                            failure(
+                                action,
+                                StopReason(
+                                    code = StopCode.USER_STOP,
+                                    severity = StopSeverity.STOP,
+                                    message = "用户在落字复核期间按下停止",
+                                    evidence = buildJsonObject {
+                                        put("stop_reason", kill.reason)
+                                        put("stop_source", kill.source)
+                                    },
+                                ),
+                            ),
+                            killReceipt(action, index, kill).toCommand(),
+                        )
+                    }
                     return StepOutcome(
                         failure(
                             action,
@@ -303,11 +385,13 @@ class NodeTaskRunner(
         )
     }
 
-    /** 落字复核轮询：活读派发句柄（device.textOf→refresh），零真实等待外的误判。返回末次读数。 */
+    /** 落字复核轮询：活读派发句柄（device.textOf→refresh），零真实等待外的误判。返回末次读数。
+     *  每轮查 KillSwitch：按下停止即刻放弃复核返回，调用方出 USER_STOP 回执而非误报"未落字"。 */
     private suspend fun awaitLanded(node: UiNode, input: String): String? {
         val deadline = System.currentTimeMillis() + landedTimeoutMs
         var text: String? = null
         while (true) {
+            if (killSwitch.isStopped()) return text
             text = device.textOf(node)?.trim()
             if (text?.contains(input.trim()) == true) return text
             if (System.currentTimeMillis() >= deadline) return text
@@ -315,11 +399,13 @@ class NodeTaskRunner(
         }
     }
 
-    /** 页面切换期定位轮询：超时前每 [locatePollMs] 重取一次活树；root 未就绪时定位器自身记 miss。 */
-    private suspend fun locateWithRetry(request: LocatorRequest): LocatorResult {
+    /** 页面切换期定位轮询：超时前每 [locatePollMs] 重取一次活树；root 未就绪时定位器自身记 miss。
+     *  每轮查 KillSwitch：按下停止后 ≤locatePollMs 放弃定位，返回 null 由调用方出 USER_STOP 回执。 */
+    private suspend fun locateWithRetry(request: LocatorRequest): LocatorResult? {
         val deadline = System.currentTimeMillis() + locateTimeoutMs
         var last: LocatorResult
         while (true) {
+            if (killSwitch.isStopped()) return null
             last = locator.locate(device.root(), request)
             if (last is LocatorHit) return last
             if (System.currentTimeMillis() >= deadline) return last

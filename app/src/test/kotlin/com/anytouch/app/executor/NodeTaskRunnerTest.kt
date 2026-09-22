@@ -21,6 +21,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.ListSerializer
 
@@ -399,5 +400,101 @@ class NodeTaskRunnerTest {
         val report = runnerFor(device).run(decode("""[${click("e1", """{"text":"System"}""")}]"""))
         assertTrue(report.stopped)
         assertEquals(LocatorMiss.NODE_NOT_FOUND, report.results.single().recovery!!.code)
+    }
+
+    /* ---- 停止球响应性：长等待三处（定位轮询 / 二次确认 / 落字复核）必须 ≤poll 周期内中止 ---- */
+
+    private fun slowRunner(
+        device: NodeActions,
+        confirmer: suspend (SafetyVerdict.RequiresSecondConfirm) -> Boolean = { false },
+    ) = NodeTaskRunner(
+        device = device,
+        matcher = HighRiskMatcher.default(),
+        confirmer = confirmer,
+        locateTimeoutMs = 30_000,
+        locatePollMs = 10,
+        settleMs = 0,
+        landedTimeoutMs = 30_000,
+        confirmTimeoutMs = 30_000,
+    )
+
+    @Test
+    fun `定位轮询期间kill立即中止并产USER_STOP回执而非NODE_NOT_FOUND`() = runBlocking {
+        val device = FakeDevice(settingsTree())
+        val runner = slowRunner(device)
+        val killer = launch { delay(60); KillSwitch.stop(reason = "user_stop", source = "stop_ball") }
+        val started = System.currentTimeMillis()
+        val report = runner.run(decode("""[${click("l1", """{"text":"不存在的项"}""")}]"""))
+        killer.join()
+        val elapsed = System.currentTimeMillis() - started
+        assertTrue(elapsed < 10_000, "kill 必须在轮询周期内打断 30s 定位，实测 ${elapsed}ms")
+        assertTrue(report.stopped)
+        val cmd = report.stopCommand!!
+        assertEquals("kill_switch", cmd.source)
+        assertEquals("USER_STOP", payloadString(cmd, "stop_code"))
+        assertEquals("user_stop", payloadString(cmd, "stop_reason"))
+        assertEquals("stop_ball", payloadString(cmd, "stop_source"))
+        assertEquals("USER_STOP", report.results.single().recovery!!.code)
+    }
+
+    @Test
+    fun `二次确认等待期间kill取消面板等待并产USER_STOP回执`() = runBlocking {
+        val root = ui(
+            clazz = "FrameLayout",
+            children = listOf(ui(marker = "转账", id = "xfer", clickable = true)),
+        )
+        val device = FakeDevice(root)
+        val runner = slowRunner(device, confirmer = { delay(30_000); true })
+        val killer = launch { delay(60); KillSwitch.stop() }
+        val started = System.currentTimeMillis()
+        val report = runner.run(decode("""[${click("k2", """{"text":"转账"}""")}]"""))
+        killer.join()
+        val elapsed = System.currentTimeMillis() - started
+        assertTrue(elapsed < 10_000, "kill 必须打断 30s 确认等待，实测 ${elapsed}ms")
+        assertTrue(report.stopped)
+        val cmd = report.stopCommand!!
+        assertEquals("kill_switch", cmd.source)
+        assertEquals("USER_STOP", payloadString(cmd, "stop_code"))
+        assertEquals(listOf(), device.performed, "被停止的高危步绝不派发")
+    }
+
+    @Test
+    fun `落字复核期间kill中止轮询且不误报set_text_unverified`() = runBlocking {
+        val device = FakeDevice(settingsTree()).apply { mutateTree = false }
+        val runner = slowRunner(device)
+        val killer = launch { delay(60); KillSwitch.stop() }
+        val started = System.currentTimeMillis()
+        val report = runner.run(
+            decode("""[{"action_id":"t9","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        killer.join()
+        val elapsed = System.currentTimeMillis() - started
+        assertTrue(elapsed < 10_000, "kill 必须打断 30s 落字复核，实测 ${elapsed}ms")
+        assertTrue(report.stopped)
+        val cmd = report.stopCommand!!
+        assertEquals("kill_switch", cmd.source)
+        assertEquals("USER_STOP", payloadString(cmd, "stop_code"))
+        assertTrue(
+            payloadString(cmd, "stop_reason") != "set_text_unverified",
+            "停止原因不得被未落字误报抢占",
+        )
+    }
+
+    @Test
+    fun `末步执行中kill在步界补发回执_队列不以stopped_false收官`() = runBlocking {
+        val inner = FakeDevice(settingsTree())
+        val killer = object : NodeActions by inner {
+            override fun click(node: UiNode): Boolean {
+                val ok = inner.click(node)
+                KillSwitch.stop() // 模拟末步派发完成后的沉降窗口内按下停止
+                return ok
+            }
+        }
+        val report = runnerFor(killer).run(decode("""[${click("last", """{"text":"Display"}""")}]"""))
+        assertTrue(report.stopped, "末步后无步首检查点，必须在此补发")
+        assertEquals("kill_switch", report.stopCommand!!.source)
+        assertEquals("USER_STOP", payloadString(report.stopCommand!!, "stop_code"))
+        assertEquals(1, report.results.size)
+        assertTrue(report.results.single().ok, "该步确实完成了，回执表达的是停止而非失败")
     }
 }
