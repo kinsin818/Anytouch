@@ -87,7 +87,7 @@ ball tap  18:26:37.938   # 面板挂起期点球 (1002,1264)
 2. 首轮重测时顺手 `force-stop com.anytouch.app` 令服务解绑、注入无人消费（`enabled_accessibility_services` 被清成 null，
    已知行为再次踩中）；重绑后正常。附带收获：陈旧请求在重绑后按 60s TTL 正确丢弃，未偷跑。
 3. 挂起期球实际中心 ≈(1003,1264)（此场景面板布局使球位略低于默认）；坐标仍属测试通道专用。
-   过程截图：`img/probe-wrongid-locate-fail-{1,2,3}.png`（错误线索期页面态）、
+   过程截图：`img/probe-wrongid-locate-fail-{1,2,3,4}.png`（错误线索期页面态）、
    `img/panel-swallow-ball-BEFOREFIX-pending.png`（面板挂起+球可见但点不动）、
    `img/panel-swallow-ball-BEFOREFIX-timeout-deny.png`（超时拒绝后残留态）。
 
