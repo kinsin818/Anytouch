@@ -79,3 +79,11 @@ NodeSnapshot: resourceId?, text?, contentDesc?, className?, pkg, indexPath: List
 - 验收清单：主窗开工前把 L2 十条抄成 checklist 落 `evidence/S2/acceptance-checklist.md`，逐项对证据打钩，缺项即拒收
 - 不 commit / 不 push（集成权在主窗）、禁区清单照抄 S1
 - worker 标题：`Anytouch | STAGE-21 | 录制事件流转步骤DSL`
+
+### STAGE-22 主窗裁决补记（2026-09-22，验收时生效）
+
+worker 按军令字面提出的三条严读法全部采纳为契约：
+1) `resumeAsRecording()` 仅 STOPPED 合法（PAUSED 唯一走 `resume()`，转移图无平行边）；
+2) 存档 `state` 为审计字段，只记录不复活，读档运行态恒 STOPPED（字节幂等仅 IDLE/STOPPED 档承诺）；
+3) 读档 fail-closed **全有或全无**：任一事件损坏=整档 Failed，抢救式部分读档属新增能力、需另发军令。
+附带：时间戳边界"事件自带 ts、会话提供钟"，`append` 不改写调用方时间戳。
