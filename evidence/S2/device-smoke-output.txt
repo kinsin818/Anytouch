@@ -106,3 +106,29 @@ PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
 PASS C8b 解绑重绑后执行器自愈 :: 09-22 11:14:44.080 15827 15827 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
 
 device-smoke: ALL PASS
+
+==== T2 端到端后回归 + 幽灵触点事件轮（09-22 12:27-12:52 UTC）
+# 12:27 轮：C5/C7 FAIL(ok=3/3)——后证实为宿主侧外部鼠标点击落在确认面板"确认执行"按钮（getevent 布网留档，非代码回归）
+# 12:44 轮（回滚埋点、重装重绑后）：C1 一次瞬时 perform_failed（重跑即绿），其余 8/9 全 PASS，含 C5 正确超时拒
+# 12:46 轮：C1-C4/C6/C8/C8b PASS；C5/C7 再现 ok=3/3（同外部触点，12:48:59 trap 抓到 event2 无坐标增量点击）
+# 12:48:28 独立轮：C5 链正确 15s 超时默认拒绝 stop="PASSWORD:password"（fail-closed 完好终证）
+PASS C5 高危超时默认拒绝 :: 09-22 12:44:55.608 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C6 停止球即时响应 :: 1s :: 09-22 12:45:06.215 21235 21235 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 3s :: 09-22 12:45:21.363 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执 :: 09-22 12:45:xx
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 12:45:46.541 21235 21235 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+===== 09-22 13:05 UTC 洁净断言全绿轮（C7x 预算改 0 后首次整跑） =====
+[0;32mPASS[0m C1 混合链(scroll+click Settings) :: 09-22 13:04:39.187 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C2 type_text 经典EditText :: 09-22 13:04:44.599 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C3 type_text Compose自目标 :: 09-22 13:04:47.300 21235 21235 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-22 13:05:03.208 21235 21235 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m C5 高危超时默认拒绝 :: 09-22 13:05:27.138 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+[0;32mPASS[0m C5x 输入通道洁净（零外部触点）
+[0;32mPASS[0m C6 停止球即时响应 :: 0s :: 09-22 13:05:37.810 21235 21235 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+[0;32mPASS[0m C7 面板挂起期点球即停 :: 0s :: 09-22 13:05:53.771 21235 21235 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+[0;32mPASS[0m C7x 输入通道洁净（触摸 0 次 = 预算 0）
+[0;32mPASS[0m C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+[0;32mPASS[0m C8b 解绑重绑后执行器自愈 :: 09-22 13:06:17.238 21235 21235 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS

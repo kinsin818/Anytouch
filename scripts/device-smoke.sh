@@ -4,6 +4,9 @@
 # 退出码：0=全部通过；1=有失败；2=前置不满足。产品路径零坐标注入、零网络，纯 adb + logcat 回执断言；
 # 例外（均为测试通道动作，脚本内留痕）：C6/C7 用 `input tap` 点悬浮停止球（模拟用户手指，非产品定位）；
 # C8 真实切换无障碍服务开关（settings put）复现"执行中被系统解绑"，case 尾重绑恢复。
+# 输入通道洁净断言（09-22 幽灵触点事件）：C5/C7 用 getevent 布网，合法触点预算均为 0
+# （`input tap` 走 InputManager 注入、kernel /dev/input 看不见），任何捕获到的触摸即外部污染 FAIL。
+# 防共享模拟器上别人的手把安全负例点成假绿。
 set -u
 
 fail=0
@@ -68,11 +71,25 @@ run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"x1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" 60
 
 # ---------- C5 高危二次确认：无人点击=15s 超时默认拒绝（面板必须真实弹出，见 evidence/S2/stage-highrisk-confirm-device.md） ----------
+# 输入通道洁净断言（09-22 幽灵触点事件后加装）：C5 全程合法触点预算=0，
+# getevent 抓到任何触摸即判"外部污染"——防宿主鼠标/其他窗口把安全负例点成假绿。
 MSYS_NO_PATHCONV=1 adb shell am force-stop com.android.settings >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>&1
 sleep 5
+GEV=$(mktemp)
+MSYS_NO_PATHCONV=1 adb shell "getevent -lt" > "$GEV" 2>&1 &
+GE_PID=$!
+sleep 1
 run_case "C5 高危超时默认拒绝" "stop=\"PASSWORD:password\"" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},$SAFE},{\"action_id\":\"s2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"password\"},$SAFE},{\"action_id\":\"s3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Passwords & accounts\"},$SAFE}]'" 60
+kill $GE_PID 2>/dev/null
+# 注：`|| true` 是必需的——grep -c 零命中时退出码为 1，且其 0 已先打到 stdout，不能重复 echo。
+touches=$(grep -c "ABS_MT_TRACKING_ID   00000000" "$GEV" || true)
+if [ "${touches:-0}" -eq 0 ]; then
+    pass "C5x 输入通道洁净（零外部触点）"
+else
+    bad "C5x 输入通道洁净 :: 抓到 $touches 次外部触摸——C5 结果不可信（查谁的手/窗口在模拟器上），trap 存 $GEV"
+fi
 
 # ---------- C6 停止球即时响应：定位轮询期点球，回执须是 user_stop（非 NODE_NOT_FOUND）且 ≤5s 到达 ----------
 # 回归锁（Task #14 设备雷）：KillSwitch 曾只在步首查询，长等待环里点球无感、末步点球丢归因。
@@ -95,9 +112,16 @@ fi
 
 # ---------- C7 面板挂起期点球：确认面板(touch-modal 雷, FLAG_NOT_TOUCH_MODAL)不得吞掉停止球触点 ----------
 # 链同 C5（超时默认拒绝），但 +9s 时面板应已弹出，点球后必须 ≤5s 出 user_stop（而非等满 15s 的 PASSWORD 归因）。
+# 洁净预算=0：`input tap` 走 InputManager 注入、不经 /dev/input（getevent 看不见自家点球），
+# 故 trap 抓到任何触摸都是宿主侧外部点击——09-22 幽灵触点事件：外部鼠标在球停靠位原地下键，
+# 恰命中居中面板"确认执行"按钮，把 C5/C7 安全负例点成 ok=3/3 假绿。
 MSYS_NO_PATHCONV=1 adb shell am force-stop com.android.settings >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>&1
 sleep 5
+GEV7=$(mktemp)
+MSYS_NO_PATHCONV=1 adb shell "getevent -lt" > "$GEV7" 2>&1 &
+GE7=$!
+sleep 1
 MSYS_NO_PATHCONV=1 adb logcat -c >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"p1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},$SAFE},{\"action_id\":\"p2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"password\"},$SAFE},{\"action_id\":\"p3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Passwords & accounts\"},$SAFE}]'" >/dev/null 2>&1
 sleep 9  # p1 开搜索、p2 落字、p3 命中 PASSWORD 词表 → 面板弹出挂起
@@ -105,10 +129,17 @@ T0=$(date +%s)
 MSYS_NO_PATHCONV=1 adb shell input tap 1002 1272 >/dev/null 2>&1
 r7=$(wait_receipt C7 10)
 dt=$(( $(date +%s) - T0 ))
+kill $GE7 2>/dev/null
 if printf '%s' "$r7" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
     pass "C7 面板挂起期点球即停 :: ${dt}s :: $r7"
 else
-    bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]（若归因 PASSWORD:password=触点又被面板吞了）"
+    bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]（若归因 PASSWORD:password=先看 C7x：外部触点可能已点了确认按钮）"
+fi
+t7=$(grep -c "ABS_MT_TRACKING_ID   00000000" "$GEV7" || true)
+if [ "${t7:-0}" -eq 0 ]; then
+    pass "C7x 输入通道洁净（触摸 ${t7:-0} 次 = 预算 0）"
+else
+    bad "C7x 输入通道洁净 :: 抓到 $t7 次触摸 > 预算 0（input tap 不经 /dev/input，任何捕获即外部触点）——外部触点可能点了确认按钮，C7 结果不可信，trap 存 $GEV7"
 fi
 
 # ---------- C8 执行中解绑：服务生命周期取消必须留 SERVICE_INTERRUPTED 回执痕（第 7/8 颗雷回归锁） ----------

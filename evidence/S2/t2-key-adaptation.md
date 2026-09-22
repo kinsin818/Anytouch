@@ -92,3 +92,32 @@ adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_jso
 - 把 `DslCompiler` 从"探针"接进真正的创建期 UI（S2 录制→编译→执行主链）。
 - BYOK 三档实测（Gemini/GPT-4o-mini/Haiku）仍缺 Key，本批只覆盖 NVIDIA 单通道。
 - 老板侧：确认映射表勘误来源（另一账号还是区域差异），否则角色分配表要按实际目录重写。
+
+---
+
+## 7. 追加（同日 12:25–12:55 UTC）：C5/C7"高危门失效"疑云——设备实证为外部触点注入，非代码回归
+
+**现象**：T2 E2E 后的 smoke 轮（12:27）C5/C7 双双失败——高危链以 `ok=3 total=3 stopped=false` 收官，
+仿佛 PASSWORD 二次确认门整体失灵（最严重缺陷类别，立即停线排查）。
+
+**排查链（全部设备实证）**：
+1. 独立复跑 C5 链：12:36 轮复现 ok=3/3；12:39 轮却正确 15s 超时默认拒绝（`stop="PASSWORD:password"`）——**间歇性**。
+2. 临时埋点（`ANYDBG`，用毕已 revert，`git checkout` 双文件核对干净）打在 定位→判定→确认等待 三点：
+   - 判定层从未漏判：`verdict=s3 CONFIRM rule=PASSWORD:password` 每次都触发，命中节点 `android:id/title txt=Passwords & accounts` 归因无误；
+   - 失败轮全部死在同一处：`panel CONFIRM clicked`——**确认按钮真的被"点"了**（挂起后 0.9–3.3s），随后 `confirmed=true kill=null`。
+3. `getevent -lt` 全设备布网（`evidence/S2/getevent-phantom-tap-trap.txt`）：12:48:59 抓到幽灵触点——
+   `/dev/input/event2`（virtio 多点触摸）**只有 PRESSURE+TRACKING_ID、零 ABS_MT_POSITION 事件**
+   = 宿主侧鼠标在**上一触点残留坐标 (1002,1272)**（恰是 C6/C7 停止球测试位）原地下键，
+   该点正落在居中确认面板的"确认执行"按钮上。产品代码全量 grep：无 `dispatchGesture`/`performGlobalAction`/`performClick`——自家进程不可能发这个触点。
+4. 结论：**共享模拟器是多人格接触面**——排查时段恰是老板回到机器/其他窗口活跃时段（12:28 首现、12:44 轮全绿、12:46-12:52 再现）。fail-closed 链本身经两轮独立 15s 超时默认拒绝实证完好。
+
+**顺带挖出的真实产品隐患（记档待裁，未擅动布局）**：居中确认面板的"确认执行"按钮与停止球停靠位
+(1002,1272) 触点区重叠——用户在面板挂起期"想点球"的手指落点可能先命中确认按钮。建议 T3 真机窗口期
+把面板上移/按钮行左右换位（取消靠球侧），属浮层几何专项。
+
+**另一留痕（第 7 颗雷对称面再兑现）**：12:52 一轮注入撞上 MainActivity 单任务重启窗，服务被系统重启、
+在跑任务取消——`SERVICE_INTERRUPTED` 中断回执按设计落日志（"回执缺席以此行为准"行原文在档），
+丢单没有无痕。测试通道教训：注入前须确认上一轮已收尾。
+
+**门禁复核**：instrumented 版回滚后 `:app` 重编译重装重绑，12:44 轮 9/9（C1 一次瞬时 perform_failed 重跑即绿）、
+12:48 独立轮 C5 正确超时拒。判定层/面板层/回执层三层各自有正负例证据。**本事件零代码修改入档。**
