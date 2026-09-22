@@ -33,3 +33,16 @@
 
 ## 6. 结论
 真机三大地基项（安装绑定 / 点击导航 / 急停球）**全数过验**，且两处失败均为诚实回执非虚报。输入与滚动的 MIUI 特拒、C5 中文语境不可触发三项记入 T3 台账。
+
+## 7. 三案裁决回写（老板 2026-09-22 13:40 UTC，案卷 `orders/RULINGS-20260922.md` T3-R1/R2/R3）
+- R1 IME 第三通道：**不加**（攻击面理由，边缘场景用户手动输入规避）。
+- R2 scroll 坐标手势兜底：**红线不破不上**；口径落 `docs/usage-notes.md`（"MIUI 首页先手动滑一下再录"）。
+- R3 中文语境 C5：**第一版不测**；高危链真机轮以英文/国际版界面为前置（海外优先策略）。
+
+## 8. 高危链真机三路径闭环 + 整轮脚本真机轮（09-22 13:45 UTC，老板手不在屏上时全部 adb 通道）
+- 英文界面切换后（自家执行器点 "English" 完成切换，dogfood 顺证），MIUI 英文账号页存在天然 "Reset password" 节点（text 含 password），C5 真机轮不再依赖搜索链：
+  - **确认放行**：面板弹出（截图 `img/k40-confirm-panel-english.png`、`img/k40-panel-at-5s.png`）→ 老板手指点"确认执行"×2 → 步骤真实执行（进入 passport 网页）。主窗一度按幽灵触点纪律排查"谁的手"，后老板认领——**归因先查手，纪律在真机同样兑现**。
+  - **超时默认拒绝**：同链零操作 15s → `stop="PASSWORD:password"` + `SAFETY_GATE_BLOCKED` 明细。
+  - **挂起期点球急停**：面板挂起期 adb tap (1002,1272) → ≤4s `user_stop`，归因"二次确认等待期"。真机球坐标与模拟器默认值一致。
+- 整轮脚本真机轮（ANDROID_SERIAL=7ae4bfee）：5 绿 6 红，红项全部归因已知：C1=RID 不匹配（MIUI 首页容器不同名）、C2/C5 脚本链=MIUI 拒 SET_TEXT（R1 裁决口径）+ 队列 conflation 致回执串读（C3/C4 交叉计时，单发复测 C3 ok=1/1 绿）。**真机不适配模拟器脚本口径，R3 后按真机 profile 手测关键链为准**；英文界面无 password 词之虑解除（账号页天然命中）。
+- **真机第 2 雷（雷号 13）**：`am force-stop com.anytouch.app` 后 MIUI **直接清空** enabled_accessibility_services 里自家条目（AOSP 只停不删）——重装/手动强杀后必须重新追加绑定；产品侧"引导重开"话术列入 S4 上线前清单，测试通道口径=force-stop 属高危动作禁用。
