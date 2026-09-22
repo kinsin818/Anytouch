@@ -43,8 +43,9 @@ class OverlayUi(private val context: Context) {
         PixelFormat.TRANSLUCENT,
     )
 
-    fun showStopBall(onStop: () -> Unit) {
-        if (stopBall != null) return
+    /** @return 球可用（已挂上或本就在位）；false=addView 失败——调用侧必须拒执行，无急停手段不得开跑。 */
+    fun showStopBall(onStop: () -> Unit): Boolean {
+        if (stopBall != null) return true
         val ball = TextView(context).apply {
             text = "■"
             setTextColor(Color.WHITE)
@@ -59,7 +60,10 @@ class OverlayUi(private val context: Context) {
             gravity = Gravity.END or Gravity.CENTER_VERTICAL
             x = 24
         }
-        runCatching { windowManager.addView(ball, params) }.onSuccess { stopBall = ball }
+        return runCatching { windowManager.addView(ball, params) }
+            .onSuccess { stopBall = ball }
+            .onFailure { Log.w(TAG, "stop ball addView failed: ${it.message}", it) }
+            .isSuccess
     }
 
     fun hideStopBall() {

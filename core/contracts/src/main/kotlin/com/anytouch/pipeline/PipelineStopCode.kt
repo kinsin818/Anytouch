@@ -14,4 +14,6 @@ object PipelineStopCode {
     const val REQUEST_EXPIRED = "REQUEST_EXPIRED"
     /** 已有任务在执行时新注入即弃（单执行器语义）。 */
     const val REQUEST_BUSY = "REQUEST_BUSY"
+    /** 悬浮停止球挂不上=全局急停手段缺席，fail-closed 拒绝开始执行。 */
+    const val SAFETY_BALL_UNAVAILABLE = "SAFETY_BALL_UNAVAILABLE"
 }

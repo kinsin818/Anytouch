@@ -109,8 +109,20 @@ class AnytouchAccessibilityService : AccessibilityService() {
         AppState.running.value = true
         // 执行期挂前台服务：cached 进程会被 doze 冻结，定位轮询将停摆（模拟器实测复现）
         startForegroundCompat()
-        ui.showStopBall { KillSwitch.stop() }
+        // 安全模型前提显式化：停止球是唯一全局急停手段，挂不上就绝不开跑
+        // （此前 addView 失败被吞——无急停状态下静默执行，违背 fail-closed 精神）。
+        // 注意：拒跑 return 也必须在 try 内——finally 收尾（running 落位/消费队列）对早退同样成立。
         try {
+            if (!ui.showStopBall { KillSwitch.stop() }) {
+                val receipt = droppedRunReport(
+                    PipelineStopCode.SAFETY_BALL_UNAVAILABLE,
+                    "悬浮停止球挂不上，全局急停手段缺席",
+                    "任务未开始执行（fail-closed 拒跑）",
+                )
+                AppState.lastRunReport.value = receipt
+                Log.w(TAG, "S1SMOKE stop ball unavailable, refuse to run receipt=$receipt")
+                return
+            }
             val report = try {
                 val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
                 NodeTaskRunner(
@@ -160,7 +172,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
         runCatching {
             startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         }.onFailure {
-            runCatching { startForeground(NOTIF_ID, notification) }
+            runCatching { startForeground(NOTIF_ID, notification) }.onFailure { e2 ->
+                // 双形态皆败=进程可被 doze 冻结（第 1 颗雷形态），轮询可能停摆——必须留痕可归因
+                Log.w(TAG, "startForeground failed in both forms, doze-freeze risk, task continues", e2)
+            }
         }
     }
 
