@@ -1,0 +1,58 @@
+$ ./gradlew :app:testDebugUnitTest --tests "*recorder*" --rerun-tasks   (exit 0)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebug
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:processDebugManifestForPackage
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :app:mergeDebugResources
+> Task :app:processDebugResources
+> Task :app:compileDebugKotlin
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 7s
+24 actionable tasks: 24 executed
+---
+用例计数（app/build/test-results/testDebugUnitTest/TEST-com.anytouch.app.recorder*.xml）:
+<testsuite name="com.anytouch.app.recorder.RecorderCompilerTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-09-22T07:25:26.901Z" hostname="MS-MJHQJOCTVCHZ" time="0.209">
+<testsuite name="com.anytouch.app.recorder.RecorderEditingTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-22T07:25:27.113Z" hostname="MS-MJHQJOCTVCHZ" time="0.007">
+---
+汇总: tests=20 skipped=0 failures=0 errors=0
+输出中含 FAILED 的行数: 0
+---
+$ grep -rE "import (android|java\.net|okhttp)" app/src/main/kotlin/com/anytouch/app/recorder/ | wc -l
+0
+---
+$ bash scripts/ci-local.sh   (完整输出落盘 evidence/S2/stage21-ci-local-output.txt)
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+==> [4/4] ci-local PASS
+CI_EXIT=0

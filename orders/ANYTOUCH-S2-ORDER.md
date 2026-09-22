@@ -57,6 +57,11 @@ NodeSnapshot: resourceId?, text?, contentDesc?, className?, pkg, indexPath: List
 
 去抖窗口内部常量组织、丢弃记录数据结构、路径串生成算法——worker 自决，L2 断言全绿即可。
 
+## 主窗裁决补记（验收时点 2026-09-22，STAGE-21 上报项）
+
+1. **路径串编码**：军令示例 `className[i]` 形态经核与冻结定位器语义冲突（快照无祖先链类名；`[n]`=同类候选序而非文档下标，带同名兄弟必 miss）。worker 按 L3 留白改用 AnyNode 链 `*[i0+1]>*[i1]>…`（BFS 层序 rank 恒等换算，首段候选含 root 故 +1），并以 NodeTreeLocator 真实命中（assertSame）做三树形往返证明。**采纳**；示例形态不再视为硬承诺。
+2. **空白 resourceId 按缺失处理**：字面直传会撞定位器 L1 INVALID_QUERY 且不降级=步骤必失败。按"空白=缺失"落 text/desc/路径，用例锁定。**采纳**，军令 L2-5"resourceId 独占"读作"非空白 resourceId 独占"。
+
 ## 交付纪律（PROTO-lead-gate 版）
 
 - 交付物 = 代码 + `evidence/S2/stage21-test-output.txt`（测试命令原样输出）+ 自坑留痕；聊天回复不算交付
