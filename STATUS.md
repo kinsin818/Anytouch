@@ -5,7 +5,7 @@
 
 ## 一句话进度
 
-S0 奠基、S1 核心执行器均已完成并 commit（2026-09-22，4 worker 交付 / 0 拒收）；S1 模拟器冒烟 20/20=100% 收口。等待 S2 开工指令与 T2/T3 资源配给。
+S0 奠基、S1 核心执行器均已完成并 commit（2026-09-22，4 worker 交付 / 0 拒收）；S1 模拟器冒烟 20/20=100% 收口，demo 录像已打包。S2 框架层（无门禁部分）已发军令并派 STAGE-21 worker；实测层仍等 T2/T3 资源配给。
 
 ## 阶段面板
 
@@ -13,7 +13,7 @@ S0 奠基、S1 核心执行器均已完成并 commit（2026-09-22，4 worker 交
 |---|---|---|---|
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
-| S2 录制 | 🔒 门票门禁 | T2（需模型 Key） | `orders/RULINGS-20260922.md` P0-1 |
+| S2 录制 | 🟡 框架部分施工中（无门禁层）；实测层 🔒 | 实测层需 T2（模型 Key） | 框架军令 `orders/ANYTOUCH-S2-ORDER.md`（commit 22e953c），worker STAGE-21 已派；门票裁决 `RULINGS-20260922.md` P0-1 |
 | S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
