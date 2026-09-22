@@ -5,3 +5,11 @@
 [0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-22 09:27:41.552 23083 23083 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
 
 device-smoke: ALL PASS
+
+## 追加：C5 高危超时默认拒绝固化后全量重跑（2026-09-22 09:57 UTC，commit 724370f 修复版 APK）
+PASS C1 混合链(scroll+click Settings) :: S1SMOKE ok=2 total=2 stopped=false
+PASS C2 type_text 经典EditText :: S1SMOKE ok=2 total=2 stopped=false
+PASS C3 type_text Compose自目标 :: S1SMOKE ok=1 total=1 stopped=false
+PASS C4 负例 NODE_NOT_FOUND :: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+device-smoke: ALL PASS (5/5)

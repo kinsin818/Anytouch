@@ -65,6 +65,13 @@ run_case "C3 type_text Compose自目标" "ok=1 total=1 stopped=false" \
 run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"x1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" 60
 
+# ---------- C5 高危二次确认：无人点击=15s 超时默认拒绝（面板必须真实弹出，见 evidence/S2/stage-highrisk-confirm-device.md） ----------
+MSYS_NO_PATHCONV=1 adb shell am force-stop com.android.settings >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+sleep 5
+run_case "C5 高危超时默认拒绝" "stop=\"PASSWORD:password\"" \
+    "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},$SAFE},{\"action_id\":\"s2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"password\"},$SAFE},{\"action_id\":\"s3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Passwords & accounts\"},$SAFE}]'" 60
+
 echo
 if [ "$fail" -eq 0 ]; then echo "device-smoke: ALL PASS"; else echo "device-smoke: 有失败项"; fi
 exit "$fail"
