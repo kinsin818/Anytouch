@@ -1,0 +1,7 @@
+# device-smoke.sh 首跑输出（2026-09-22 09:26 UTC，MarvisPhone 模拟器 API34，commit 4115810 之后）
+[0;32mPASS[0m C1 混合链(scroll+click Settings) :: 09-22 09:27:17.613 23083 23083 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C2 type_text 经典EditText :: 09-22 09:27:22.933 23083 23083 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C3 type_text Compose自目标 :: 09-22 09:27:25.644 23083 23083 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-22 09:27:41.552 23083 23083 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS
