@@ -28,4 +28,4 @@ S0 奠基、S1 核心执行器均已完成并 commit（2026-09-22，4 worker 交
 ## 纪律数据
 
 `orders/METRICS.md`：交付 4 / 拒收 0 / Retry 0；S1 收口挖出 3 颗真机雷（doze 冻结/viewId 全 null/StateFlow 重放）均有留痕，JVM 单测测不出。
-治理文件：军令协议 `orders/ANYTOUCH-S0-ORDER.md` 为范本；裁决案卷 `orders/RULINGS-20260922.md`。
+治理文件：军令协议 `orders/ANYTOUCH-S0-ORDER.md` 为范本；裁决案卷 `orders/RULINGS-20260922.md`；主窗硬约束 `orders/PROTO-lead-gate.md`（军令对照验收/拆分可证伪，老板 2026-09-22 拍板）。
