@@ -1,0 +1,147 @@
+package com.anytouch.tools.compiler
+
+import com.anytouch.contracts.Action
+import com.anytouch.contracts.ActionType
+import com.anytouch.contracts.ContractJson
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+/**
+ * 创建期编译器（T2/BYOK 测量层，host 侧工具，非设备产品路径）：
+ * 自然语言意图 -> 模型 -> Action JSON -> fail-closed 校验。
+ * 设备端红线（core/ 与 app/src/main 零网络）不在此列——本模块是测试通道，
+ * 豁免先例同 device-smoke C6/C7（脚本内留痕，不污染产品代码）。
+ */
+
+interface LlmTransport {
+    fun complete(systemPrompt: String, userPrompt: String): String
+}
+
+sealed interface CompileResult {
+    data class Ok(val actions: List<Action>, val actionsJson: String) : CompileResult
+    /** stage: transport|parse|decode|validate；detail 人读归因。模型输出永远不直接进执行器。 */
+    data class Reject(val stage: String, val detail: String) : CompileResult
+}
+
+object CompilerPrompt {
+    val SYSTEM = """
+        你是 Anytouch 的任务编译器：把用户的自然语言意图编译成 Android UI 自动化 Action JSON 数组。
+        硬性规则：
+        1) 只输出一个 JSON 数组，不要解释、不要 markdown 代码块；
+        2) 每个元素字段：action_id（短英文小写id，数组内唯一）、type、source、value、safety；
+        3) type 只允许 "click" | "type_text" | "scroll" | "key"；source 只允许 "node"；
+        4) value：click 用 {"text":"屏幕上可见的目标文本"}；
+           type_text 用 {"text":"输入框可见文本","input":"要输入的字符串"}；
+           scroll 用 {"resource_id":"容器id","direction":"forward|backward"}；
+           key 用 {"key":"back|home|enter"}；
+        5) safety 固定 {"viewport_ok":true,"click_enabled":true}；
+        6) 严禁出现 target/x/y 等任何坐标字段——定位一律靠节点文本/id；
+        7) 意图中出现的英文界面词就是屏幕上的可见文本，直接使用它们；
+        8) 例：意图「进蓝牙页」→ [{"action_id":"cd","type":"click","source":"node","value":{"text":"Connected devices"},"safety":{"viewport_ok":true,"click_enabled":true}}]
+    """.trimIndent()
+}
+
+class DslCompiler(private val transport: LlmTransport) {
+
+    fun compile(intent: String): CompileResult {
+        val raw = try {
+            transport.complete(CompilerPrompt.SYSTEM, intent)
+        } catch (e: Exception) {
+            return CompileResult.Reject("transport", e.message ?: e.javaClass.simpleName)
+        }
+        val snippet = extractJsonArray(raw)
+            ?: return CompileResult.Reject("parse", "模型输出中无 JSON 数组: ${raw.take(160)}")
+        val actions = try {
+            ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), snippet)
+        } catch (e: Exception) {
+            return CompileResult.Reject("decode", (e.message ?: e.javaClass.simpleName).take(300))
+        }
+        validate(snippet)?.let { (stage, detail) -> return CompileResult.Reject(stage, detail) }
+        return CompileResult.Ok(actions = actions, actionsJson = snippet)
+    }
+
+    /** 校验必须看原始 JSON（ContractJson ignoreUnknownKeys=true，解码会静默吞掉未知键）。 */
+    private fun validate(snippet: String): Pair<String, String>? {
+        val root = try {
+            ContractJson.instance.parseToJsonElement(snippet).jsonArray
+        } catch (e: Exception) {
+            return "decode" to "二次解析失败: ${e.message}"
+        }
+        if (root.isEmpty()) return "validate" to "空动作数组（模型拒编或意图不可编译）"
+        val ids = HashSet<String>()
+        for ((i, el) in root.withIndex()) {
+            val obj = el as? JsonObject ?: return "validate" to "action[$i] 不是对象"
+            if (obj.containsKey("target")) return "validate" to "action[$i] 出现坐标字段 target——产品红线禁止"
+            val id = obj["action_id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+                ?: return "validate" to "action[$i] 缺 action_id"
+            if (!ids.add(id)) return "validate" to "action_id 重复: $id"
+            val type = obj["type"]?.jsonPrimitive?.contentOrNull
+            if (type !in ALLOWED_TYPES) return "validate" to "action[$i] type=$type 不在白名单 ${ALLOWED_TYPES}"
+            if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return "validate" to "action[$i] source 必须为 node"
+            val safety = obj["safety"] as? JsonObject ?: return "validate" to "action[$i] 缺 safety"
+            if (safety["viewport_ok"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
+                return "validate" to "action[$i] safety.viewport_ok 未显式放行"
+            if (type == "click" && safety["click_enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
+                return "validate" to "action[$i] click 未显式 click_enabled"
+            val value = obj["value"] as? JsonObject ?: return "validate" to "action[$i] 缺 value"
+            value.keys.intersect(FORBIDDEN_VALUE_KEYS).let {
+                if (it.isNotEmpty()) return "validate" to "action[$i] value 含坐标类键 $it"
+            }
+            when (type) {
+                "click" -> if (value["text"].strOrNull().isNullOrBlank()) return "validate" to "action[$i] click 缺可见文本"
+                "type_text" -> {
+                    if (value["text"].strOrNull().isNullOrBlank()) return "validate" to "action[$i] type_text 缺输入框文本"
+                    if (value["input"].strOrNull() == null) return "validate" to "action[$i] type_text 缺 input"
+                }
+                "scroll" -> if (value["direction"]?.jsonPrimitive?.contentOrNull !in setOf("forward", "backward"))
+                    return "validate" to "action[$i] scroll direction 非法"
+                "key" -> if (value["key"]?.jsonPrimitive?.contentOrNull !in setOf("back", "home", "enter"))
+                    return "validate" to "action[$i] key 值非法"
+            }
+        }
+        return null
+    }
+
+    private fun JsonElement?.strOrNull(): String? =
+        (this as? JsonPrimitive)?.contentOrNull
+
+    companion object {
+        val ALLOWED_TYPES = setOf(ActionType.CLICK, ActionType.TYPE_TEXT, ActionType.SCROLL, ActionType.KEY)
+        val FORBIDDEN_VALUE_KEYS = setOf("x", "y", "point", "coordinate", "coordinates", "bounds", "offset", "offset_x", "offset_y")
+
+        /** 容忍模型裹 ```json 围栏或前后寒暄：取第一个平衡的 [...] 片段。 */
+        fun extractJsonArray(raw: String): String? {
+            val start = raw.indexOf('[').takeIf { it >= 0 } ?: return null
+            var depth = 0
+            var inString = false
+            var escaped = false
+            for (i in start until raw.length) {
+                val c = raw[i]
+                if (inString) {
+                    when {
+                        escaped -> escaped = false
+                        c == '\\' -> escaped = true
+                        c == '"' -> inString = false
+                    }
+                } else {
+                    when (c) {
+                        '"' -> inString = true
+                        '[' -> depth++
+                        ']' -> {
+                            depth--
+                            if (depth == 0) return raw.substring(start, i + 1)
+                        }
+                    }
+                }
+            }
+            return null
+        }
+    }
+}

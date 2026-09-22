@@ -6,13 +6,16 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "==> [1/4] gradle build (:core:contracts + :app)"
+echo "==> [1/4] gradle build (:core:contracts + :app + :tools:compiler)"
 # 依赖解析走 settings.gradle.kts 中配置的阿里云镜像源，离线/不可达环境会失败，属预期
-./gradlew :core:contracts:build :app:assembleDebug
+# 口径注记：:tools:compiler 是 host 侧 T2 测量工具（允许网络，Key 仅环境变量），
+# 红线 A/C 覆盖的设备产品路径（core/ 与 app/src/main）零网络语义不变。
+./gradlew :core:contracts:build :app:assembleDebug :tools:compiler:build
 
-echo "==> [2/4] gradle test (:core:contracts, :app, --rerun-tasks)"
+echo "==> [2/4] gradle test (:core:contracts, :app, :tools:compiler, --rerun-tasks)"
 ./gradlew :core:contracts:test --rerun-tasks
 ./gradlew :app:testDebugUnitTest --rerun
+./gradlew :tools:compiler:test --rerun-tasks
 
 echo "==> [3/4] 红线 grep"
 

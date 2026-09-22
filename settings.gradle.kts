@@ -22,3 +22,4 @@ rootProject.name = "anytouch"
 
 include(":core:contracts")
 include(":app")
+include(":tools:compiler")
