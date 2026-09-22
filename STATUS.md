@@ -13,7 +13,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁
 |---|---|---|---|
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
-| S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
+| S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）；设备回归固化为 `scripts/device-smoke.sh`（4/4 PASS）。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面+冒烟输出 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
 | S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
