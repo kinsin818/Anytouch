@@ -68,3 +68,11 @@ adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_jso
 - 设备实证过期即弃：解绑服务(grep=0)→注入→8s 零执行→65s 后重绑→日志只出 'stale request ... expired, dropped'（10:03:22.882），无 S1SMOKE 执行行
 - device-smoke 5/5 重跑无回归（10:03:40→10:04:27 全 PASS）
 残余观察不变：面板挂起时并发 uiautomator dump 的回执僵持仍留档待 T2/T3。
+
+---
+
+## 风险留档更新（09-22 10:47 UTC）：dump-under-panel 专项已结案
+
+当年"生产不可达、留 T2/T3 复现再立专项"的两半已分晓：重放风暴=已由 60s TTL+busy-consume 消灭（复测仅一条丢弃日志）；
+回执僵持=真缺陷，根因为 runTask 取消路径跳过收尾致 `AppState.running` 永挂、后续任务全被吞——
+已修（try/finally 无条件收尾 + 取消留痕日志），设备复测恢复。全文见 `kill-ball-device.md` 追加段。

@@ -95,31 +95,38 @@ class AnytouchAccessibilityService : AccessibilityService() {
         // 执行期挂前台服务：cached 进程会被 doze 冻结，定位轮询将停摆（模拟器实测复现）
         startForegroundCompat()
         ui.showStopBall { KillSwitch.stop() }
-        val report = try {
-            val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
-            NodeTaskRunner(
-                device = AccessibilityDevice(this),
-                confirmer = { verdict -> ui.awaitSecondConfirm(verdict) },
-            ).run(actions)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e // 取消不是任务失败，向上层传播，不伪造回执
-        } catch (e: Exception) {
-            invalidTaskReport(e)
+        try {
+            val report = try {
+                val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
+                NodeTaskRunner(
+                    device = AccessibilityDevice(this),
+                    confirmer = { verdict -> ui.awaitSecondConfirm(verdict) },
+                ).run(actions)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // 取消不是任务失败，不伪造 S1SMOKE 回执——但必须留痕（设备实证：无痕取消曾把
+                // "服务被系统重启"伪装成无事发生，running 悬挂吞掉后续全部任务）。
+                Log.w(TAG, "S1SMOKE run cancelled by service lifecycle (${e.message ?: e.javaClass.simpleName}), 回执缺席以此行为准")
+                throw e
+            } catch (e: Exception) {
+                invalidTaskReport(e)
+            }
+            AppState.lastRunReport.value = encodeReport(report)
+            Log.i(
+                TAG,
+                "S1SMOKE ok=${report.results.count { it.ok }} total=${report.results.size} " +
+                    "stopped=${report.stopped} stop=${report.stopCommand?.payload?.get("stop_reason") ?: "-"}",
+            )
+            report.results.lastOrNull()?.recovery?.let { rec ->
+                Log.i(TAG, "S1SMOKE-DETAIL code=${rec.code} msg=${rec.message.take(300)}")
+            }
+        } finally {
+            // 收尾必须无条件执行：悬浮球/前台态/running 头寸/队列消费一个都不能随取消失踪
+            ui.hideStopBall()
+            AppState.running.value = false
+            stopForegroundCompat()
+            // 消费完毕即清空：StateFlow 重放语义会在服务重绑时把旧任务再执行一次（模拟器实测）
+            AppState.consume(request)
         }
-        AppState.lastRunReport.value = encodeReport(report)
-        Log.i(
-            TAG,
-            "S1SMOKE ok=${report.results.count { it.ok }} total=${report.results.size} " +
-                "stopped=${report.stopped} stop=${report.stopCommand?.payload?.get("stop_reason") ?: "-"}",
-        )
-        report.results.lastOrNull()?.recovery?.let { rec ->
-            Log.i(TAG, "S1SMOKE-DETAIL code=${rec.code} msg=${rec.message.take(300)}")
-        }
-        ui.hideStopBall()
-        AppState.running.value = false
-        stopForegroundCompat()
-        // 消费完毕即清空：StateFlow 重放语义会在服务重绑时把旧任务再执行一次（模拟器实测）
-        AppState.consume(request)
     }
 
     private fun startForegroundCompat() {

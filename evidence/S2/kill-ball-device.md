@@ -94,3 +94,37 @@ ball tap  18:26:37.938   # 面板挂起期点球 (1002,1264)
 ## 回归
 
 OverlayUi 修复后全套 JVM 115/115 绿、ci-local 红线 A–E PASS（本文件所附 NodeTaskRunnerTest 22/22）。
+
+---
+
+# 追加：dump-under-panel 残留风险正名与修复（第 7 颗雷·running 悬挂）· 09-22 10:47 UTC
+
+## 复测结论（TTL 修复后重跑当年风险场景）
+
+面板挂起期连发 `uiautomator dump`：
+- **重放风暴已死**：只出现一条 `S1SMOKE busy, request … dropped`（新采集器对队头重放即弃），无循环。TTL/busy-consume 兑现。
+- **回执僵持是真的，且根因比想象严重**：dump 触发服务进程重启（旧 pid 1658→新 10326），旧 runTask 协程被取消——
+  取消路径 `throw CancellationException` 跳过了收尾五连（hideStopBall/running=false/stopForeground/consume），
+  `AppState.running` 永挂 true。设备实证后果：**此后注入的新任务全部被 "busy" 静默吞掉，执行器永久失能**
+  （10:44:04 `S1SMOKE busy, request 19604395001200 dropped`，任务实际从未执行）。生产可达：系统随时可重启无障碍服务。
+
+## 修复（主窗自纠）
+
+`AnytouchAccessibilityService.runTask` 收尾改 `try/finally`：悬浮球/前台态/running/队列消费无条件执行；
+取消路径保留"不伪造 S1SMOKE 回执"纪律，但必打 `S1SMOKE run cancelled by service lifecycle … 回执缺席以此行为准` 留痕。
+
+## 修复后设备实证（同场景重放）
+
+```
+09-22 10:45:13.044 W/AnytouchRun(10326): S1SMOKE run cancelled by service lifecycle (Job was cancelled), 回执缺席以此行为准
+（ hazard 后注入新任务 ）
+09-22 10:45:33.727 I/AnytouchRun(10326): S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"   ← 执行了，不再 busy 吞
+```
+（NODE_NOT_FOUND 属预期：hazard 后画面停在搜索结果页，"Connected devices" 不在屏——归因正确即恢复成功。）
+全套 JVM 115/115 绿、ci-local 红线 A–E PASS、device-smoke 7/7（10:46-10:47 段归档）。
+
+## 残余观察更新
+
+- 取消窗口内面板若已弹出：`onDestroy→overlay.dispose()` 撤面，无残留触点（截图 `img/dump-under-panel-HANG-check.png` 为修复前现场：面板/球/回执全无 = 静默死）。
+- "取消期最后一条 performAction 是否可能已派发"——取消只发生在挂起点（delay/locate），派发本身原子短促；fail-closed 语义不受损。
+- dump 触发进程重启仍属测试通道自伤（生产无 uiautomator），但**服务被系统重启**是生产可达事件，本修复对两者同时生效。
