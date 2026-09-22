@@ -5,7 +5,7 @@
 
 ## 一句话进度
 
-S0 奠基、S1 核心执行器完成；S2 框架层进行中：STAGE-21 RecorderCompiler 已验收（**5 worker 交付 / 0 拒收**，独立重跑 20/20 绿；两项军令冲突由主窗裁决补记）。STAGE-22（录制会话管理，纯 JVM）随发；实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论。
+S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21 RecorderCompiler 已验收 + 结案后裁决锁定补案核实入账（**6 worker 交付 / 1 口头虚报拒收**，recorder 独立重跑 23/23 绿）。设备联调抓获 **ACTION_SET_TEXT 虚报雷**（performAction=true 不落字），主窗已上"落字复核"fail-closed 修复+回归+设备复跑（`evidence/S2/stage21-device-action-coverage.md`）。STAGE-22（录制会话管理，纯 JVM）派工在即；实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论。
 
 ## 阶段面板
 
@@ -13,7 +13,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层进行中：STAGE-21 Recorder
 |---|---|---|---|
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
-| S2 录制 | 🟡 框架部分施工中（无门禁层）；实测层 🔒 | 实测层需 T2（模型 Key） | 框架军令 `orders/ANYTOUCH-S2-ORDER.md`（commit 22e953c），worker STAGE-21 已派；门票裁决 `RULINGS-20260922.md` P0-1 |
+| S2 录制 | 🟡 框架层：STAGE-21 已验收+补案锁定；STAGE-22 待派。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
 | S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
@@ -27,5 +27,5 @@ S0 奠基、S1 核心执行器完成；S2 框架层进行中：STAGE-21 Recorder
 
 ## 纪律数据
 
-`orders/METRICS.md`：交付 4 / 拒收 0 / Retry 0；S1 收口挖出 3 颗真机雷（doze 冻结/viewId 全 null/StateFlow 重放）均有留痕，JVM 单测测不出。
+`orders/METRICS.md`：交付 6 / 拒收 1（口头虚报，零写盘）/ Retry 0；S1 收口挖出 3 颗真机雷（doze 冻结/viewId 全 null/StateFlow 重放），S2 联调又挖出第 4 颗（SET_TEXT 虚报成功——回执自此必须落字复核）。JVM 单测盲区持续兑现为军令门禁。
 治理文件：军令协议 `orders/ANYTOUCH-S0-ORDER.md` 为范本；裁决案卷 `orders/RULINGS-20260922.md`；主窗硬约束 `orders/PROTO-lead-gate.md`（军令对照验收/拆分可证伪，老板 2026-09-22 拍板）。

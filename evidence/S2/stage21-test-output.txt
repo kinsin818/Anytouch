@@ -1,3 +1,32 @@
+$ ./gradlew :app:testDebugUnitTest --tests "*recorder*" --rerun-tasks   (主窗重跑 2026-09-22 08:16, 含 LockTest 3 例)
+RecorderAdjudicationLockTest > 裁决1锁定 非空白resourceId独占且产物永不携带空白串id PASSED
+RecorderAdjudicationLockTest > 裁决2锁定 路径形态为首段加一后续等子下标的AnyNode链 不嵌入className PASSED
+RecorderAdjudicationLockTest > 裁决1锁定 空白resourceId不进一阶 按缺失落text或路径 PASSED
+RecorderCompilerTest > L2-2 SET_TEXT 原文不 trim 不转义丢失，JSON 往返后全等 PASSED
+RecorderCompilerTest > L2-3 confirmed=false 不产步骤，产 DroppedBySafety 记录（fail-closed） PASSED
+RecorderCompilerTest > L1 输入结构与产物零坐标字段 PASSED
+RecorderCompilerTest > L2-1 只保留目标包且窗口在目标包的动作，跨包丢弃并计数归因 PASSED
+RecorderCompilerTest > L2-8 未知事件子类型丢弃并计数，不崩不产步骤 PASSED
+RecorderCompilerTest > L2-5 仅路径词汇：产物路径串可被 PathPatternParser 解析且 NodeTreeLocator 回放命中同一节点 PASSED
+RecorderCompilerTest > L2-10 丢弃原因枚举 total 映射到 STAGE-02 回执 6 类，稳定码与冻结文件对齐 PASSED
+RecorderCompilerTest > L2-7 全丢弃时零步骤但归因完整，半步与非法路径也在此族 PASSED
+RecorderCompilerTest > L2-5 有 resourceId 时步骤 value 只用 resource_id，其余词汇一概不进 PASSED
+RecorderCompilerTest > L2-4 合并判定用时间戳与索引路径，异路径或被其他动作打断不合并 PASSED
+RecorderCompilerTest > L2-5 无 id（含空白 id）用 trim 全等 text 与 desc，仍无才落层级路径 PASSED
+RecorderCompilerTest > L2-6 产物为 contracts Action 列表 JSON，decode 回读等值且键名符合执行器解码口径 PASSED
+RecorderCompilerTest > L2-4 去抖边界 恰好300ms不合并，299ms合并 PASSED
+RecorderCompilerTest > L2-4 同 indexPath 连续 CLICK 小于300ms 合并为一步，merged 计数 PASSED
+RecorderCompilerTest > L2-7 空事件流产出空步骤与零归因，不抛异常 PASSED
+RecorderCompilerTest > 金链 compile到encode到decode到NodeTaskRunner 全绿且SET_TEXT原文送达设备 PASSED
+RecorderEditingTest > L2-9 删第2步后原第5步逐字段原样且活树仍可定位命中 PASSED
+RecorderEditingTest > L2-9 编辑后的列表重新序列化往返仍等值（删步不产脏 JSON） PASSED
+RecorderEditingTest > L2-9 改名与移序为纯列表函数，其余步骤逐条不动 PASSED
+RecorderEditingTest > L2-9 编辑原语越界与空名一律拒绝，不静默吞 PASSED
+BUILD SUCCESSFUL in 6s
+exit=0
+FAILED 行数: 0
+
+=== 历史区块（主窗纪律自纠：上覆盖错了，此为首跑原文回填，来自 git HEAD） ===
 $ ./gradlew :app:testDebugUnitTest --tests "*recorder*" --rerun-tasks   (exit 0)
 > Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:contracts:processResources NO-SOURCE

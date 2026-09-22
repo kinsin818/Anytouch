@@ -50,3 +50,11 @@ dependencies {
 
     testImplementation(kotlin("test"))
 }
+
+// S2 基设（STAGE-21 提案，主窗落地）：单测逐条打印，失败带堆栈——worker 证据文件不再只有一行总数
+tasks.withType<Test> {
+    testLogging {
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}

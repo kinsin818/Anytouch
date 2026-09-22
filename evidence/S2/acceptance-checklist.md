@@ -26,3 +26,10 @@
 ## 验收结论（主窗，2026-09-22）
 
 **ACCEPTED，一次通过（0 拒收）。** 独立重跑：`--tests "*recorder*"` exit 0、16+4=20 用例 0 failures；grep import android/java.net/okhttp = 0；ci-local PASS；`git status` 证明冻结区零改动。worker 上报两项军令冲突均已裁决并补记入 `orders/ANYTOUCH-S2-ORDER.md`"主窗裁决补记"。自坑留痕 6 条质量高（去抖负间隔穿透为真实缺陷、自纠后补反例用例）。
+
+## 补案 addendum（结案后，2026-09-22，主窗亲验）
+
+- worker 结案后补交 `RecorderAdjudicationLockTest.kt`（3 用例，锁两条主窗裁决：空白 resourceId 按缺失、AnyNode 路径链形态）——**逐行读码核实为真断言**（含 assertSame 走真 NodeTreeLocator 回放 4 种 indexPath 形态），非恒真填充。
+- 主窗独立重跑 `--tests "*recorder*"`：RecorderAdjudicationLockTest 3 + RecorderCompilerTest 16 + RecorderEditingTest 4 = **23/23，0 failures**（worker 通知里的"22（16+4+2）"计数仍不实，以磁盘 XML 为准）。
+- 该补充件与同批落盘的 `app/build.gradle.kts` testLogging、MainActivity 自目标改造（testTag/keep_fg）一并由主窗集成 commit。
+- 同轮设备实测发现 **ACTION_SET_TEXT 虚报**（performAction=true 但不落字），主窗已在 NodeTaskRunner 加落字复核并锁回归；详见 `stage21-device-action-coverage.md`。

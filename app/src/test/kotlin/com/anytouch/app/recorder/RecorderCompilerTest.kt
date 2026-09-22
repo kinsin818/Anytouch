@@ -8,6 +8,7 @@ import com.anytouch.app.locator.LocatorRequest
 import com.anytouch.app.locator.NodeTreeLocator
 import com.anytouch.app.locator.PathPatternParser
 import com.anytouch.app.locator.SegmentPredicate
+import com.anytouch.app.locator.TestUi
 import com.anytouch.app.locator.UiNode
 import com.anytouch.app.locator.ui
 import com.anytouch.app.platform.NodeActions
@@ -490,6 +491,7 @@ class RecorderCompilerTest {
 
         override fun setText(node: UiNode, text: String): Boolean {
             performed += "setText:$text"
+            (node as? TestUi)?.text = text // 字落进树，配合执行器的落字复核（真机实测：只回 true 会被判虚报）
             return true
         }
     }

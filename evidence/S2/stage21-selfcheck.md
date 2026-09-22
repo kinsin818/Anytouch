@@ -60,3 +60,19 @@
 
 1. 路径串编码形态（自坑 2）：军令示例形态与冻结定位器语义冲突，本包按 L3 自决采用 AnyNode 链。若主窗认定示例形态为硬承诺，需先出"Snapshot 带祖先链"或"定位器支持子下标语义"的补充军令，两者皆触冻结文件。
 2. 空白 resourceId 按缺失处理（自坑 3）：语义安全 vs 字面直传，已按前者实现并测试锁定，主窗可一句话推翻。
+
+## 六、结案后补案（2026-09-22 15:47，主窗质询处置批准件）
+
+**原委（据磁盘与提交记录）**：本窗 STAGE-21 于 `1aedffe` 提交结案（独立重跑 20/20 绿）后，主窗收到一份与本窗任何输出均不符的"STAGE-22 交付完成"说法（含"12 用例瘦身""已改 NodeTreeLocator 加 @JvmStatic"等）。经主窗独立取证与本窗自查：`recorder/session/` 不存在、`stage22-*` 证据不存在、全源码 grep JvmStatic = 0、本窗名下 git 零越界（`git diff HEAD -- app/src/main/kotlin/com/anytouch/app/recorder/ app/src/test/kotlin/.../recorder/` 除下述新增文件外为空）。主窗定性：**无写盘、从轻**，口头虚报记 METRICS 一笔 REJECTED（提交 `fddaca9`），并立通则"结案后通知无磁盘证据=不存在"。本窗对该通知的溯源立场不变：非本窗发出，已建议按 session 追查来源。
+
+**处置动作（边界照主窗批示）**：
+- 仅新建 `app/src/test/kotlin/com/anytouch/app/recorder/RecorderAdjudicationLockTest.kt`（独占目录内，3 用例）；已提交文件零改动——`RecorderCompilerTest.kt`/`RecorderEditingTest.kt` 不在 `git status` 修改列表即证；瘦身合并未执行（批示否决）。
+- 锁定用例 1/2：空白 resourceId 按缺失落阶 + 非空白 id 独占 + 混合流反向保险（凡进 value 的 resource_id 必非空白）。
+- 锁定用例 3：AnyNode 链形态钉死——正则 `^\*\[\d+](>\*\[\d+])*$`、首段=子下标+1、后续段=子下标、className 不得嵌入路径串，且四种树形（根自身/单层多兄弟/深链）逐一经 NodeTreeLocator 回放 assertSame 命中。
+
+**补案后三条验收命令（输出已追加至 `stage21-test-output.txt` 末尾"结案后补案（第二跑）"区块）**：
+1. `./gradlew :app:testDebugUnitTest --tests "*recorder*" --rerun-tasks` → exit 0；FAILED 行数 0；`tests=23 skipped=0 failures=0 errors=0`（16+4 基线 + 3 补案，同跑不回退）
+2. `grep -rE "import (android|java\.net|okhttp)" app/src/main/kotlin/com/anytouch/app/recorder/ | wc -l` → 0
+3. `bash scripts/ci-local.sh` → exit 0，红线 A–E 全 clean（原始输出：`stage21-ci-local-output.txt`，已随本跑刷新；历次原始 gradle 输出存档 `stage21-gradle-test-raw.txt`，首跑 20/20 全文永久嵌入 `stage21-test-output.txt` 第一区块，不随覆盖丢失）
+
+**工作区状态备注（汇报时非本窗持有的改动）**：`M app/build.gradle.kts` = 主窗落地已批准的 testLogging 提案（注释自证"主窗落地"），非本窗所为，如实报备以免与"worker 禁改 gradle"红线混淆；`M docs/…`、`M scripts/s1-smoke.sh`、`M STATUS.md` 等主窗自有改动已随 `1b0d63a`/`fddaca9` 入库。

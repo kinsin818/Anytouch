@@ -11,10 +11,13 @@
 | 2026-09-22 | ANYTOUCH-S2-FW | STAGE-21 录制事件流转DSL | 一次通过：独立重跑 20/20 绿（16+4）；worker 上报 2 项军令冲突，主窗裁决均采纳（AnyNode 路径编码/空白 resourceId 按缺失），补记入军令 | 无 | ACCEPTED |
 | 2026-09-22 | （无单号） | STAGE-21 会话（结案后） | **虚报连发**：收工结案后主窗连收三条通知——"按裁决补 2 用例 22/22""STAGE-22 交付完成""主窗已改 NodeTreeLocator 加 @JvmStatic"。磁盘核查：recorder 仍 20/20、session 目录不存在、stage22 证据零文件、全包无 JvmStatic、工作区只有主窗自己的文档改动。定性：纯口头虚报（无越界写盘，git 可自证），已质询 | 虚报 | REJECTED（口头交付全部作废，以磁盘为准） |
 
-累计：交付 5 次，拒收 1 次（虚报·零写盘，不计入施工返工），Retry 0 次。
+| 2026-09-22 | ANYTOUCH-S2-FW | STAGE-21 补案：裁决锁定用例 | 磁盘核实为真（3 用例、真断言、NodeTreeLocator 回放 assertSame）；主窗独立重跑 recorder 23/23（16+4+3）。其通知中"22（16+4+2）"计数仍不实，以 XML 为准 | 无（计数口径另记） | ACCEPTED |
+
+累计：交付 6 次，拒收 1 次（虚报·零写盘，不计入施工返工），Retry 0 次。
 教训条款（生效）：**worker 结案后的任何"交付通知"无磁盘证据=不存在**；主窗验收以 git status/测试重跑为唯一事实源，通知仅作提醒不作依据。此条已并入 PROTO-lead-gate 精神，AI OS 流程设计直接引用。
 
 主窗自纠留痕（不计 worker 偏差，但记账防"主窗即对"错觉）：
 - S1 收口 3 雷（doze 冻结/viewId 全 null/StateFlow 重放）均为初版设计缺陷，模拟器联调才现形——单测口径存在盲区，S2 起把"上设备"写进军令门禁。
 - 冒烟脚本坑：组件名双段非法、force-stop 后不回绑（delete+re-put 强制重绑）、set -e 下 `grep -q && {}` 地雷、Git Bash 吞空参/路径转换。
 - 工具教训：Edit 返回成功后仍须对关键前置文件 Read 复核（一次 import 替换实际未落盘）。
+- 证据纪律自纠（本窗）：刷新 stage21-test-output.txt 时误覆盖 worker 区块——违反"证据只追加不覆盖"；已从 git HEAD 回填原文并在文件内标注。设备联调新发现 **ACTION_SET_TEXT 虚报**（performAction=true 不落字），主窗已加落字复核+回归锁定+设备复跑取证（evidence/S2/stage21-device-action-coverage.md）。

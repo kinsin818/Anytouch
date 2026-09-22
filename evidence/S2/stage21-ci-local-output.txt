@@ -39,26 +39,26 @@
 > Task :app:mergeDebugAssets UP-TO-DATE
 > Task :app:compressDebugAssets UP-TO-DATE
 > Task :app:desugarDebugFileDependencies UP-TO-DATE
-> Task :app:dexBuilderDebug
+> Task :app:dexBuilderDebug UP-TO-DATE
 > Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
 > Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
 > Task :app:checkDebugDuplicateClasses UP-TO-DATE
 > Task :app:mergeExtDexDebug UP-TO-DATE
 > Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
 > Task :app:mergeDebugJniLibFolders UP-TO-DATE
 > Task :app:mergeDebugNativeLibs UP-TO-DATE
 > Task :app:stripDebugDebugSymbols UP-TO-DATE
 > Task :app:validateSigningDebug UP-TO-DATE
 > Task :app:writeDebugAppMetadata UP-TO-DATE
 > Task :app:writeDebugSigningConfigVersions UP-TO-DATE
-> Task :app:mergeProjectDexDebug
-> Task :app:mergeDebugJavaResource
-> Task :app:packageDebug
+> Task :app:packageDebug UP-TO-DATE
 > Task :app:createDebugApkListingFileRedirect UP-TO-DATE
-> Task :app:assembleDebug
+> Task :app:assembleDebug UP-TO-DATE
 
 BUILD SUCCESSFUL in 1s
-39 actionable tasks: 4 executed, 35 up-to-date
+39 actionable tasks: 39 up-to-date
 ==> [2/4] gradle test (:core:contracts, :app, --rerun-tasks)
 > Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:contracts:processResources NO-SOURCE
@@ -157,4 +157,3 @@ BUILD SUCCESSFUL in 2s
   redline D clean (no gesture/coordinate injection)
   redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
 ==> [4/4] ci-local PASS
-CI_EXIT=0

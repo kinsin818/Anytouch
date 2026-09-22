@@ -237,6 +237,30 @@ class NodeTaskRunner(
                 gateReceipt(action, index, "perform_failed").toCommand(),
             )
         }
+        if (action.type == ActionType.TYPE_TEXT) {
+            // 模拟器实测：Compose 输入框 ACTION_SET_TEXT 返回 true 却可能不落字（快照 text 不刷新）——
+            // performAction 布尔不作数，重读活树验证"字确实进了框"，否则回执翻为失败（fail-closed）。
+            val input = action.value?.string("input") ?: ""
+            delay(settleMs)
+            val actual = locator.locate(device.root(), request).let { (it as? LocatorHit)?.node?.text?.trim() }
+            if (input.isNotBlank() && actual?.contains(input.trim()) != true) {
+                return StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = StopCode.EXECUTOR_ERROR,
+                            severity = StopSeverity.STOP,
+                            message = "SET_TEXT 未落字（performAction=true 为虚报）: 期望包含 \"$input\"",
+                            evidence = buildJsonObject {
+                                put("expected", input)
+                                put("actual", actual ?: "<重定位未命中>")
+                            },
+                        ),
+                    ),
+                    gateReceipt(action, index, "set_text_unverified", StopCode.EXECUTOR_ERROR).toCommand(),
+                )
+            }
+        }
         if (action.type == ActionType.CLICK || action.type == ActionType.SCROLL) {
             delay(settleMs) // 页面切换沉降；下一次定位自带轮询，不在此等待特定节点
         }

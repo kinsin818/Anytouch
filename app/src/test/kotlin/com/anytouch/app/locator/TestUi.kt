@@ -3,7 +3,7 @@ package com.anytouch.app.locator
 /** JVM 单测用的 [UiNode] 实现：主窗的 AccessibilityNodeInfo 适配器不会出现在这里。 */
 class TestUi(
     override val resourceId: String? = null,
-    override val text: String? = null,
+    override var text: String? = null,
     override val contentDesc: String? = null,
     override val className: String? = null,
     override val packageName: String? = null,

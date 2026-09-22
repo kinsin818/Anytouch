@@ -33,6 +33,7 @@ class NodeTaskRunnerTest {
     private class FakeDevice(var root: UiNode?) : NodeActions {
         val performed = mutableListOf<String>()
         var succeed = true
+        var mutateTree = true
 
         override suspend fun root(): UiNode? = root
 
@@ -48,6 +49,8 @@ class NodeTaskRunnerTest {
 
         override fun setText(node: UiNode, text: String): Boolean {
             performed += "setText:$text"
+            // 仿真如真实设备成功路径：字要落进树——执行器落字复核会把只回 true 的假设备判为虚报。
+            if (mutateTree) (node as? TestUi)?.text = text
             return succeed
         }
     }
@@ -288,6 +291,22 @@ class NodeTaskRunnerTest {
         )
         assertTrue(report.stopped)
         assertEquals("EXECUTOR_ERROR", report.results.single().recovery!!.code)
+    }
+
+    @Test
+    fun `type_text虚报 performAction为true但未落字 回执翻失败并停机`() = runBlocking {
+        // 模拟器实测雷：Compose 输入框 ACTION_SET_TEXT 返回 true 却不落字——performAction 布尔不可作为成功凭据。
+        val device = FakeDevice(settingsTree()).apply { mutateTree = false }
+        val report = runnerFor(device).run(
+            decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        assertEquals(listOf("setText:hi"), device.performed, "动作确实派发了，虚报点在设备层")
+        assertTrue(report.stopped)
+        val recovery = report.results.single().recovery!!
+        assertEquals(false, report.results.single().ok)
+        assertEquals("EXECUTOR_ERROR", recovery.code)
+        assertTrue("未落字" in recovery.message, "消息必须点破虚报性质: ${recovery.message}")
+        assertEquals("set_text_unverified", payloadString(report.stopCommand!!, "stop_reason"))
     }
 
     @Test

@@ -21,13 +21,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 
 /**
  * 任务注入窗：手点（Run）与 adb（--es task_json，冒烟脚本用）双通道写 AppState.taskRequests。
  * adb 通道触发后立刻退到后台，让目标 App（如系统设置）成为活动窗口。
  */
+@OptIn(ExperimentalComposeUiApi::class)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +40,9 @@ class MainActivity : ComponentActivity() {
         var initial by mutableStateOf(SAMPLE_TASK)
         setContent {
             MaterialTheme {
-                Surface(Modifier.fillMaxSize()) {
+                Surface(
+                    Modifier.fillMaxSize().semantics { testTagsAsResourceId = true },
+                ) {
                     var taskJson by mutableStateOf(initial)
                     Column(
                         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -50,7 +57,7 @@ class MainActivity : ComponentActivity() {
                         OutlinedTextField(
                             value = taskJson,
                             onValueChange = { taskJson = it },
-                            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                            modifier = Modifier.fillMaxWidth().weight(1f, fill = false).testTag("task_input"),
                             minLines = 8,
                         )
                         Button(onClick = { AppState.submit(taskJson) }) { Text("执行任务") }
@@ -76,11 +83,13 @@ class MainActivity : ComponentActivity() {
     private fun handleTrigger(intent: Intent?) {
         val json = intent?.getStringExtra(EXTRA_TASK_JSON) ?: return
         AppState.submit(json)
-        moveTaskToBack(true)
+        // keep_fg：目标就是本页控件（如 task_input 输入框）时留在前台，否则退后台让目标 App 接管活动窗
+        if (!intent.getBooleanExtra(EXTRA_KEEP_FG, false)) moveTaskToBack(true)
     }
 
     companion object {
         const val EXTRA_TASK_JSON = "task_json"
+        const val EXTRA_KEEP_FG = "keep_fg"
 
         /** 冒烟任务：Connected devices → Connection preferences → Bluetooth（模拟器实测可三级钻取；真机口径属 T3）。门禁显式放行。 */
         const val SAMPLE_TASK =
