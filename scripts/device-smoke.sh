@@ -40,7 +40,10 @@ run_case() {
     if printf '%s' "$receipt" | grep -qF "$expect"; then
         pass "$name :: $receipt"
     else
-        bad "$name :: 期望含 [$expect]，实际 [$receipt]"
+        # 红项随附分步 DETAIL（同 buffer，下个用例 logcat -c 前抓得到）——归因不用复跑碰运气
+        local detail
+        detail=$(MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:* 2>/dev/null | grep "S1SMOKE-DETAIL" | tail -2 | tr '\n' ' ' || true)
+        bad "$name :: 期望含 [$expect]，实际 [$receipt]${detail:+ | 明细: $detail}"
     fi
 }
 
@@ -67,19 +70,49 @@ BALL_TAP="${BALL_TAP:-1002 1272}"
 A11Y_ORIG=$(MSYS_NO_PATHCONV=1 $ADB shell settings get secure enabled_accessibility_services | tr -d '\r')
 A11Y_NOUS=$(printf '%s' "$A11Y_ORIG" | sed 's#com\.anytouch\.app/\.service\.AnytouchAccessibilityService##; s#::#:#g; s#^:##; s#:$##')
 
+# 设备实证（AVD API 35）：搜索页跑在 com.google.android.settings.intelligence 独立进程，
+# 只 force-stop settings 会留下旧搜索任务赖在前台（含旧查询词态），毒化下一条用例的首步定位。
+stop_settings_ui() {
+    MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+    MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.google.android.settings.intelligence >/dev/null 2>&1
+}
+
+# 就绪轮询（AVD 三档矩阵收口轮）：固定 sleep 在宿主高负载下不够——容器节点已在树里但条目
+# 未排布完，scroll 被设备明示拒绝（perform_failed 假红）。dump 里目标容器 scrollable="true"
+# 才是"真可滚"信号；15s 未就绪不判红（交给用例自己出诚实回执）。
+wait_home_scrollable() {
+    local i=0
+    while [ "$i" -lt 15 ]; do
+        if MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/.smoke_ready.xml >/dev/null 2>&1 &&
+           MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ready.xml 2>/dev/null |
+               grep -qE "id/${RID_HOME##*/}\"[^>]*scrollable=\"true\""; then
+            MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ready.xml >/dev/null 2>&1
+            return 0
+        fi
+        sleep 1
+        i=$((i + 1))
+    done
+    MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ready.xml >/dev/null 2>&1
+    return 0
+}
+
 # ---------- C1 混合链：Settings 首页 滚动+点击 ----------
-MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+stop_settings_ui
 # 设备实证（K80/HyperOS）：隐式 ACTION_SETTINGS 偶发被 com.milink.service  Connectivity 页劫持；显式组件名落回自家首页
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
-sleep 2
+# 设备实证（AVD 三档矩阵收口轮）：宿主并跑 3 台模拟器时 sleep 2/5 不够——首页容器已存在但
+# 列表未排布完，scroll/click 明示拒绝出 perform_failed 假红；固定沉降 + scrollable 就绪轮询。
+sleep 8
+wait_home_scrollable
 run_case "C1 混合链(scroll+click Settings)" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"scroll\",\"source\":\"node\",\"value\":{\"resource_id\":\"$RID_HOME\",\"direction\":\"forward\"},$SAFE},{\"action_id\":\"c1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE}]'"
 
 # ---------- C2 type_text 经典 EditText（跨 App，按 hint text 定位；输入改变线索，考句柄活读复核） ----------
 # 设备实证（模拟器回归轮）：C1 末步点进二级页后，仅 am start -n .Settings 只会 resume 到 SubSettings（搜索栏缺席→C2 假红）；必须 force-stop 重建首页
-MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
-sleep 2
+# 设备实证（AVD 矩阵轮）：sleep 2 在慢 AVD 上首页未就绪，click→type 步间过渡竞态出 set_text_unverified 假红；与 C5/C6/C7 对齐取 8s
+sleep 8
 run_case "C2 type_text 经典EditText" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"cs\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"smoke c2 $(date +%s)\"},$SAFE}]'"
 
@@ -94,9 +127,9 @@ run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
 # ---------- C5 高危二次确认：无人点击=15s 超时默认拒绝（面板必须真实弹出，见 evidence/S2/stage-highrisk-confirm-device.md） ----------
 # 输入通道洁净断言（09-22 幽灵触点事件后加装）：C5 全程合法触点预算=0，
 # getevent 抓到任何触摸即判"外部污染"——防宿主鼠标/其他窗口把安全负例点成假绿。
-MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
-sleep 5
+sleep 8
 GEV=$(mktemp)
 MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV" 2>&1 &
 GE_PID=$!
@@ -115,9 +148,9 @@ fi
 # ---------- C6 停止球即时响应：定位轮询期点球，回执须是 user_stop（非 NODE_NOT_FOUND）且 ≤5s 到达 ----------
 # 回归锁（Task #14 设备雷）：KillSwitch 曾只在步首查询，长等待环里点球无感、末步点球丢归因。
 # 坐标 (1002,1272) 是悬浮球默认停靠位（END|CENTER_VERTICAL, x=24），仅测试通道模拟手指，非产品定位。
-MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
-sleep 5
+sleep 8
 MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"k1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE},{\"action_id\":\"k2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
 sleep 4  # 第一步落地、第二步进入 15s 定位轮询
@@ -136,9 +169,9 @@ fi
 # 洁净预算=0：`input tap` 走 InputManager 注入、不经 /dev/input（getevent 看不见自家点球），
 # 故 trap 抓到任何触摸都是宿主侧外部点击——09-22 幽灵触点事件：外部鼠标在球停靠位原地下键，
 # 恰命中居中面板"确认执行"按钮，把 C5/C7 安全负例点成 ok=3/3 假绿。
-MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
+stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
-sleep 5
+sleep 8
 GEV7=$(mktemp)
 MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV7" 2>&1 &
 GE7=$!

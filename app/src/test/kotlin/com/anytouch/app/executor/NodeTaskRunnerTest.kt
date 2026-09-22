@@ -4,6 +4,7 @@ import com.anytouch.app.locator.LocatorMiss
 import com.anytouch.app.locator.TestUi
 import com.anytouch.app.locator.UiNode
 import com.anytouch.app.locator.ui
+import com.anytouch.app.locator.preOrder
 import com.anytouch.app.platform.NodeActions
 import com.anytouch.app.safety.HighRiskCategory
 import com.anytouch.app.safety.HighRiskMatcher
@@ -36,6 +37,9 @@ class NodeTaskRunnerTest {
         var succeed = true
         var mutateTree = true
         var pasteWorks = false
+        var setTextWorksAfterFirst = false
+        var staleSwapOnType = false
+        private var setTextCalls = 0
 
         override suspend fun root(): UiNode? = root
 
@@ -51,8 +55,20 @@ class NodeTaskRunnerTest {
 
         override fun setText(node: UiNode, text: String): Boolean {
             performed += "setText:$text"
-            // 仿真如真实设备成功路径：字要落进树——执行器落字复核会把只回 true 的假设备判为虚报。
-            if (mutateTree) (node as? TestUi)?.text = text
+            setTextCalls++
+            if (staleSwapOnType) {
+                // API 35 搜索页实测形态：字落进过渡后重建的新输入节点，派发用的旧句柄文本永不更新——
+                // 复核只认句柄会把真落字报成假红，扫树自证边就是为它装的。
+                root?.let { r ->
+                    r.preOrder().firstOrNull {
+                        it !== node && it.className?.contains("EditText") == true
+                    }?.let { (it as TestUi).text = text }
+                }
+            } else if (mutateTree || (setTextWorksAfterFirst && setTextCalls >= 2)) {
+                // 仿真如真实设备成功路径：字要落进树——执行器落字复核会把只回 true 的假设备判为虚报。
+                // setTextWorksAfterFirst=过渡态仿真：首派谎 true 不落字，重试派发才落（API 35 搜索页实测形态）。
+                (node as? TestUi)?.text = text
+            }
             return succeed
         }
 
@@ -310,13 +326,46 @@ class NodeTaskRunnerTest {
         val report = runnerFor(device).run(
             decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
         )
-        assertEquals(listOf("setText:hi"), device.performed, "动作确实派发了，虚报点在设备层")
+        assertEquals(listOf("setText:hi", "setText:hi"), device.performed, "谎报一次→整步重试一次封顶；重试仍虚报必须收红，不得无限重派")
         assertTrue(report.stopped)
         val recovery = report.results.single().recovery!!
         assertEquals(false, report.results.single().ok)
         assertEquals("EXECUTOR_ERROR", recovery.code)
         assertTrue("未落字" in recovery.message, "消息必须点破虚报性质: ${recovery.message}")
         assertEquals("set_text_unverified", payloadString(report.stopCommand!!, "stop_reason"))
+    }
+
+    @Test
+    fun `type_text 过渡态谎报后整步重试落字则判成功`() = runBlocking {
+        // API 35 搜索页实测：过渡动画中 SET_TEXT 谎 true 不落字；重试派发落到重建后的活节点即成功。
+        val device = FakeDevice(settingsTree()).apply { mutateTree = false; setTextWorksAfterFirst = true }
+        val report = runnerFor(device).run(
+            decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        assertEquals(listOf("setText:hi", "setText:hi"), device.performed)
+        assertFalse(report.stopped)
+        assertEquals(true, report.results.single().ok)
+    }
+
+    @Test
+    fun `type_text 句柄过期但字已落进换新输入节点 扫树自证不误红`() = runBlocking {
+        // AVD API 35 搜索页设备实证：SET_TEXT 派发给过渡前句柄后 Compose 整节点换新，
+        // 字已落进新 EditText（uiautomator dump 亲见 text="password"）而旧句柄读不到——
+        // 只认句柄活读会把真成功报成 set_text_unverified 假红。
+        val tree = ui(
+            clazz = "android.widget.FrameLayout",
+            children = listOf(
+                ui(marker = "Search settings", clazz = "android.widget.EditText"),
+                ui(marker = "", clazz = "android.widget.EditText"),
+            ),
+        )
+        val device = FakeDevice(tree).apply { mutateTree = false; staleSwapOnType = true }
+        val report = runnerFor(device).run(
+            decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"text":"Search settings","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        assertEquals(listOf("setText:hi"), device.performed, "扫树自证后不得再整步重派")
+        assertFalse(report.stopped)
+        assertEquals(true, report.results.single().ok)
     }
 
     @Test
@@ -351,6 +400,23 @@ class NodeTaskRunnerTest {
         assertTrue(report.stopped)
         assertEquals("EXECUTOR_ERROR", report.results.single().recovery!!.code)
         assertEquals(1, report.results.size)
+    }
+
+    @Test
+    fun `type_text明示拒绝边重派一次封顶仍拒收perform_failed`() = runBlocking {
+        // MarvisPhone 设备实证：SET_TEXT+PASTE 双双 false 可能只是字段重建瞬间的派发被拒（false=没执行过，
+        // 重派零副作用）；但重试必须封顶一次，不得对明示拒绝无限重派（K40/MIUI 雷 12 是持久拒绝）。
+        val device = FakeDevice(settingsTree()).apply { succeed = false }
+        val report = runnerFor(device).run(
+            decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
+        )
+        assertEquals(
+            listOf("setText:hi", "setText:hi"),
+            device.performed,
+            "首派 SET_TEXT 拒（PASTE 通道未开不记流水）→整步重定位再派一次封顶，随后必须收 perform_failed",
+        )
+        assertTrue(report.stopped)
+        assertEquals("perform_failed", payloadString(report.stopCommand!!, "stop_reason"))
     }
 
     @Test

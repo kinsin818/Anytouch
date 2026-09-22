@@ -156,3 +156,69 @@ PASS C8b 解绑重绑后执行器自愈 :: 09-22 22:10:46.681
 ## 根因（测试通道缺陷，非产品）: C1 末步点进二级页后，C2 预置仅 am start -n .Settings 会 resume 回 SubSettings（首页搜索栏缺席）；旧轮 11/11 系当时 C1 预置用隐式 ACTION_SETTINGS 落首页组件、任务栈形态不同
 ## 修复: C2 预置补 force-stop settings 再显式启动（首页确定性）
 ## 轮3: 11/11 ALL PASS（C1 14:21:50 → C8b 14:23:32，全项含 C5x/C7x 洁净锁）
+
+########## AVD 三档矩阵收口轮（final build: 扫树自证+false边重派, 2026-09-22 16:5x-17:0x）##########
+
+----- avd35(emulator-5556) -----
+PASS C1 混合链(scroll+click Settings) :: 09-22 16:56:09.166 18414 18414 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-22 16:56:22.885 18414 18414 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C3 type_text Compose自目标 :: 09-22 16:56:26.988 18414 18414 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 16:56:42.831 18414 18414 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-22 16:57:14.636 18414 18414 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 0s :: 09-22 16:57:29.869 18414 18414 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 0s :: 09-22 16:57:49.829 18414 18414 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 16:58:14.908 18414 18414 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS
+
+----- avd34(emulator-5558) -----
+PASS C1 混合链(scroll+click Settings) :: 09-22 16:58:32.059 11761 11761 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-22 16:58:44.370 11761 11761 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C3 type_text Compose自目标 :: 09-22 16:58:49.132 11761 11761 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 16:59:05.472 11761 11761 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-22 16:59:35.683 11761 11761 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 1s :: 09-22 16:59:49.638 11761 11761 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 0s :: 09-22 17:00:09.200 11761 11761 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 17:00:33.097 11761 11761 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS
+
+----- avd31(emulator-5560) -----
+PASS C1 混合链(scroll+click Settings) :: 09-22 17:00:47.284 12746 12746 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-22 17:00:59.568 12746 12746 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C3 type_text Compose自目标 :: 09-22 17:01:02.692 12746 12746 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 17:01:18.303 12746 12746 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-22 17:01:47.007 12746 12746 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 2s :: 09-22 17:02:01.899 12746 12746 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 3s :: 09-22 17:02:23.359 12746 12746 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 17:02:48.749 12746 12746 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS
+
+----- MarvisPhone(emulator-5554) -----
+PASS C1 混合链(scroll+click Settings) :: 09-22 17:03:06.831  5627  5627 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-22 17:03:20.382  5627  5627 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C3 type_text Compose自目标 :: 09-22 17:03:24.804  5627  5627 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 17:03:42.263  5627  5627 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-22 17:04:11.392  5627  5627 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 0s :: 09-22 17:04:25.824  5627  5627 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 1s :: 09-22 17:04:45.099  5627  5627 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 17:05:08.657  5627  5627 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+
+device-smoke: ALL PASS
+
+----- avd35 修复过程取证（同 build 前）-----
+FAIL C5 高危超时默认拒绝 :: 期望含 [stop="PASSWORD:password"]，实际 [09-22 15:47:30.542 17225 17225 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="set_text_unverified"] | 明细: 09-22 15:47:30.543 17225 17225 I AnytouchRun: S1SMOKE-DETAIL code=EXECUTOR_ERROR msg=SET_TEXT 未落字（performAction=true 为虚报）: 期望包含 "password" 
+PASS C5x 输入通道洁净（零外部触点）

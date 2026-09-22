@@ -6,6 +6,7 @@ import com.anytouch.app.locator.LocatorRequest
 import com.anytouch.app.locator.LocatorResult
 import com.anytouch.app.locator.NodeTreeLocator
 import com.anytouch.app.locator.UiNode
+import com.anytouch.app.locator.preOrder
 import com.anytouch.app.platform.NodeActions
 import com.anytouch.app.safety.HighRiskMatcher
 import com.anytouch.app.safety.KillSwitch
@@ -289,7 +290,7 @@ class NodeTaskRunner(
             delay(focusSettleMs)
             return (locator.locate(device.root(), request) as? LocatorHit)?.node ?: hit.node
         }
-        val performed = when (action.type) {
+        var performed = when (action.type) {
             ActionType.CLICK -> device.click(hit.node)
             ActionType.SCROLL -> device.scroll(
                 hit.node,
@@ -305,7 +306,34 @@ class NodeTaskRunner(
             }
             else -> false
         }
-        if (!performed) {
+        var dispatched = performed
+        if (!dispatched && action.type != ActionType.WAIT) {
+            // 句柄陈旧假红（AVD 三档矩阵收口轮 C1/C7 + MarvisPhone 重启后 C7 设备实证）：定位命中后
+            // 异步卡片/索引重排整棵树，performAction 打在死句柄上被明示拒绝（type_text 亦同：SET_TEXT
+            // 与 PASTE 双双 false 可能只是派发瞬间字段在重建）。false=动作根本没执行过、无线索被消耗、
+            // 无输入落盘，按原线索重定位一次再派是零副作用的自证；仍 false 才收 perform_failed。
+            delay(settleMs * 2)
+            val again = (locator.locate(device.root(), request) as? LocatorHit)?.node
+            if (again != null) {
+                dispatched = when (action.type) {
+                    ActionType.CLICK -> device.click(again)
+                    ActionType.SCROLL -> device.scroll(
+                        again,
+                        (action.value?.string("direction") ?: "forward") != "backward",
+                    )
+
+                    ActionType.TYPE_TEXT -> {
+                        val input = action.value?.string("input") ?: ""
+                        device.focus(again)
+                        delay(focusSettleMs)
+                        device.setText(again, input) || device.pasteText(again, input)
+                    }
+
+                    else -> false
+                }
+            }
+        }
+        if (!dispatched) {
             return StepOutcome(
                 failure(
                     action,
@@ -339,6 +367,25 @@ class NodeTaskRunner(
                     usedPasteRoute = true
                     delay(settleMs)
                     landedText = awaitLanded(target, input)
+                }
+                if (input.isNotBlank() && landedText?.contains(input.trim()) != true) {
+                    // 整步重试一次（AVD 矩阵实测，API 35 搜索页）：过渡动画中途 SET_TEXT 派发给将被重建的
+                    // 输入框→谎 true 不落字、paste 同拒。此时输入未落、线索未被消耗，按原线索重定位是安全的
+                    // （与"复核禁重定位"不冲突——那条防的是线索已被输入改掉）。先多沉一拍：过渡未终时
+                    // 单发定位会零命中、重试直接空转（avd35 实测 fresh==null 形态）。
+                    delay(settleMs * 2)
+                    val fresh = (locator.locate(device.root(), request) as? LocatorHit)?.node
+                    if (fresh != null) {
+                        device.focus(fresh)
+                        delay(focusSettleMs)
+                        val again = (locator.locate(device.root(), request) as? LocatorHit)?.node ?: fresh
+                        if (device.setText(again, input) || device.pasteText(again, input)) {
+                            usedPasteRoute = true
+                            delay(settleMs)
+                            target = again
+                            landedText = awaitLanded(again, input)
+                        }
+                    }
                 }
                 if (landedText?.contains(input.trim()) != true) {
                     killSwitch.snapshot()?.let { kill ->
@@ -395,11 +442,22 @@ class NodeTaskRunner(
      *  每轮查 KillSwitch：按下停止即刻放弃复核返回，调用方出 USER_STOP 回执而非误报"未落字"。 */
     private suspend fun awaitLanded(node: UiNode, input: String): String? {
         val deadline = System.currentTimeMillis() + landedTimeoutMs
+        val want = input.trim()
         var text: String? = null
         while (true) {
             if (killSwitch.isStopped()) return text
             text = device.textOf(node)?.trim()
-            if (text?.contains(input.trim()) == true) return text
+            if (text?.contains(want) == true) return text
+            if (want.isNotEmpty()) {
+                // 句柄活读兜底扫树（AVD API 35 搜索页实证）：过渡期派发给旧句柄后 Compose 整节点
+                // 换新，字已落进新输入框而旧句柄永远读不到——不扫树就把"真落字"报成 set_text_unverified 假红。
+                // 这不是"按线索重定位"（线索 hint 会被输入改掉），匹配键是输入本身；限定可编辑类，
+                // 防搜索结果列表（TextView 含同词）造成假阳性。
+                val landedElsewhere = device.root()?.preOrder()?.firstOrNull {
+                    it.className?.contains("EditText") == true && it.text?.contains(want) == true
+                }
+                if (landedElsewhere != null) return landedElsewhere.text?.trim()
+            }
             if (System.currentTimeMillis() >= deadline) return text
             delay(locatePollMs)
         }
