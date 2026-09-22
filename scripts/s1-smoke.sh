@@ -15,7 +15,8 @@ SVC="$PKG.service.AnytouchAccessibilityService"   # 全限定类名，勿再用�
 RUNS="${RUNS:-20}"
 
 # 三级前进钻取：Connected devices → Connection preferences → Bluetooth（全为 com.android.settings 普通列表行）。
-# 实测排除项（模拟器口径）：Internet 页/permissioncontroller 角色页 a11y 树不下发（root 恒 null，属 ROM 行为，真机复核归 T3）；
+# 实测排除项（模拟器口径；AVD MarvisPhone = 本机自建 API-34 google_apis 官方镜像，非厂商 ROM，真机大概率不复现）：
+# Internet 页/permissioncontroller 角色页 a11y 树不下发（root 恒 null，属该镜像行为，真机复核归 T3）；
 # 开关行重复点击有重绑动画竞态（performAction=false）；"See all 26 apps" 类计数变体行不适合 trim 全等匹配。
 DEFAULT_TASK='[{"action_id":"cd","type":"click","source":"node","value":{"text":"Connected devices"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"cp","type":"click","source":"node","value":{"text":"Connection preferences"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"bt","type":"click","source":"node","value":{"text":"Bluetooth"},"safety":{"viewport_ok":true,"click_enabled":true}}]'
 TASK_JSON="${TASK_JSON:-$DEFAULT_TASK}"
