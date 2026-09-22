@@ -13,7 +13,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21 Recorder
 |---|---|---|---|
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
-| S2 录制 | 🟡 框架层：STAGE-21 已验收+补案锁定；STAGE-22 待派。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
+| S2 录制 | 🟡 框架层：STAGE-21 已验收+补案锁定；STAGE-22 已派新会话（`18a07ee7-8d0b-4c41-90b2-ee33f5d6647d`，验收清单先行落盘 3e67664）。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
 | S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
@@ -23,7 +23,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21 Recorder
 1. T2 配给：BYOK 测试模型 Key（Gemini/GPT-4o-mini/Haiku 三档）
 2. T3 配给：真机预算（三星×2/Pixel×2/摩托×1/小米国际×1，二手 ¥3–5k）
 3. P0-2 裁决确认：免费/付费边界按冻结共识执行中，如需翻案须老板明示
-4. 四个 worker 会话可归档（S0 STAGE-01/02、S1 STAGE-11/12；UI 操作）
+4. worker 会话可归档（UI 操作）：S0 STAGE-01/02、S1 STAGE-11/12、S2 STAGE-21（含结案后虚报会话）；STAGE-22 新会话在建
 
 ## 纪律数据
 
