@@ -21,7 +21,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁
 ## 老板待办（阻塞项）
 
 1. T2 配给：NVIDIA NIM 通道**已到位并结案首批**（15/15 Key 验真，端到端编译链打通）；仍缺 BYOK 另三档（Gemini/GPT-4o-mini/Haiku）。**需老板回禀**：Key 文件附带的"角色→模型"映射表 7 个模型名在本账号目录全部不存在（无 qwen/minimax 任何条目），实际可用为 z-ai/glm-5.3、z-ai/glm-5.3-flash、deepseek-ai/deepseek-v4.1-flash、openai/gpt-oss-20b、mistral-large-2-instruct、deepseek-coder-6.7b、llama 系列——表来自另一账号/区域还是已过期？角色分配表需按实际目录重写
-2. T3 配给：**小米真机已到位并完成首触结案（K40 国行 Android 13/MIUI V816）**——三大地基项过验+第 12 雷修复；**三案老板已裁（RULINGS T3-R1/R2/R3）**：IME 第三通道不加、scroll 不上坐标手势（口径已落 `docs/usage-notes.md`）、C5 中文语境不测（高危真机轮以英文/国际版界面为前置）。三星/Pixel/摩托配给仍待
+2. T3 配给：**口径已变更（老板裁决 T3-R4，14:05 UTC）**——第一版成功率=既有真机+AVD 三档矩阵（API 31/34/35）验证通过，不采购新真机，有收入后再补二手国际版；**老板另供红米 K80 第二真机**（HyperOS 新代样本，接入中）。K40 首触+高危三路径闭环已完成（`evidence/S2/t3-k40-first-contact.md`）；诚实边界已备案：AVD 覆盖不了厂商 ROM 雷与真实电源管理，Samsung/Moto 样本缺口写入 S4 风险段
 3. P0-2 裁决确认：免费/付费边界按冻结共识执行中，如需翻案须老板明示
 4. worker 会话可归档（UI 操作）：S0 STAGE-01/02、S1 STAGE-11/12、S2 STAGE-21（含结案后虚报会话）；STAGE-22 新会话在建
 
