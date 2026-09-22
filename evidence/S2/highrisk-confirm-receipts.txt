@@ -1,0 +1,13 @@
+# 高危二次确认链设备回执摘录（2026-09-22）
+## 修复前（bug1：applicationContext 挂 overlay，面板永不显示→秒拒）
+09-22 09:35:49.792 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+09-22 09:35:49.792 I AnytouchRun: S1SMOKE-DETAIL code=SAFETY_GATE_BLOCKED msg=高危命中未获二次确认: PASSWORD:password
+09-22 09:37:14.638 I AnytouchRun: 同上复现（第二次）
+系统侧铁证: 09-22 09:37:11.121 W WindowManager: Attempted to add Accessibility overlay window with unknown token null. Aborting.
+## 修复1后：超时默认拒绝（面板已显示，15s 无人确认）
+09-22 09:41:40.390 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+## 取消按钮路径（修复2后：决策即撤面板）
+09-22 09:53:20.863 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"  (点"取消"即时拒)
+## 确认放行路径（修复2后）
+09-22 09:51:40.857 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false  (修复2前，但面板残留=bug2，见 stuck 截图)
+09-22 09:54:03.481 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false  (修复2后，面板同步撤下)

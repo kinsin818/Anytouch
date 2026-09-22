@@ -43,7 +43,9 @@ class AnytouchAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         AppState.serviceConnected.value = true
-        val ui = OverlayUi(applicationContext)
+        // 必须用服务自身 context：TYPE_ACCESSIBILITY_OVERLAY 的窗口 token 挂在 AccessibilityService
+        // 的 WindowManager 上，applicationContext 加视图必失败（token null），面板/悬浮球将永远不可见。
+        val ui = OverlayUi(this)
         overlay = ui
         scope.launch {
             AppState.taskRequests.collect { request ->

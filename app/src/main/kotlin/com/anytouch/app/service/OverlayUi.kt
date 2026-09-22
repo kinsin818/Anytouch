@@ -3,6 +3,7 @@ package com.anytouch.app.service
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
@@ -76,32 +77,35 @@ class OverlayUi(private val context: Context) {
                 }
                 append("\n确认执行？")
             }
-            val panel = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setBackgroundColor(0xF2212121.toInt())
-                setPadding(40, 40, 40, 40)
-                addView(TextView(context).apply {
-                    text = message
-                    setTextColor(Color.WHITE)
-                    textSize = 16f
-                })
-                addView(LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    addView(Button(context).apply {
-                        text = "取消"
-                        setOnClickListener {
-                            if (cont.isActive) cont.resume(false)
-                        }
-                    }, lp)
-                    addView(Button(context).apply {
-                        text = "确认执行"
-                        setOnClickListener {
-                            if (cont.isActive) cont.resume(true)
-                        }
-                    }, lp)
-                })
+            val panel = LinearLayout(context)
+            panel.orientation = LinearLayout.VERTICAL
+            panel.setBackgroundColor(0xF2212121.toInt())
+            panel.setPadding(40, 40, 40, 40)
+            panel.addView(TextView(context).apply {
+                text = message
+                setTextColor(Color.WHITE)
+                textSize = 16f
+            })
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
             }
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            row.addView(Button(context).apply {
+                text = "取消"
+                setOnClickListener {
+                    // 决策即撤面板：只 resume 不 remove 会让已完成的确认框永久盖在页面上（设备实测复现）
+                    removePanel(panel)
+                    if (cont.isActive) cont.resume(false)
+                }
+            }, lp)
+            row.addView(Button(context).apply {
+                text = "确认执行"
+                setOnClickListener {
+                    removePanel(panel)
+                    if (cont.isActive) cont.resume(true)
+                }
+            }, lp)
+            panel.addView(row)
             val params = overlayParams(notFocusable = false).apply {
                 gravity = Gravity.CENTER
             }
@@ -110,6 +114,8 @@ class OverlayUi(private val context: Context) {
                 confirmPanel = panel
                 cont.invokeOnCancellation { removePanel(panel) }
             } catch (e: Exception) {
+                // fail-closed 必须可归因：没有这行日志，面板挂不上与用户秒拒在回执上同形
+                Log.w(TAG, "confirm panel addView failed, fail-closed deny", e)
                 if (cont.isActive) cont.resume(false) // 浮层都放不上去，绝无确认可能
             }
         }
@@ -122,5 +128,9 @@ class OverlayUi(private val context: Context) {
     fun dispose() {
         hideStopBall()
         confirmPanel?.let { removePanel(it) }
+    }
+
+    private companion object {
+        const val TAG = "AnytouchOverlay"
     }
 }
