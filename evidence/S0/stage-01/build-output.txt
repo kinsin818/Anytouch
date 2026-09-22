@@ -1,0 +1,46 @@
+> Task :core:contracts:clean
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :core:contracts:assemble
+> Task :core:contracts:compileTestKotlin FROM-CACHE
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+
+> Task :core:contracts:test
+
+ContractsTest > commandSampleFromContractsDoc() PASSED
+
+ContractsTest > actionResultRoundTrip() PASSED
+
+ContractsTest > actionRoundTrip() PASSED
+
+ContractsTest > stopReasonSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanRoundTrip() PASSED
+
+ContractsTest > commandRoundTrip() PASSED
+
+ContractsTest > actionResultSampleFromContractsDoc() PASSED
+
+ContractsTest > stopReasonRoundTrip() PASSED
+
+ContractsTest > defaultSemanticsAndUnknownFields() PASSED
+
+ContractsTest > observationRoundTrip() PASSED
+
+ContractsTest > actionSampleFromContractsDoc() PASSED
+
+ContractsTest > observationSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanSampleFromContractsDoc() PASSED
+
+> Task :core:contracts:check
+> Task :core:contracts:build
+
+BUILD SUCCESSFUL in 3s
+5 actionable tasks: 4 executed, 1 from cache
