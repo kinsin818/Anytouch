@@ -76,6 +76,8 @@ run_case "C1 混合链(scroll+click Settings)" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"scroll\",\"source\":\"node\",\"value\":{\"resource_id\":\"$RID_HOME\",\"direction\":\"forward\"},$SAFE},{\"action_id\":\"c1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE}]'"
 
 # ---------- C2 type_text 经典 EditText（跨 App，按 hint text 定位；输入改变线索，考句柄活读复核） ----------
+# 设备实证（模拟器回归轮）：C1 末步点进二级页后，仅 am start -n .Settings 只会 resume 到 SubSettings（搜索栏缺席→C2 假红）；必须 force-stop 重建首页
+MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 2
 run_case "C2 type_text 经典EditText" "ok=2 total=2 stopped=false" \
