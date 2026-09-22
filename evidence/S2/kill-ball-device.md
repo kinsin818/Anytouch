@@ -55,3 +55,42 @@ adb logcat -d -v time -s AnytouchRun | grep 'S1SMOKE'
 
 - kill 响应粒度 = locatePollMs(250ms)；`settleMs/focusSettleMs` 固定沉降内的 kill 延迟到沉降结束（≤800ms），可接受。
 - 停止球坐标命中依赖悬浮球默认停靠位；拖拽后坐标会变（本轮未测拖拽）。
+
+---
+
+# 追加：确认面板挂起期点球（Task #15）· 09-22 10:26 UTC 结案
+
+## 又一颗浮层雷（设备实证发现并修复）
+
+面板挂起时点停止球 → **触点被吞**，等待满 15s 走超时默认拒绝（`stop="PASSWORD:password"`），球完全不可达。
+根因：`OverlayUi.overlayParams` 面板分支 focusable 但未加 `FLAG_NOT_TOUCH_MODAL`——Android 上 focusable 窗口默认
+touch-modal，会吃掉**自身边界外**的全部触点，压在 z 序下方的停止球收不到任何事件。修复一行：面板 flags 加
+`FLAG_NOT_TOUCH_MODAL`（面板只吃边界内触点）。JVM 单测对窗口 flag 无感，再次印证"浮层平台强耦合必须设备亲验"。
+
+## 修复后设备实证（10:26:29 注入，同 PASSWORD 链）
+
+```
+injected 18:26:29.496
+ball tap  18:26:37.938   # 面板挂起期点球 (1002,1264)
+09-22 10:26:37.638 I/AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+09-22 10:26:37.639 I/AnytouchRun: S1SMOKE-DETAIL code=USER_STOP msg=用户在二次确认等待期按下停止
+```
+
+- 回执在点球后 ≤1s 出现；`panel3-pending.png` 为挂起期面板+球同屏证据，`panel3-after-ball-kill.png` 显示
+  面板/球全部撤净、高危步零派发（未进入 Passwords 页），fail-closed 语义保持。
+- 归因走 runner 侧 waiter/killer 竞速取消，面板经 `invokeOnCancellation` 自动收起（bug2 修法的复利）。
+
+## 过程留痕（两次无效尝试，均测试通道问题，非产品缺陷）
+
+1. `android:id/search_src_text` 定位 12s 不中：该页输入框真名 `com.google.android.settings.intelligence:id/open_search_view_edit_text`
+   （uiautomator dump 实证）；此前 C2 冒烟通过的是另一入口。修正线索后链路即通。
+2. 首轮重测时顺手 `force-stop com.anytouch.app` 令服务解绑、注入无人消费（`enabled_accessibility_services` 被清成 null，
+   已知行为再次踩中）；重绑后正常。附带收获：陈旧请求在重绑后按 60s TTL 正确丢弃，未偷跑。
+3. 挂起期球实际中心 ≈(1003,1264)（此场景面板布局使球位略低于默认）；坐标仍属测试通道专用。
+   过程截图：`img/probe-wrongid-locate-fail-{1,2,3}.png`（错误线索期页面态）、
+   `img/panel-swallow-ball-BEFOREFIX-pending.png`（面板挂起+球可见但点不动）、
+   `img/panel-swallow-ball-BEFOREFIX-timeout-deny.png`（超时拒绝后残留态）。
+
+## 回归
+
+OverlayUi 修复后全套 JVM 115/115 绿、ci-local 红线 A–E PASS（本文件所附 NodeTaskRunnerTest 22/22）。

@@ -35,7 +35,10 @@ class OverlayUi(private val context: Context) {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         } else {
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            // 设备实测：focusable 窗口默认 touch-modal，确认面板挂起时会吞掉面板外全部触点
+            // ——停止球形同虚设。NOT_TOUCH_MODAL 让面板只吃自身边界内的触点，球保持可点。
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         },
         PixelFormat.TRANSLUCENT,
     )
