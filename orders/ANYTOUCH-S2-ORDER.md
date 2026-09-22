@@ -62,6 +62,17 @@ NodeSnapshot: resourceId?, text?, contentDesc?, className?, pkg, indexPath: List
 1. **路径串编码**：军令示例 `className[i]` 形态经核与冻结定位器语义冲突（快照无祖先链类名；`[n]`=同类候选序而非文档下标，带同名兄弟必 miss）。worker 按 L3 留白改用 AnyNode 链 `*[i0+1]>*[i1]>…`（BFS 层序 rank 恒等换算，首段候选含 root 故 +1），并以 NodeTreeLocator 真实命中（assertSame）做三树形往返证明。**采纳**；示例形态不再视为硬承诺。
 2. **空白 resourceId 按缺失处理**：字面直传会撞定位器 L1 INVALID_QUERY 且不降级=步骤必失败。按"空白=缺失"落 text/desc/路径，用例锁定。**采纳**，军令 L2-5"resourceId 独占"读作"非空白 resourceId 独占"。
 
+## STAGE-22（随发，纯 JVM）：录制会话状态机 RecorderSession
+
+上位同本军令；不需 T2/T3。**STAGE-21 已验收的 recorder 根包 5 文件一并冻结**（只读引用）。
+
+- 独占目录：`app/src/main/kotlin/com/anytouch/app/recorder/session/` + 对应 test 目录；零新增依赖；`import android/java.net/okhttp` grep=0
+- 行为：`IDLE→RECORDING⇄PAUSED→STOPPED` 状态机；`append(event)` 仅 RECORDING 态受理；事件缓冲上限 `maxEvents`（构造参），溢出**拒绝并计数**（禁静默丢）；会话可 `serialize()/deserialize()` 成 JSON（含 targetPkg、状态、事件序列——事件结构复用 STAGE-21 `RecEvent`，编解码可参照 `RecorderJson` 但不得改它）；deserialize 后回到 STOPPED 只读取档，`resumeAsRecording()` 续录
+- 断言 ≥10：非法转移全表（每态×每操作→拒绝归因，不抛异常）、溢出计数、序列化 JSON 往返等值、断点续录后 compile 产物与原序列一致（喂 RecorderCompiler 证明）、时间戳由注入的 clock 参数控制（测试无真实 sleep）、serialize 在任意态可调、deserialize 输入损坏 JSON → 返回失败类型不崩
+- 复用军令 L1 全部红线；验收三件套同框架层（`--tests "*recorder.session*"` 0 FAILED 且 ≥10 用例 / grep=0 / ci-local exit 0）；交付 evidence/S2/stage22-*.
+- worker 标题：`Anytouch | STAGE-22 | 录制会话状态机`
+- 冲突处理纪律（本条起为全体 worker 通则）：军令与已冻结代码语义冲突 → 反例+书面上报，主窗裁决；**擅改冻结文件=拒收**（STAGE-21 两条上报为正面范例）
+
 ## 交付纪律（PROTO-lead-gate 版）
 
 - 交付物 = 代码 + `evidence/S2/stage21-test-output.txt`（测试命令原样输出）+ 自坑留痕；聊天回复不算交付
