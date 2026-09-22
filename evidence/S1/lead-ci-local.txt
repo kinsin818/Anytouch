@@ -1,0 +1,159 @@
+==> [1/4] gradle build (:core:contracts + :app)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :core:contracts:assemble UP-TO-DATE
+> Task :core:contracts:compileTestKotlin UP-TO-DATE
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+> Task :core:contracts:test UP-TO-DATE
+> Task :core:contracts:check UP-TO-DATE
+> Task :core:contracts:build UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:processDebugManifestForPackage
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :app:processDebugResources
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:dexBuilderDebug UP-TO-DATE
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:mergeProjectDexDebug UP-TO-DATE
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 1s
+39 actionable tasks: 5 executed, 34 up-to-date
+==> [2/4] gradle test (:core:contracts, :app, --rerun-tasks)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :core:contracts:compileTestKotlin
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+
+> Task :core:contracts:test
+
+ContractsTest > commandSampleFromContractsDoc() PASSED
+
+ContractsTest > actionResultRoundTrip() PASSED
+
+ContractsTest > actionRoundTrip() PASSED
+
+ContractsTest > stopReasonSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanRoundTrip() PASSED
+
+ContractsTest > commandRoundTrip() PASSED
+
+ContractsTest > actionResultSampleFromContractsDoc() PASSED
+
+ContractsTest > stopReasonRoundTrip() PASSED
+
+ContractsTest > defaultSemanticsAndUnknownFields() PASSED
+
+ContractsTest > observationRoundTrip() PASSED
+
+ContractsTest > actionSampleFromContractsDoc() PASSED
+
+ContractsTest > observationSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanSampleFromContractsDoc() PASSED
+
+PipelineTest > safety gate viewport blocks chain with STOP receipt() PASSED
+
+PipelineTest > empty input yields empty result list without stopping() PASSED
+
+PipelineTest > normal chain executes all actions and echoes landed() PASSED
+
+PipelineTest > safety gate click disabled blocks first action only() PASSED
+
+PipelineTest > mock backend directly honors gates and echo() PASSED
+
+PipelineTest > dirty input fails loudly instead of faking success() PASSED
+
+BUILD SUCCESSFUL in 3s
+4 actionable tasks: 4 executed
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testDebugUnitTest
+
+BUILD SUCCESSFUL in 2s
+24 actionable tasks: 1 executed, 23 up-to-date
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+==> [4/4] ci-local PASS
