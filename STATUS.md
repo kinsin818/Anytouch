@@ -5,7 +5,7 @@
 
 ## 一句话进度
 
-S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁决锁定补案）与 STAGE-22 RecorderSession 均已验收（**7 worker 交付 / 1 口头虚报拒收**，全 recorder 39/39 绿；STAGE-22 一次通过 16/16，三条契约严读法主窗采纳补记军令）。设备联调 **type_text 全链路结案**：曾定性"SET_TEXT 虚报雷"，根因查明为主窗自家 Compose 状态漏 `remember`（复核另修两处缺陷：句柄活读替代线索重定位、grep 误证撤回）；修复后模拟器双通道实证 ok——经典 EditText 跨 App ok=2/2、自家 Compose ok=1/1，落字复核 fail-closed 与 PASTE 兜底作为执行器契约保留（`evidence/S2/stage21-device-action-coverage.md` 补记+双截图）。实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论。
+S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁决锁定补案）与 STAGE-22 RecorderSession 均已验收（**7 worker 交付 / 1 口头虚报拒收**，全 recorder 39/39 绿；STAGE-22 一次通过 16/16，三条契约严读法主窗采纳补记军令）。设备联调 **type_text 全链路结案**：曾定性"SET_TEXT 虚报雷"，根因查明为主窗自家 Compose 状态漏 `remember`（复核另修两处缺陷：句柄活读替代线索重定位、grep 误证撤回）；修复后模拟器双通道实证 ok——经典 EditText 跨 App ok=2/2、自家 Compose ok=1/1，落字复核 fail-closed 与 PASTE 兜底作为执行器契约保留（`evidence/S2/stage21-device-action-coverage.md` 补记+双截图）。实测层仍等 T2/T3 配给。今日已产出 demo 录像打脸"一天出不了 demo"论；type_text 修复后又录 S2 输入链 demo（click 搜索框→写入 wifi→点中 Wi-Fi 结果，ok=3/3，`evidence/S2/demo/`）。
 
 ## 阶段面板
 
@@ -13,7 +13,7 @@ S0 奠基、S1 核心执行器完成；S2 框架层推进中：STAGE-21（含裁
 |---|---|---|---|
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
-| S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）；设备回归固化为 `scripts/device-smoke.sh`（4/4 PASS）。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面+冒烟输出 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
+| S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）；设备回归固化为 `scripts/device-smoke.sh`（4/4 PASS）；输入链 demo `evidence/S2/demo/`。实测层 🔒 | 实测层需 T2（模型 Key） | 军令 `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面+冒烟输出 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
 | S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |

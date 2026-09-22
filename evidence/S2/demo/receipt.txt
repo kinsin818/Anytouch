@@ -1,0 +1,2 @@
+--------- beginning of main
+09-22 09:30:59.020 23083 23083 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
