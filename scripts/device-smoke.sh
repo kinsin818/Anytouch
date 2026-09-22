@@ -69,7 +69,8 @@ A11Y_NOUS=$(printf '%s' "$A11Y_ORIG" | sed 's#com\.anytouch\.app/\.service\.Anyt
 
 # ---------- C1 混合链：Settings 首页 滚动+点击 ----------
 MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
-MSYS_NO_PATHCONV=1 $ADB shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+# 设备实证（K80/HyperOS）：隐式 ACTION_SETTINGS 偶发被 com.milink.service  Connectivity 页劫持；显式组件名落回自家首页
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 2
 run_case "C1 混合链(scroll+click Settings)" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"scroll\",\"source\":\"node\",\"value\":{\"resource_id\":\"$RID_HOME\",\"direction\":\"forward\"},$SAFE},{\"action_id\":\"c1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE}]'"
@@ -92,7 +93,7 @@ run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
 # 输入通道洁净断言（09-22 幽灵触点事件后加装）：C5 全程合法触点预算=0，
 # getevent 抓到任何触摸即判"外部污染"——防宿主鼠标/其他窗口把安全负例点成假绿。
 MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
-MSYS_NO_PATHCONV=1 $ADB shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 5
 GEV=$(mktemp)
 MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV" 2>&1 &
@@ -113,7 +114,7 @@ fi
 # 回归锁（Task #14 设备雷）：KillSwitch 曾只在步首查询，长等待环里点球无感、末步点球丢归因。
 # 坐标 (1002,1272) 是悬浮球默认停靠位（END|CENTER_VERTICAL, x=24），仅测试通道模拟手指，非产品定位。
 MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
-MSYS_NO_PATHCONV=1 $ADB shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 5
 MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"k1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE},{\"action_id\":\"k2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
@@ -134,7 +135,7 @@ fi
 # 故 trap 抓到任何触摸都是宿主侧外部点击——09-22 幽灵触点事件：外部鼠标在球停靠位原地下键，
 # 恰命中居中面板"确认执行"按钮，把 C5/C7 安全负例点成 ok=3/3 假绿。
 MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
-MSYS_NO_PATHCONV=1 $ADB shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 5
 GEV7=$(mktemp)
 MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV7" 2>&1 &

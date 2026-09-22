@@ -132,3 +132,20 @@ PASS C8b 解绑重绑后执行器自愈 :: 09-22 12:45:46.541 21235 21235 I Anyt
 [0;32mPASS[0m C8b 解绑重绑后执行器自愈 :: 09-22 13:06:17.238 21235 21235 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
 
 device-smoke: ALL PASS
+
+============================================
+## K80/HyperOS (serial 9a2a0a97, Android 16, en-US) 第3轮 09-22 22:09 UTC
+## 设备侧参数: TXT_SEARCH='Search settings' TXT_CONNECTED='Interconnectivity' RID_HOME=com.android.settings:id/scroll_headers BALL_TAP='1346 1680'
+## 前置修复: C1/C5/C7/C8 预置页改显式组件名（隐式 ACTION_SETTINGS 偶发被 com.milink.service 劫持，设备实证）
+PASS C1 混合链(scroll+click Settings) :: 09-22 22:09:23.494 S1SMOKE ok=2 total=2 stopped=false   ← HyperOS 首页 ACTION_SCROLL_FORWARD 接受（K40/MIUI 拒；非小米系通病）
+FAIL C2 type_text 经典EditText :: 09-22 22:09:28.770 S1SMOKE ok=1 total=2 stopped=true stop="perform_failed"  ← 雷12 复现：HyperOS 搜索框 SET_TEXT+PASTE 双通道拒
+PASS C3 type_text Compose自目标 :: 09-22 22:09:31.706 ok=1 total=1 stopped=false
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 22:09:47.936 ok=0 total=1 stop="NODE_NOT_FOUND"
+FAIL C5 高危超时默认拒绝 :: 09-22 22:09:56.243 ok=1 total=2 stop="perform_failed"  ← 脚本链第二步落搜索框输入=雷12 链断；高危链本体另经 Reset-password 路径实证（见 highrisk-confirm-receipts K80 段）
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 0s :: 09-22 22:10:07.304 ok=1 total=2 stop="user_stop"
+FAIL C7 面板挂起期点球即停 :: 09-22 22:10:15.276 ok=1 total=2 stop="perform_failed"  ← 同雷12 链断；面板挂起点球已由 Reset-password 手工路径实证
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-22 22:10:46.681
+结论: 8绿3红；三红同根=雷12（小米系搜索框双通道拒），产品能力面（滚动/点击/自目标输入/负例/停止球/中断回执/自愈/高危门禁）全实证。

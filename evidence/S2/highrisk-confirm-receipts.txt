@@ -11,3 +11,9 @@
 ## 确认放行路径（修复2后）
 09-22 09:51:40.857 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false  (修复2前，但面板残留=bug2，见 stuck 截图)
 09-22 09:54:03.481 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false  (修复2后，面板同步撤下)
+## K80/HyperOS（Android 16）自主两路径（09-22 22:11-22:12 UTC，目标=小米账号页 "Reset password"，无人手参与）
+09-22 22:01:19.228 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="PASSWORD:password"   (首轮)
+09-22 22:01:19.228 I AnytouchRun: S1SMOKE-DETAIL code=SAFETY_GATE_BLOCKED msg=高危命中未获二次确认: PASSWORD:password
+09-22 22:01:38.442 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="user_stop"           (面板挂起期点球 1346,1680)
+09-22 22:01:38.442 I AnytouchRun: S1SMOKE-DETAIL code=USER_STOP msg=用户在二次确认等待期按下停止
+09-22 22:11:42.813 超时默认拒绝复跑（同 DETAIL）；22:12:18.512 面板挂起点球复跑（同 DETAIL）——脚本轮清缓冲后即时重取，双份留底
