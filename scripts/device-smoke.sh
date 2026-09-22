@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Anytouch 设备回归冒烟（模拟器口径）：把 evidence/S2 设备补记里逐条手打的命令固化成机器可重跑的断言。
 # 用法：bash scripts/device-smoke.sh   （需恰好 1 台 adb 设备、已装 debug APK、无障碍服务已绑）
-# 退出码：0=全部通过；1=有失败；2=前置不满足。零坐标注入、零网络，纯 adb + logcat 回执断言。
+# 退出码：0=全部通过；1=有失败；2=前置不满足。产品路径零坐标注入、零网络，纯 adb + logcat 回执断言；
+# 唯一例外 C6 用 `input tap` 点悬浮停止球（测试通道模拟用户手指，不属产品定位方式）。
 set -u
 
 fail=0
@@ -71,6 +72,25 @@ MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>
 sleep 5
 run_case "C5 高危超时默认拒绝" "stop=\"PASSWORD:password\"" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\"},$SAFE},{\"action_id\":\"s2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"Search settings\",\"input\":\"password\"},$SAFE},{\"action_id\":\"s3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Passwords & accounts\"},$SAFE}]'" 60
+
+# ---------- C6 停止球即时响应：定位轮询期点球，回执须是 user_stop（非 NODE_NOT_FOUND）且 ≤5s 到达 ----------
+# 回归锁（Task #14 设备雷）：KillSwitch 曾只在步首查询，长等待环里点球无感、末步点球丢归因。
+# 坐标 (1002,1272) 是悬浮球默认停靠位（END|CENTER_VERTICAL, x=24），仅测试通道模拟手指，非产品定位。
+MSYS_NO_PATHCONV=1 adb shell am force-stop com.android.settings >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell am start -a android.settings.SETTINGS >/dev/null 2>&1
+sleep 5
+MSYS_NO_PATHCONV=1 adb logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 adb shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"k1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"Connected devices\"},$SAFE},{\"action_id\":\"k2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
+sleep 4  # 第一步落地、第二步进入 15s 定位轮询
+T0=$(date +%s)
+MSYS_NO_PATHCONV=1 adb shell input tap 1002 1272 >/dev/null 2>&1
+r6=$(wait_receipt C6 10)
+dt=$(( $(date +%s) - T0 ))
+if printf '%s' "$r6" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
+    pass "C6 停止球即时响应 :: ${dt}s :: $r6"
+else
+    bad "C6 停止球即时响应 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r6]"
+fi
 
 echo
 if [ "$fail" -eq 0 ]; then echo "device-smoke: ALL PASS"; else echo "device-smoke: 有失败项"; fi

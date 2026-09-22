@@ -24,3 +24,13 @@ device-smoke: ALL PASS (5/5)
 [0;32mPASS[0m C5 高危超时默认拒绝 :: 09-22 10:18:43.469 31510 31510 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
 
 PASS: device-smoke: ALL PASS (5/5)
+
+===== 09-22 10:30-10:31 C6 停止球即时响应固化后首跑（6/6）=====
+device-smoke: ALL PASS
+PASS C1 混合链(scroll+click Settings) :: 09-22 10:32:35.378  1658  1658 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-22 10:32:40.596  1658  1658 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C3 type_text Compose自目标 :: 09-22 10:32:43.258  1658  1658 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-22 10:32:59.490  1658  1658 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-22 10:33:24.113  1658  1658 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C6 停止球即时响应 :: 0s :: 09-22 10:33:34.719  1658  1658 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+device-smoke: ALL PASS
