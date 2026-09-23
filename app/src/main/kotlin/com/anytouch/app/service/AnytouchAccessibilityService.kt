@@ -66,8 +66,16 @@ class AnytouchAccessibilityService : AccessibilityService() {
         return collectRoots()
     }
 
+    /**
+     * 采集根集合必须与执行器 [com.anytouch.app.platform.AccessibilityDevice.root] **同一词表**：
+     * 那边只认一个根（活动窗优先，取不到才按焦点/层级取应用窗），所以这里也只给一个根。
+     * 设备实证（雷 18）：原实现 `active + 全部应用窗` 会把焦点应用窗**数两遍**
+     * （日志正证 `roots=2` 且两个根的 window hash 相同），于是"窗口内唯一线索"被自己的双计判成
+     * `desc 命中=2` 歧义 → 整步不入会话（8 步链补跑 10 轮里两轮各少录 1 步）。
+     * 采集面判"唯一"的分母，必须是回放面真正会扫的那棵树，多一个根就是假歧义。
+     */
     private fun collectRoots(): List<AccessibilityNodeInfo> {
-        val active = listOfNotNull(rootInActiveWindow)
+        rootInActiveWindow?.let { return listOf(it) }
         val windows = runCatching {
             (windows ?: emptyList())
                 .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
@@ -78,7 +86,7 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 )
                 .mapNotNull { runCatching { it.root }.getOrNull() }
         }.getOrDefault(emptyList())
-        return active + windows
+        return listOfNotNull(windows.firstOrNull())
     }
 
     override fun onServiceConnected() {
@@ -120,6 +128,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 runTask(request, ui)
             }
         }
+        // 服务重连窗口内不沿用上一次的"球已挂上"事实：门禁只认本轮挂载结果（fail-closed）
+        RecorderStore.recordBallAttached = false
         watchRecordBall(ui)
     }
 
@@ -127,13 +137,18 @@ class AnytouchAccessibilityService : AccessibilityService() {
      * 录制开关球（军令 S2-ONDEVICE L0：悬浮球开录）。跟随"会话态 + 执行态"两流刷新：
      * 执行期收起——开录录进去的会是执行器自己的手，把机器动作伪装成用户意图（假绿形态）。
      * 球的两次点击都走 RecorderStore 同一入口（与主窗按钮、adb 通道同一留痕口径）。
+     *
+     * 这里的返回值同时是 L1 门禁的唯一事实源（[RecorderStore.recordBallAttached]）：
+     * 挂不上球就拒绝开录，不做"看不见球也能录"的降级。执行期收起是有意状态，
+     * 不覆写该事实（门禁先判 running 并单独给话术，别让"收起"伪装成"挂不上"）。
      */
     private fun watchRecordBall(ui: OverlayUi) {
         scope.launch {
             combine(RecorderStore.activeSession, AppState.running) { session, running ->
                 (session?.state == SessionState.RECORDING) to running
             }.collect { (recording, running) ->
-                if (running) ui.hideRecordBall() else ui.showRecordBall(recording) { toggleRecording(ui) }
+                if (running) ui.hideRecordBall()
+                else RecorderStore.recordBallAttached = ui.showRecordBall(recording) { toggleRecording(ui) }
             }
         }
     }

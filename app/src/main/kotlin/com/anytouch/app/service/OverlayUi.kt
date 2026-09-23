@@ -77,7 +77,8 @@ class OverlayUi(private val context: Context) {
      * 停止球只在执行期出现，录制球只在空闲/录制期出现（执行期不得开录——录进去的是执行器自己的手，
      * 见 service 侧 hideRecordBall 调用点）。
      *
-     * @return 挂上与否；调用侧不据此拒 anything（录制没有安全后果，挂不上时主窗按钮仍是通道）。
+     * @return 挂上与否。**军令 L1（老板派单 09-23 生效版）：挂不上球=拒绝开始录制**——
+     * 调用侧把返回值写进 `RecorderStore.recordBallAttached`，开录门禁据此拒，本函数不再自行降级。
      */
     fun showRecordBall(recording: Boolean, onToggle: () -> Unit): Boolean {
         val ball = recordBall

@@ -1,0 +1,122 @@
+[0;33m··[0m ===== 第 1/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:05:40.520 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=20 target=com.android.settings
+     09-23 05:05:40.521 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:05:40.522 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:05:40.525 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:05:40.525 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:05:40.526 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:05:40.526 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:05:40.526 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:05:40.527 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-23 05:05:56.449 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 2/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:07:26.056 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=18 target=com.android.settings
+     09-23 05:07:26.057 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:07:26.057 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:07:26.058 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:07:26.060 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:07:26.060 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:07:26.061 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:07:26.061 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:07:26.061 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R2 录→编→放全绿 :: 09-23 05:07:42.227 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 3/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:09:10.110 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=19 target=com.android.settings
+     09-23 05:09:10.111 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:09:10.111 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:09:10.111 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:09:10.111 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:09:10.111 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:09:10.112 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:09:10.112 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:09:10.113 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R3 录→编→放全绿 :: 09-23 05:09:25.699 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 4/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:10:54.020 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=19 target=com.android.settings
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:10:54.021 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:10:54.023 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R4 录→编→放全绿 :: 09-23 05:11:09.949 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 5/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:12:39.363 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=18 target=com.android.settings
+     09-23 05:12:39.364 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:12:39.366 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:12:39.366 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:12:39.367 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:12:39.369 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:12:39.369 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:12:39.369 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:12:39.370 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R5 录→编→放全绿 :: 09-23 05:12:55.323 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 6/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:14:24.926 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=20 target=com.android.settings
+     09-23 05:14:24.927 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:14:24.927 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:14:24.928 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:14:24.928 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:14:24.930 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:14:24.931 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:14:24.933 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:14:24.933 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R6 录→编→放全绿 :: 09-23 05:14:40.721 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 7/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:16:09.966 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=20 target=com.android.settings
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:16:09.968 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:16:09.970 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:16:09.971 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R7 录→编→放全绿 :: 09-23 05:16:25.494 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 8/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=19 target=com.android.settings
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:17:53.892 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:17:53.898 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:17:53.898 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R8 录→编→放全绿 :: 09-23 05:18:09.913 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 9/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:19:39.558 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=20 target=com.android.settings
+     09-23 05:19:39.558 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:19:39.559 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:19:39.559 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:19:39.559 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:19:39.559 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:19:39.562 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:19:39.562 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:19:39.562 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R9 录→编→放全绿 :: 09-23 05:19:55.374 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+[0;33m··[0m ===== 第 10/10 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:21:24.634 20109 20109 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=19 target=com.android.settings
+     09-23 05:21:24.634 20109 20109 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:21:24.634 20109 20109 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:21:24.634 20109 20109 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:21:24.635 20109 20109 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:21:24.635 20109 20109 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:21:24.635 20109 20109 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:21:24.635 20109 20109 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:21:24.635 20109 20109 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R10 录→编→放全绿 :: 09-23 05:21:40.473 20109 20109 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：10/10 轮全绿（ratio=1.00 ≥ 0.9）

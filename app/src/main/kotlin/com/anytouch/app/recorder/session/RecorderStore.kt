@@ -1,6 +1,10 @@
 package com.anytouch.app.recorder.session
 
 import android.util.Log
+import com.anytouch.app.AppState
+import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.platform.recordGateOf
+import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.RecEvent
 import com.anytouch.app.recorder.RecorderCompiler
 import com.anytouch.app.recorder.RecorderOutput
@@ -22,6 +26,7 @@ data class CompileResult(
  * - 控制边全留痕：start/inject/stop/拒绝 每条边都写 S2SMOKE 日志回执（对齐注入总线"必留痕"纪律，
  *   静默失踪=黑洞，与虚报同罪）；
  * - UI 与 adb 双通道走同一入口，会话在内存不落盘（跨 App 内容落盘=隐私红线，持久化另案待裁）；
+ * - 开录门禁落在此处（军令 L1/L2 + 红线 E）：两条通道共享同一 fail-closed 判据，UI 按钮置灰不算门禁；
  * - 编译只调冻结的 RecorderCompiler，本层零终审逻辑（丢弃归因由产物自带）。
  */
 object RecorderStore {
@@ -50,9 +55,33 @@ object RecorderStore {
     /** 编译产物（步序账）：步骤编辑页（删步/改名/移序）与 UI 展示的单一数据源，随 start 作废。 */
     val compiledActions = MutableStateFlow<List<com.anytouch.contracts.Action>>(emptyList())
 
+    /**
+     * 录制球挂载事实（L1 门禁输入，服务侧采集器唯一写方）：默认 false=fail-closed，
+     * 未经"球已挂上"证明就不允许开录——UI 置灰不是门禁（adb 通道绕过按钮），门禁必须落在会话入口。
+     */
+    @Volatile
+    var recordBallAttached: Boolean = false
+
+    /** 最近一次被拒的开录话术：UI 必须显示（L2-③"错误必显示"），新一次开录（成功或失败）即覆盖。 */
+    val startRejection = MutableStateFlow<String?>(null)
+
     val isRecording: Boolean get() = session?.state == SessionState.RECORDING
 
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {
+        val gate = recordGateOf(
+            serviceConnected = AppState.serviceConnected.value,
+            running = AppState.running.value,
+            ballAttached = recordBallAttached,
+        )
+        if (gate != RecordGate.READY) {
+            val copy = gate.userCopy()
+            startRejection.value = copy
+            Log.w(TAG, "S2SMOKE record start refused gate=$gate detail=$copy")
+            // 冻结层无"门禁"专用拒因（只有 INVALID_STATE/OVERFLOW/CORRUPT_ARCHIVE），不改冻结文件：
+            // 用 INVALID_STATE + detail 承载话术，归因走日志 gate 字段。
+            return SessionOutcome.Rejected(RejectionReason.INVALID_STATE, copy.orEmpty())
+        }
+        startRejection.value = null
         val fresh = RecorderSession(targetPkg = targetPkg)
         val outcome = fresh.start()
         return when (outcome) {

@@ -1,0 +1,15 @@
+[0;32mPASS[0m C1 混合链(scroll+click Settings) :: 09-23 05:59:34.830 31048 31048 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C2 type_text 经典EditText :: 09-23 05:59:47.497 31048 31048 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m C3 type_text Compose自目标 :: 09-23 05:59:50.404 31048 31048 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-23 06:00:06.113 31048 31048 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m C5 高危超时默认拒绝 :: 09-23 06:00:34.049 31048 31048 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+[0;32mPASS[0m C5x 输入通道洁净（零外部触点）
+[0;32mPASS[0m C6 停止球即时响应 :: 1s :: 09-23 06:00:47.939 31048 31048 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+[0;32mPASS[0m C7 面板挂起期点球即停 :: 0s :: 09-23 06:01:07.344 31048 31048 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+[0;32mPASS[0m C7x 输入通道洁净（触摸 0 次 = 预算 0）
+[0;32mPASS[0m C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+[0;32mPASS[0m C8b 解绑重绑后执行器自愈 :: 09-23 06:01:31.161 31048 31048 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m C9 服务未连时开录被拒（注入通道同判，无空会话）
+[0;32mPASS[0m C10 执行中开录被拒（球收起态不得录制）
+
+device-smoke: ALL PASS

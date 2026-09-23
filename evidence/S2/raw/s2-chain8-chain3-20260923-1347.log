@@ -1,0 +1,19 @@
+[0;33m··[0m ===== SC 滚动采集：一次慢拖 = 一步 =====
+09-23 05:51:00.084 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 同手势合并（node=com.android.settings:id/main_content_scrollable_container dir=forward gap=114ms）
+09-23 05:51:00.195 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 同手势合并（node=com.android.settings:id/main_content_scrollable_container dir=forward gap=111ms）
+09-23 05:51:03.003 31048 31048 I AnytouchRun: S2SMOKE-STEP index=0 type=scroll value={"resource_id":"com.android.settings:id/main_content_scrollable_container","direction":"forward"}
+[0;32mPASS[0m SC 一次慢拖只成一步 :: 09-23 05:51:03.003 31048 31048 I AnytouchRun: S2SMOKE compiled ok actions=1 drops=0 merged=0 events=3 target=com.android.settings
+[0;33m··[0m ===== 第 1/1 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;33m··[0m 编译产物：09-23 05:52:31.358 31048 31048 I AnytouchRun: S2SMOKE compiled ok actions=8 drops=0 merged=0 events=21 target=com.android.settings
+     09-23 05:52:31.358 31048 31048 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:52:31.358 31048 31048 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:52:31.358 31048 31048 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+     09-23 05:52:31.358 31048 31048 I AnytouchRun: S2SMOKE-STEP index=3 type=click value={"content_desc":"Navigate up"}
+     09-23 05:52:31.363 31048 31048 I AnytouchRun: S2SMOKE-STEP index=4 type=click value={"content_desc":"Navigate up"}
+     09-23 05:52:31.364 31048 31048 I AnytouchRun: S2SMOKE-STEP index=5 type=click value={"text":"Pair new device"}
+     09-23 05:52:31.364 31048 31048 I AnytouchRun: S2SMOKE-STEP index=6 type=click value={"content_desc":"Navigate up"}
+     09-23 05:52:31.365 31048 31048 I AnytouchRun: S2SMOKE-STEP index=7 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-23 05:52:47.162 31048 31048 I AnytouchRun: S1SMOKE ok=8 total=8 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：1/1 轮全绿（ratio=1.00 ≥ 0.9）

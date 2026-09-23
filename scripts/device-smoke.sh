@@ -3,7 +3,8 @@
 # 用法：bash scripts/device-smoke.sh   （需恰好 1 台 adb 设备、已装 debug APK、无障碍服务已绑）
 # 退出码：0=全部通过；1=有失败；2=前置不满足。产品路径零坐标注入、零网络，纯 adb + logcat 回执断言；
 # 例外（均为测试通道动作，脚本内留痕）：C6/C7 用 `input tap` 点悬浮停止球（模拟用户手指，非产品定位）；
-# C8 真实切换无障碍服务开关（settings put）复现"执行中被系统解绑"，case 尾重绑恢复。
+# C8/C9 真实切换无障碍服务开关（settings put）复现"执行中被系统解绑"与"服务不在场仍想开录"，case 尾重绑恢复；
+# C9/C10 = 录制门禁双路径（军令红线 E：无障碍不可用 / 执行中球收起，两条通道都不得开录）。
 # 输入通道洁净断言（09-22 幽灵触点事件）：C5/C7 用 getevent 布网，合法触点预算均为 0
 # （`input tap` 走 InputManager 注入、kernel /dev/input 看不见），任何捕获到的触摸即外部污染 FAIL。
 # 防共享模拟器上别人的手把安全负例点成假绿。
@@ -222,6 +223,53 @@ fi
 # ---------- C8b 解绑后自愈：新任务必须照常执行并出正确归因（防 running 悬挂复发） ----------
 run_case "C8b 解绑重绑后执行器自愈" "stop=\"NODE_NOT_FOUND\"" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"x2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" 60
+
+# ---------- C9 门禁路径一：无障碍未连接 → 开录必拒（军令 L2-① + 红线 E 双路径之①） ----------
+# 只置灰按钮不算门禁：adb 注入通道绕过 UI 直调 RecorderStore.start，必须同判。
+# 断言两件套：① 拒因留痕（gate=SERVICE_OFF 话术可见）；② 绝无 "record start target=" 成功痕——
+# 缺服务时开录=录一段空会话再"成功"给用户看，正是第 8 雷（静默空录）形态。
+MSYS_NO_PATHCONV=1 $ADB shell "settings put secure enabled_accessibility_services '${A11Y_NOUS:-null}'" >/dev/null 2>&1
+# 解绑是异步的：等 onUnbind 把 serviceConnected 落为 false，否则可能读到"仍连着"的旧态打假绿
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    MSYS_NO_PATHCONV=1 $ADB shell dumpsys accessibility | grep -q "com.anytouch.app" || break
+    sleep 1
+done
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es record_start com.android.settings" >/dev/null 2>&1
+sleep 3
+r9=$(MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:W 2>/dev/null | grep -c 'record start refused gate=SERVICE_OFF' || true)
+s9=$(MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:I 2>/dev/null | grep -c 'S2SMOKE record start target=' || true)
+# 恢复开跑前的原始清单（真机上有别家服务在绑，绝不硬覆盖）
+MSYS_NO_PATHCONV=1 $ADB shell "settings put secure enabled_accessibility_services '${A11Y_ORIG:-com.anytouch.app/.service.AnytouchAccessibilityService}'" >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell settings put secure accessibility_enabled 1 >/dev/null 2>&1
+sleep 4
+if [ "${r9:-0}" -ge 1 ] && [ "${s9:-0}" -eq 0 ]; then
+    pass "C9 服务未连时开录被拒（注入通道同判，无空会话）"
+else
+    bad "C9 服务未连时开录 :: 期望 [refused gate=SERVICE_OFF ≥1 且 成功痕=0]，实际 [拒=${r9:-0} 成功=${s9:-0}]"
+fi
+
+# ---------- C10 门禁路径二：执行中开录必拒（L1"挂不上球=拒绝开始"的设备可复现形态） ----------
+# 执行期录制球被显式收起（看不见球=没有急停入口），且此刻开录会把执行器自己的手录成用户意图（假绿）。
+# 球挂载事实由服务侧写入 RecorderStore.recordBallAttached，门禁在会话入口读取——
+# 这里用"第二步 15s 定位轮询"窗口注入 record_start，真实复现"执行中"这一态。
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"g1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE},{\"action_id\":\"g2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
+sleep 4  # g1 已落地、g2 进入定位轮询 => AppState.running=true
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es record_start com.android.settings" >/dev/null 2>&1
+sleep 3
+r10=$(MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:W 2>/dev/null | grep -c 'record start refused gate=RUNNING' || true)
+s10=$(MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:I 2>/dev/null | grep -c 'S2SMOKE record start target=' || true)
+if [ "${r10:-0}" -ge 1 ] && [ "${s10:-0}" -eq 0 ]; then
+    pass "C10 执行中开录被拒（球收起态不得录制）"
+else
+    bad "C10 执行中开录 :: 期望 [refused gate=RUNNING ≥1 且 成功痕=0]，实际 [拒=${r10:-0} 成功=${s10:-0}]"
+fi
+# 收尾：等执行中的队列自然结束（g2 定位超时），别让下一条用例撞进 running 态
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:* 2>/dev/null | grep -q "S1SMOKE ok=" && break
+    sleep 1
+done
 
 echo
 if [ "$fail" -eq 0 ]; then echo "device-smoke: ALL PASS"; else echo "device-smoke: 有失败项"; fi

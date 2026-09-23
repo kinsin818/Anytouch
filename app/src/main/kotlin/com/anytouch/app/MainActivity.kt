@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
+import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.session.RecorderStore
 
 /**
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
                     var targetPkg by remember { mutableStateOf(RecorderStore.targetPkg) }
                     val recording by RecorderStore.activeSession.collectAsState()
                     val suggestion by RecorderStore.suggestedTaskJson.collectAsState()
+                    val startRejection by RecorderStore.startRejection.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
                         suggestion?.let {
@@ -71,7 +74,12 @@ class MainActivity : ComponentActivity() {
                         val running by AppState.running.collectAsState()
                         val report by AppState.lastRunReport.collectAsState()
                         Text("Anytouch S1 执行器", style = MaterialTheme.typography.headlineSmall)
-                        Text(if (connected) "无障碍服务：已连接" else "无障碍服务：未连接（先启用）")
+                        // L2-①：未连接即首启引导必现（同一话术单源于 AccessibilityGate，UI 不各写一份）
+                        Text(
+                            if (connected) "无障碍服务：已连接"
+                            else RecordGate.SERVICE_OFF.userCopy().orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         Text(if (running) "任务执行中…（可点悬浮球停止）" else "空闲")
                         OutlinedTextField(
                             value = targetPkg,
@@ -96,6 +104,15 @@ class MainActivity : ComponentActivity() {
                             if (recording != null && RecorderStore.isRecording) "录制中：只收目标包窗口内动作" else "未在录制",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        // L2-③：被拒的开录必须把话术显示出来（静默禁用=黑洞）；adb 注入通道同一条流
+                        startRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("record_rejection"),
+                            )
+                        }
                         OutlinedTextField(
                             value = taskJson,
                             onValueChange = { taskJson = it },

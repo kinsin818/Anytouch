@@ -144,12 +144,29 @@ back_to_home() {
 # 回到首页后归位滚动：首页可能停在上次看的位置（Connected devices 在首屏内，但翻到底就找不到了）。
 # 测试通道允许坐标（产品代码禁），这里只是把列表拉回顶部。
 home_to_top() {
+    # 曾经=固定 2 下拖（不复核）。设备实证：SC 一次慢拖"0 步"红两项即此——首页被前面的用例滚到
+    # 两屏开外时，2 下不回到顶，随后那一拖落在列表底部 → 容器不动 → 框架一条 viewScrolled 都不发
+    # → 编译 0 步 EMPTY。症状与"采集漏事件"一模一样，必须先排除"环境没摆好"再谈产品。
+    # 复核手段=录制期外 dump 查搜索栏（"Search settings" 只在顶部可见）；dump 会挤下线自家服务，
+    # 两个调用点（SC / 每轮）之后都有 wait_service_bound 兜住重绑。
     local i=0
-    while [ "$i" -lt 2 ]; do
+    while [ "$i" -lt 4 ]; do
+        if at_top; then HOME_AT_TOP=1; return 0; fi
+        HOME_AT_TOP=0
         MSYS_NO_PATHCONV=1 $ADB shell input swipe 540 700 540 1900 200 >/dev/null 2>&1
         sleep 1
         i=$((i + 1))
     done
+    at_top && HOME_AT_TOP=1 || { HOME_AT_TOP=0; log "警告：滚顶复核未通过（非英文界面/搜索栏缺失时按旧口径继续）"; }
+    [ "$HOME_AT_TOP" = "1" ] || return 0   # 复核不可用≠用例失败：保持与改造前同样的宽松前置
+}
+
+HOME_AT_TOP=0
+
+# 首页是否已在顶部（顶部才看得见搜索栏）。dump 失败返回 2=不可判（非英文 ROM/时序），调用侧不得据此判红。
+at_top() {
+    MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/s2-top.xml >/dev/null 2>&1 || return 2
+    MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/s2-top.xml | tr -d '\r' | grep -aq 'text="Search settings"'
 }
 
 reset_settings_home() {
@@ -269,6 +286,7 @@ if [ "$SCROLL_CASE" = "1" ]; then
     reset_settings_home
     wait_service_bound || bad "SC 前置：服务未绑"
     MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+    focus_before=$(focus_window)   # 取证面：一次慢拖 0 步时，第一问是"手指落在谁的窗口上"
     if start_record; then
         MSYS_NO_PATHCONV=1 $ADB shell input swipe 500 1400 500 900 900 >/dev/null 2>&1
         sleep 3
@@ -281,7 +299,20 @@ if [ "$SCROLL_CASE" = "1" ]; then
         if [ "$n" = "1" ] && [ "$kind" = '"type":"scroll"' ]; then
             pass "SC 一次慢拖只成一步 :: $compiled"
         else
-            bad "SC 一次慢拖 :: 期望 1 步 scroll，实际 [$n 步 $kind] :: $compiled"
+            bad "SC 一次慢拖 :: 期望 1 步 scroll，实际 [$n 步 $kind]，拖前焦点=[$focus_before] :: $compiled"
+            # 红项必附归因面：0 步有两种世界（焦点不在目标包 / 在包但容器不动），只看步数分不开
+            MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:* 2>/dev/null |
+                grep -a -E "record start|record stop|record rebound|abandoned|refused|capture skipped|capture note|compiled|event-meta" | tail -14
+            # 尸检（红项限定，录制已结束才 dump——录制期 dump 会挤下线自家服务）：
+            # 手指当时落在哪一页、那页到底可不可滚，只有活树能回答；不猜。
+            log "SC 尸检：拖后焦点=[$(focus_window)]"
+            if MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/s2-sc-postmortem.xml >/dev/null 2>&1; then
+                tree=$(MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/s2-sc-postmortem.xml | tr -d '\r')
+                printf 'scrollable=true 节点数=%s\n' "$(printf '%s' "$tree" | grep -o 'scrollable="true"' | wc -l | tr -d ' ')"
+                printf '%s' "$tree" | tr '>' '\n' | grep -o 'text="[^"]\{4,34\}"' | head -6
+                MSYS_NO_PATHCONV=1 $ADB shell rm -f /sdcard/s2-sc-postmortem.xml >/dev/null 2>&1
+            fi
+            wait_service_bound || log "SC 尸检后服务未回绑（dump 挤线所致，后续轮次会自复）"
         fi
     else
         bad "SC 开录回执缺席"

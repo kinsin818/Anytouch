@@ -1,0 +1,38 @@
+[0;33m··[0m ===== SC 滚动采集：一次慢拖 = 一步 =====
+09-23 05:33:42.013 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 同手势合并（node=com.android.settings:id/main_content_scrollable_container dir=forward gap=119ms）
+09-23 05:33:44.877 31048 31048 I AnytouchRun: S2SMOKE-STEP index=0 type=scroll value={"resource_id":"com.android.settings:id/main_content_scrollable_container","direction":"forward"}
+[0;32mPASS[0m SC 一次慢拖只成一步 :: 09-23 05:33:44.876 31048 31048 I AnytouchRun: S2SMOKE compiled ok actions=1 drops=0 merged=0 events=4 target=com.android.settings
+[0;33m··[0m ===== 第 1/1 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-23 05:34:23.856 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 05:34:26.713 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 05:34:29.986 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+      | 09-23 05:34:21.729 31048 31048 I AnytouchRun: S2SMOKE record start target=com.android.settings
+      | 09-23 05:34:23.632 31048 31048 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Connected devices|Bluetooth, pairing/null src=android.widget.LinearLayout/null/null id=null
+      | 09-23 05:34:23.791 31048 31048 I AnytouchRun: S2SMOKE path by unique content(严档/句柄子树): [0, 0, 0, 1, 0, 1, 0, 0, 0, 1] 窗口节点=51 cls=android.widget.LinearLayout texts=[Bluetooth, pairing, Connected devices]
+      | 09-23 05:34:23.819 31048 31048 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=androidx.recyclerview.widget.RecyclerView/null/null src=androidx.recyclerview.widget.RecyclerView/null/null id=com.android.settings:id/recycler_view
+      | 09-23 05:34:23.856 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 05:34:26.492 31048 31048 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Connection preferences|Bluetooth, Android Auto/null src=android.widget.LinearLayout/null/null id=null
+      | 09-23 05:34:26.671 31048 31048 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=androidx.recyclerview.widget.RecyclerView/null/null src=androidx.recyclerview.widget.RecyclerView/null/null id=com.android.settings:id/recycler_view
+      | 09-23 05:34:26.713 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 05:34:29.657 31048 31048 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Bluetooth/null src=android.widget.LinearLayout/null/null id=null
+      | 09-23 05:34:29.733 31048 31048 I AnytouchRun: S2SMOKE content no-match(严档 kids=2/句柄子树): want=[Bluetooth] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Bluetooth, Use Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 1, 0] kids=2 texts=([Device name, Pair new device, Use Bluetooth, When Bluetooth is turned on, your device can communicate with other nearby Bluetooth devices., sdk_gphone64_x86_64], [])
+      | 09-23 05:34:29.738 31048 31048 I AnytouchRun: S2SMOKE content no-match(宽档/句柄子树): want=[Bluetooth] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Bluetooth, Use Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 1, 0] kids=2 texts=([Device name, Pair new device, Use Bluetooth, When Bluetooth is turned on, your device can communicate with other nearby Bluetooth devices., sdk_gphone64_x86_64], [])
+      | 09-23 05:34:29.749 31048 31048 I AnytouchRun: S2SMOKE content no-match(严档 kids=2/事件拷贝): want=[Bluetooth] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Bluetooth, Use Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 1, 0] kids=2 texts=([Device name, Pair new device, Use Bluetooth, When Bluetooth is turned on, your device can communicate with other nearby Bluetooth devices., sdk_gphone64_x86_64], [])
+      | 09-23 05:34:29.760 31048 31048 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[Bluetooth] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Bluetooth, Use Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Bluetooth], [Bluetooth, Navigate up]) || [0, 0, 0, 1, 0] kids=2 texts=([Device name, Pair new device, Use Bluetooth, When Bluetooth is turned on, your device can communicate with other nearby Bluetooth devices., sdk_gphone64_x86_64], [])
+      | 09-23 05:34:29.769 31048 31048 W AnytouchRun: S2SMOKE path unprovable: src=android.widget.LinearLayout(null,null)kids=2pkg=com.android.settingstext=null evt=android.widget.LinearLayout/[Bluetooth]/null walkDepth=10 roots=android.widget.FrameLayout(null,null)kids=1pkg=com.android.settingstext=null
+      | 09-23 05:34:29.800 31048 31048 I AnytouchRun: S2SMOKE path=chain-unanchored(仅作去抖/折叠键，回放定位走线索): [0, 0, 0, 1, 0, 0, 0, 0, 0, 0] id=null text=Bluetooth desc=null
+      | 09-23 05:34:29.896 31048 31048 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=androidx.recyclerview.widget.RecyclerView/null/null src=androidx.recyclerview.widget.RecyclerView/null/null id=com.android.settings:id/recycler_view
+      | 09-23 05:34:29.986 31048 31048 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+      | 09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+      | 09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+      | 09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+      | 09-23 05:34:32.439 31048 31048 I AnytouchRun: S2SMOKE-TASK [{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0004","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0006","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-23 05:34:46.180 31048 31048 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：1/1 轮全绿（ratio=1.00 ≥ 0.9）
