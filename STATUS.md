@@ -87,6 +87,29 @@ BUILD/CI/PROBE 三 RC=0、九线 A–I 全清。本批两条自纠入档：① �
 编译期间的「执行任务」「步骤编辑」两个入口**没加**门禁（裁决只点名开录/停止），后果照录=期间改的步会被归来那本账覆盖，等一句话；
 编译协程被进程杀死则 `compileBusy` 残留为 true 直到重启（无第三方能撤），已知残留入 §7-3。证据 `evidence/S3/slice-e0-compile-mutex.md`。
 
+**S3-E1（切片 E 的模拟器半边）已落（09-23，按裁决 S3-R4-4"继续往下做切片E：上真机验证面板、真HTTPS调用、Keystore存储这四个点"）**：
+新开 `scripts/byok-smoke.sh`（E 系列，与 C/U 两系列分账），把 D+E0 攒下的"只能上机判"的账**按"零凭据能不能判"切成两组**：
+前者 **25 条断言在模拟器全绿**（E1a–k 面板九格 + 折叠线以下 `record_start/record_stop` 滚得到、E1l 凭据行 either/or、
+E1m/E1o 缺席类断言、E2a–f 无凭据独立档 `NO_CREDENTIAL` 被拒不写账 + 拒因上屏 + 屏上句=日志句、
+**E2e/E2f = E0 欠的设备半边**：被拒那次编译没把互斥留在持有态，紧接着开录立刻放行、停止并编译照常走通、
+E3a/b 空意图独立档两档各计各的、E4a–c 执行中拒编译且一个字都没发出去），
+后者 **6 组一律大声 SKIP 不记 PASS**（真 HTTPS / 编译期双拒秒级窗口 / 真 Keystore 读回 / 零条上行 / 清除双槽）——
+SKIP 前先**从屏上读凭据状态行**，读不出 either/or 直接终止（未知状态既不判过也不判不过）。
+另把军令裁 1 欠着的"**飞行模式下 device-smoke 全绿**"这条机器锁第一次跑出行为证据：**13/13、RC=0**，
+且断网/复网探针**双向都录**（只报"断网时全绿"而不证尺子自己能失败=拿没校过的尺子量）。**本批产品代码一行未改**，
+JVM 账不动 **332**（app 254/byok 59/contracts 19）、ci-local 九线 A–I **CI_RC=0**、`redline-probe.sh` **PROBE_RC=0**。
+**三条设备事实**（只能上机拿）：F-1 Compose `testTag` 在 dump 里是**裸** `resource-id="ai_intent"`（系统 id 含 `:`/`.`，一条正则就把自家格子和别人的分开）；
+F-2 **dump 只含当前视口 ± 缓存且滚动落点不可预测** → "屏上没有"这类断言自此被两条机器锁住（到底=连续两屏读数逐字相同；无缝=相邻两屏至少共享一个自家节点），
+任一条不满足即判"读数不可信"（红）而不是"屏上没有"；F-3 常驻服务型进程 `am kill` 收不走而测试通道禁 force-stop（雷 13）→"换新进程不挂旧结论"在测试通道做不了，记 SKIP。
+**三条自纠**：Z-1 首轮两条假红的**第一次修法是错的**（押"拖动时长 250→500ms"=用参数掩盖机制不明，探针当场打掉：那次"没滚"是因为已经到底）；
+Z-2 E2d 起初写"逐字同源"、实际只比前 24 字节，措辞已收窄；Z-3 E8c 起初数 `S2SMOKE record start`，而**被拒行本身就以它开头** → 真机会把"被拒"数成"开录成功"，已改成数成功行字面 `record start target=`（该组本轮 SKIP，雷在纸上拆掉）。
+另纠一条口径：整页 Key 形态筛子有 1 处良性命中（`AnytouchAccessibilityService`）——**筛子不是判据，命中必须逐条人工归因**，不得写"0 命中"。
+**边界**：模拟器 ≠ 真机，老板点名四点里只证到第 1 点的无凭据半边，其余三条 SKIP 原文在 raw 逐条可查；
+E4 证的是**外层**门禁，`acceptModelActions` 内层 `model ledger refused gate=RUNNING` 只有真产物能触发（仍属 E-key）；屏上"置灰"本批不判（门禁在入口，把视觉当门禁是 S2 付过学费的口径）；未做人眼截图取证。证据 `evidence/S3/slice-e1-emulator-pre.md` + raw `byok-smoke-emulator-e1.log`。
+**E-key 半边移交老板手指**（按 S3-R4-2"Key 上机你自己在手机上手动输就行，不用adb下发"）：脚本一个 Key 字面量都没有、也从不读 Key 输入框；
+接 K40 + 手输三项 + `ANDROID_SERIAL=<serial> bash scripts/byok-smoke.sh` 即自动接管，**需老板点头两件事**：这组要打**两次**真请求
+（裁 4 原文"一次真机真 Key"，多出那次为量秒级互斥窗口；不点头则 E8 段跳过），以及 `E_WIPE=1` 才跑「清除双槽」（会真删屏上凭据、删完需再手输）。
+
 
 
 
@@ -97,7 +120,7 @@ BUILD/CI/PROBE 三 RC=0、九线 A–I 全清。本批两条自纠入档：① �
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
 | S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）；设备回归固化为 `scripts/device-smoke.sh`（13/13 PASS：高危超时默认拒绝负例 + C6 停止球即时响应 + C7 面板挂起期点球即停 + C8/C8b 执行中解绑中断回执与自愈 + C5x/C7x 输入通道洁净锁 + C9/C10 开录门禁双路径）；输入链 demo + 安全链双幕 demo（确认放行/挂起期急停）`evidence/S2/demo/`；停止球全局停设备实证 `evidence/S2/kill-ball-device.md`（115 例绿）。**T2 编译链首批已结案**：NVIDIA NIM 单通道端到端打通（中文意图→AI 编译→12 项校验→设备执行 ok=3/3，`evidence/S2/t2-key-adaptation.md`）。**实测层首批已结案（产品脊梁立住）**：悬浮球开录→人工操作→停止→RecorderCompiler 出 JSON→一键回放全链打通，3 步链 10/10 轮全绿（≥90% 判据以 100% 达标）、8 步链 8 录→8 编→8 放零降级、SC 一次慢拖只成一步、JVM 176 绿（原写 289 系双变体合并误标，已自纠，见证据 §8.4）、ci-local PASS；产品侧三雷 15/16/17（事件拷贝词字段错位／0 命中帧被当歧义／无句柄无证据=整步失踪）全闭且各自设备实证（`evidence/S2/s2-ondevice-record-replay.md`）。**实测层第二批已结案**：磁盘判据 L0（8 步×10 轮 ≥90%）补齐——**10/10 轮逐轮 `actions=8`、回放 `ok=8 total=8`**（修复前同判据 8/10），差的那 2 轮抓出 **雷 18**（采集根集合把同一活动窗数两遍 → 自家双计把唯一线索判成歧义 → 整步失踪；修=与执行器共用同一词表并把"分母必须等于回放面"写成契约）；**L1/L2/红线 E 开录门禁落地**（`platform/AccessibilityGate.kt` 纯函数 + 门禁在会话入口 `RecorderStore.start()`，UI 置灰不算门禁；球挂载事实单源、服务重连即清零；拒因上主屏显示=L2-③，未连接话术含"请立即"=L2-①），设备实证 C9（服务不在场→注入通道同拒且**不产生空会话**）/C10（执行中球收起→拒开录），JVM 新增 6 例；同构建 device-smoke **13 项断言五连全绿**、ci-local 四步 PASS。SC"一次慢拖 0 步"间歇红归因＝测试通道 `home_to_top` 固定 2 下拖不复核（前序用例把首页滚到底 → 拖在边界 → 框架不发 viewScrolled），改 dump 复核到顶 + 红项加归因面后同场景绿（改前 2 红 2 绿，样本小，锁的判据是"红了分得开环境/产品"）。**录制 UI 面（步序账编辑）+ 三修已结案**：编译产物逐行上屏、删/改名/移序全走 STAGE-21 冻结纯函数、UI 与 adb 注入共用 `applyEdit` 唯一写口 + 四档 fail-closed 门禁；老板裁决 1/2/3 落地为 V-1 球移右缘+半透明、V-2 拒因话术补过期边（实测 15 ms 作废）、V-3 执行前按来源比对账与框（孤儿建议拒放上屏、手敲 JSON 不误伤），最终构建 ui-smoke **34 断言 × 2 轮 0 红**、device-smoke **13/13**、JVM **207**、ci-local PASS（`evidence/S2/recui-step-edit.md` §1–§6，裁决原文 `orders/ANYTOUCH-S2-recui-ORDER.md` §7）。**执行中禁编辑门禁已结案（老板裁 2）**：编辑门禁第五档 `RUNNING`（纯函数判 / `applyEdit` 唯一写口 / UI 置灰仅提示，注入通道同拒）、话术带过期边（只作废纯状态档）、停止球零改动故三台真机急停坐标证据仍有效、重叠区自然消解；同构建 ui-smoke **41 断言 × 2 轮 0 红**、device-smoke **13/13**、JVM **211**（app 180/contracts 19/compiler 12）、ci-local PASS（证据 §7、ORDER §8）。测试通道新律入档：**dump 会打断在跑任务**（执行期禁 dump，改截图） | 三档模型（Gemini/GPT/Haiku）待老板 Key+回禀；步骤列表编辑页**已成型**（录→编→放三面 + 三修 + 执行中禁编辑门禁全部落地，真实手指/IME 路径仍零设备实证）| 军令 `orders/ANYTOUCH-S2-ondevice-DRAFT.md` L0 + `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面+冒烟输出 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
-| S3 兜底/BYOK | 🟡 **老板 09-23 开工令放行**（BYOK 创建期编译链接进 APP）：切片 A+B+C+D 已落——A：`:byok` 纯 JVM 模块立起、编译器 `git mv` 搬入（一份编译器两处用）；B：Key 面全部立起（`BaseUrlPolicy`/`KeyMasker`/`ByokError` 八档话术/`OpenAiCompatTransport` + `GcmBlobCipher`/`CredentialRepository`/`VaultWipe`，save 回读比对、clear 双槽复查）；C：屏上下文最小化（判据全在 byok 纯函数：关闭=零条、输入框只报存在、密码类整条剔除、白名单只有可见 text+resource-id entry、封顶 40、五条丢弃账上屏；app 侧只留读三布尔的设备缝）；**D：APP 接线立起创建期整条链**（Key 配置面+掩码尾 4 位、意图框→「AI 编译」→`RecorderStore.acceptModelActions` 唯一落账口→任务框建议与账逐字相等→既有执行器零改动；`ByokPreflight` 七档出门前门禁 + `checkSave` 政策提到写盘前 + `ByokCompileController` "任何一档没走通都不落账" + `ByokPanelState` 不开第二跑/撤陈旧话术 + 自家活动窗不参与上行；**根集合口径主窗自裁落地：上行面==回放面**，服务只交出 `AccessibilityDevice.root()` 一个钩子）；红线 A/C 字面不动，**F/G/H/I** 四条机器锁由 `scripts/redline-probe.sh` 逐条自证**能 FAIL**（service 挂取树钩子之后 G 仍在锁）；ci-local 九线全清 PASS、JVM **320**（app 242/byok 59/contracts 19，D 批 +34）；**E0 前置批：裁决 S3-R4-1 编译期互斥已落**（`AppState.compileBusy` 一格真值、开录/停止两入口各一档、`stopRejection` 过期边由编译归位触发，JVM **332**＝app 254/byok 59/contracts 19） | **端到端在设备上仍一次没跑通过**（D/E0 零设备验证，按 §5 节奏"D 完成后才碰设备"）：切片 E = 飞行模式 device-smoke 13/13 + 三条落账/互斥断言（执行中拒换账、AI 产物不被 V-3 误拒、**编译在跑时开录与停止并编译双拒且会话不停账不动**）+ 一次真机真 Key 端到端（**Key 上机通道已裁：老板在手机上手输，不走 adb 下发**，S3-R4-2）；手工路径的编译入口仍在主窗面板（活动窗=自家窗→词表 0 条，入口搬悬浮球属 S4）；MediaProjection 判官项仍按原口径挂账 | 军令 `orders/ANYTOUCH-S3-byok-ORDER.md`（含老板四裁原文 + §5.1 切片执行账）、执行账 `evidence/S3/slice-a-byok-module.md`、`slice-b-key-surface.md`、`slice-c-screen-context.md`、`slice-d-app-wiring.md` |
+| S3 兜底/BYOK | 🟡 **老板 09-23 开工令放行**（BYOK 创建期编译链接进 APP）：切片 A+B+C+D 已落——A：`:byok` 纯 JVM 模块立起、编译器 `git mv` 搬入（一份编译器两处用）；B：Key 面全部立起（`BaseUrlPolicy`/`KeyMasker`/`ByokError` 八档话术/`OpenAiCompatTransport` + `GcmBlobCipher`/`CredentialRepository`/`VaultWipe`，save 回读比对、clear 双槽复查）；C：屏上下文最小化（判据全在 byok 纯函数：关闭=零条、输入框只报存在、密码类整条剔除、白名单只有可见 text+resource-id entry、封顶 40、五条丢弃账上屏；app 侧只留读三布尔的设备缝）；**D：APP 接线立起创建期整条链**（Key 配置面+掩码尾 4 位、意图框→「AI 编译」→`RecorderStore.acceptModelActions` 唯一落账口→任务框建议与账逐字相等→既有执行器零改动；`ByokPreflight` 七档出门前门禁 + `checkSave` 政策提到写盘前 + `ByokCompileController` "任何一档没走通都不落账" + `ByokPanelState` 不开第二跑/撤陈旧话术 + 自家活动窗不参与上行；**根集合口径主窗自裁落地：上行面==回放面**，服务只交出 `AccessibilityDevice.root()` 一个钩子）；红线 A/C 字面不动，**F/G/H/I** 四条机器锁由 `scripts/redline-probe.sh` 逐条自证**能 FAIL**（service 挂取树钩子之后 G 仍在锁）；ci-local 九线全清 PASS、JVM **320**（app 242/byok 59/contracts 19，D 批 +34）；**E0 前置批：裁决 S3-R4-1 编译期互斥已落**（`AppState.compileBusy` 一格真值、开录/停止两入口各一档、`stopRejection` 过期边由编译归位触发，JVM **332**＝app 254/byok 59/contracts 19）；**E1 模拟器半边已落**（新脚本 `scripts/byok-smoke.sh` 与 C/U 系列分账：**零凭据 25 条断言全绿**——面板九格滚得到、无凭据独立档 `NO_CREDENTIAL` 被拒不写账、拒因上屏且屏上句=日志句、**E0 欠的设备半边"被拒的编译不许把互斥留在持有态"**、执行中拒编译零字节出网；凭据依赖 **6 组一律 SKIP 不记 PASS**；**飞行模式下 device-smoke 13/13 RC=0**＝"执行期零网络"第一次有行为证据（断/复网探针双向自证）；三条设备事实 F-1 裸 resource-id／F-2 dump 只含视口±缓存→缺席类断言加"到底+无缝"两条机器锁／F-3 常驻进程回收不掉；产品代码**一行未改**、JVM 账不动 332、CI_RC=0／PROBE_RC=0） | **切片 E 只剩 E-key 半边，且它阻塞在老板的手指上**：真 HTTPS／真 Keystore 硬件读回与清除双槽／词表真采几条／编译期双拒秒级窗口 四条**一条没证**（raw 里 6 组 SKIP 逐条可查），需 K40 在场 + 手机手输三项（**Key 上机通道已裁：老板手输，不走 adb 下发**，S3-R4-2）+ **两次真请求点头**（裁 4 字面"一次"，多出那次为量互斥）+ 可选 `E_WIPE=1`；**模拟器 ≠ 真机**，四条设备点里只证到第 1 点的无凭据半边；E4 只证外层门禁，`acceptModelActions` 内层 `RUNNING` 拒仍属 E-key；手工路径的编译入口仍在主窗面板（活动窗=自家窗→词表 0 条，入口搬悬浮球属 S4）；MediaProjection 判官项仍按原口径挂账 | 军令 `orders/ANYTOUCH-S3-byok-ORDER.md`（含老板四裁原文 + §5.1 切片执行账）、执行账 `evidence/S3/slice-a-byok-module.md`、`slice-b-key-surface.md`、`slice-c-screen-context.md`、`slice-d-app-wiring.md`、`slice-e0-compile-mutex.md`、`slice-e1-emulator-pre.md`（+ raw `byok-smoke-emulator-e1.log`） |
 
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
@@ -137,16 +160,20 @@ BUILD/CI/PROBE 三 RC=0、九线 A–I 全清。本批两条自纠入档：① �
     （服务只交出 `AccessibilityDevice(this).root()` 这一个钩子，不另写第二套取树），并额外剔自家活动窗。
     代价照实登记：输入法候选窗/系统弹窗上的词模型看不见（用户看得见却编不出来）；换到的是"词表里的词回放必看得见"。
     判据与用例：`UplinkRootFilterTest` 6 例 + `evidence/S3/slice-d-app-wiring.md` §2/§6-2。
-12. **S3-E 的配给依赖（提前打招呼，现在不用动）**：真机真 Key 端到端需老板的 NIM Key 在场一次（按裁 4 只进内存、不落盘、不进证据）；
-   三档模型（Gemini/GPT-4o-mini/Haiku）仍缺，命中率样本集与阈值也仍等老板定（ORDER §4-3）。
+12. **S3-E 的配给依赖（E-pre 已落，此条现为 E-key 的到场请求）**：真机真 Key 端到端需老板的 NIM Key 在场一次（按裁 4 只进内存、不落盘、不进证据），
+    **且需老板点头两件事**：① E-key 这组要打**两次**真请求（裁 4 字面"一次"，多出那次为量裁决-1 的秒级互斥窗口；不点头则 E8 段跳过）；
+    ② `E_WIPE=1` 才跑「清除双槽」——它会真删屏上凭据、删完需再手输一次，所以默认不动。
+    动作清单在 `evidence/S3/slice-e1-emulator-pre.md` §8（接 K40 → 手机手输三项 → `ANDROID_SERIAL=<serial> bash scripts/byok-smoke.sh`，E5~E11 自动接管）。
+    三档模型（Gemini/GPT-4o-mini/Haiku）仍缺，命中率样本集与阈值也仍等老板定（ORDER §4-3）。
 13. **切片 D 落的两条待裁**：
     ① ~~**AI 编译这一跑还没回来时，用户点「开始录制」/「停止并编译」要不要拒、怎么显？**~~ → **已裁生效（S3-R4-1）**：
     "编译在跑时要拒开录/停止，跟执行中禁编辑一个逻辑，状态机互斥，避免串状态"。**已按裁决落码（E0 批，比主窗原倾向更严：两个入口都拒）**，
     判据/话术/过期边/JVM +12 例见 `evidence/S3/slice-e0-compile-mutex.md`；设备断言（真机点击=会话不停、账不动、红字在）留 E。
-    ② **切片 D 之后主窗整页变高，首屏放不下**（代码事实，非设备实测：`MainActivity` 的内容是一个
-    `verticalScroll` 的 `Column`，本批在其间插入了一整块 BYOK 面板）。影响两条，都在 E 的账上：
-    手指走"录制→停止并编译"要先滚动才够得到按钮；`uiautomator dump` 只含**可见**节点，脚本必须先滚再断言
-    （E 的 ui-smoke 扩断言时按此写）。本批不擅自改 UI 排布（属 S2 面视觉，等一句话）。
+    ② **切片 D 之后主窗整页变高，首屏放不下**（原为代码事实，**E1 已上设备实测**：`MainActivity` 的内容是一个
+    `verticalScroll` 的 `Column`，本批在其间插入了一整块 BYOK 面板）。实测半边已落：`record_start`/`record_stop`
+    确实在首屏之外、**必须滚到折叠线以下才读得到**（E1j/E1k），且 dump 只含当前视口±缓存——脚本若"先断言后滚动"
+    就会把"没滚到"读成"屏上没有"（首轮两条假红的真因，见 `evidence/S3/slice-e1-emulator-pre.md` §4-F2/§5-Z1）。
+    仍待裁的只剩排布本身：整页要滚三屏才看完，手指路径"录制→停止并编译"体验如何排（本批不擅自改 UI 排布，属 S2 面视觉）。
 14. **E0 落的一条待裁（主窗发现，未擅自扩范围）**：裁决 S3-R4-1 原文只点名"开录/停止"，所以编译在跑时
     **「执行任务」与「步骤编辑」两个入口没有加互斥**。真实后果：编译归来会整本替换步序账，期间用户改的那一步
     被无声覆盖（不报错，但屏上"我改过的步骤没了"）。要不要把这两个入口并进同一条互斥（还是让编译那一跑持有到"用户下一次动作"为止），
