@@ -1,0 +1,42 @@
+[0;33m··[0m ===== 第 1/1 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='540 299|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;31mFAIL[0m 第 7 下 前窗不是目标 App（[u0 com.google.android.settings.intelligence/com.google.android.settings.intelligence.modules.search.SearchActivity]，手指会打在别处）
+[0;33m··[0m 编译产物：09-23 03:39:50.688 32765 32765 I AnytouchRun: S2SMOKE compiled ok actions=2 drops=1 merged=0 events=12 target=com.android.settings
+     09-23 03:39:10.332 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 03:39:50.693 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 03:39:50.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+      | 09-23 03:39:03.762 32765 32765 I AnytouchRun: S2SMOKE record start target=com.android.settings
+      | 09-23 03:39:06.566 32765 32765 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+      | 09-23 03:39:07.630 32765 32765 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+      | 09-23 03:39:10.029 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Connected devices|Bluetooth, pairing/null src=android.widget.LinearLayout/null/null id=null
+      | 09-23 03:39:10.209 32765 32765 I AnytouchRun: S2SMOKE content no-match(严档 kids=2/句柄子树): want=[Bluetooth, pairing, Connected devices] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 1, 0] kids=1 texts=([Bluetooth, Android Auto, Connection preferences, Pair new device, Saved devices, See all, Visible as “sdk_gphone64_x86_64” to other devices], [])
+      | 09-23 03:39:10.227 32765 32765 I AnytouchRun: S2SMOKE content no-match(宽档/句柄子树): want=[Bluetooth, pairing, Connected devices] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 1, 0] kids=1 texts=([Bluetooth, Android Auto, Connection preferences, Pair new device, Saved devices, See all, Visible as “sdk_gphone64_x86_64” to other devices], [])
+      | 09-23 03:39:10.258 32765 32765 I AnytouchRun: S2SMOKE content no-match(严档 kids=2/事件拷贝): want=[Bluetooth, pairing, Connected devices] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 1, 0] kids=1 texts=([Bluetooth, Android Auto, Connection preferences, Pair new device, Saved devices, See all, Visible as “sdk_gphone64_x86_64” to other devices], [])
+      | 09-23 03:39:10.293 32765 32765 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[Bluetooth, pairing, Connected devices] 同cls节点=14 roots=1 near=[0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 0] kids=1 texts=([Connected devices], [Connected devices, Navigate up]) || [0, 0, 0, 1, 0] kids=1 texts=([Bluetooth, Android Auto, Connection preferences, Pair new device, Saved devices, See all, Visible as “sdk_gphone64_x86_64” to other devices], [])
+      | 09-23 03:39:10.299 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=android.widget.LinearLayout(null,null)kids=2pkg=com.android.settingstext=null evt=android.widget.LinearLayout/[Connected devices, Bluetooth, pairing]/null walkDepth=10 roots=android.widget.FrameLayout(1461,null)kids=1pkg=com.android.settingstext=null
+      | 09-23 03:39:10.309 32765 32765 I AnytouchRun: S2SMOKE path=chain-unanchored(仅作去抖/折叠键，回放定位走线索): [0, 0, 0, 1, 0, 1, 0, 0, 0, 1] id=null text=Connected devices desc=null
+      | 09-23 03:39:10.331 32765 32765 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=androidx.recyclerview.widget.RecyclerView/null/null src=androidx.recyclerview.widget.RecyclerView/null/null id=com.android.settings:id/recycler_view
+      | 09-23 03:39:10.332 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 03:39:10.558 32765 32765 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+      | 09-23 03:39:11.629 32765 32765 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+      | 09-23 03:39:14.372 32765 32765 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+      | 09-23 03:39:15.421 32765 32765 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+      | 09-23 03:39:16.181 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageButton/Navigate up/Navigate up src=android.widget.ImageButton/null/Navigate up id=null
+      | 09-23 03:39:18.520 32765 32765 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+      | 09-23 03:39:19.614 32765 32765 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+      | 09-23 03:39:22.314 32765 32765 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+      | 09-23 03:39:24.126 32765 32765 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+      | 09-23 03:39:44.525 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageButton/Back/Back src=android.widget.ImageButton/null/Back id=null
+      | 09-23 03:39:50.688 32765 32765 I AnytouchRun: S2SMOKE compiled ok actions=2 drops=1 merged=0 events=12 target=com.android.settings
+      | 09-23 03:39:50.693 32765 32765 I AnytouchRun: S2SMOKE-DETAIL drop index=9 reason=CROSS_PACKAGE detail=事件包 com.google.android.settings.intelligence != 目标包 com.android.settings
+      | 09-23 03:39:50.693 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+      | 09-23 03:39:50.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+      | 09-23 03:39:50.694 32765 32765 I AnytouchRun: S2SMOKE-TASK [{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0005","type":"click","target":null,"value":{"content_desc":"Navigate up"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[0;31mFAIL[0m R1 录到 2 步 ≠ 人工 8 步
+     09-23 03:39:10.299 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=android.widget.LinearLayout(null,null)kids=2pkg=com.android.settingstext=null evt=android.widget.LinearLayout/[Connected devices, Bluetooth, pairing]/null walkDepth=10 roots=android.widget.FrameLayout(1461,null)kids=1pkg=com.android.settingstext=null
+     09-23 03:39:10.332 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 03:39:50.693 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 03:39:50.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-23 03:40:01.107 32765 32765 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：1/1 轮全绿（ratio=1.00 ≥ 1.0）

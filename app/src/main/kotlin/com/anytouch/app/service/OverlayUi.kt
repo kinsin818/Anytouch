@@ -25,6 +25,7 @@ class OverlayUi(private val context: Context) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     private var stopBall: TextView? = null
+    private var recordBall: TextView? = null
     private var confirmPanel: LinearLayout? = null
 
     private fun overlayParams(notFocusable: Boolean) = WindowManager.LayoutParams(
@@ -69,6 +70,52 @@ class OverlayUi(private val context: Context) {
     fun hideStopBall() {
         stopBall?.let { runCatching { windowManager.removeView(it) } }
         stopBall = null
+    }
+
+    /**
+     * 录制开关球（军令 S2-ONDEVICE L0：悬浮球开录）。与停止球分居屏幕两侧、互不遮挡：
+     * 停止球只在执行期出现，录制球只在空闲/录制期出现（执行期不得开录——录进去的是执行器自己的手，
+     * 见 service 侧 hideRecordBall 调用点）。
+     *
+     * @return 挂上与否；调用侧不据此拒 anything（录制没有安全后果，挂不上时主窗按钮仍是通道）。
+     */
+    fun showRecordBall(recording: Boolean, onToggle: () -> Unit): Boolean {
+        val ball = recordBall
+        if (ball != null) {
+            styleRecordBall(ball, recording)
+            return true
+        }
+        val fresh = TextView(context).apply {
+            isClickable = true
+            setOnClickListener { onToggle() }
+            contentDescription = "anytouch_record_ball"
+        }
+        styleRecordBall(fresh, recording)
+        val params = overlayParams(notFocusable = true).apply {
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            x = 24
+        }
+        return runCatching { windowManager.addView(fresh, params) }
+            .onSuccess { recordBall = fresh }
+            .onFailure { Log.w(TAG, "record ball addView failed: ${it.message}", it) }
+            .isSuccess
+    }
+
+    fun setRecordBallRecording(recording: Boolean) {
+        recordBall?.let { styleRecordBall(it, recording) }
+    }
+
+    private fun styleRecordBall(ball: TextView, recording: Boolean) {
+        ball.text = if (recording) "■停录" else "●开录"
+        ball.setTextColor(Color.WHITE)
+        ball.textSize = 18f
+        ball.setBackgroundColor(if (recording) 0xCCB71C1C.toInt() else 0xCC1B5E20.toInt())
+        ball.setPadding(24, 18, 24, 18)
+    }
+
+    fun hideRecordBall() {
+        recordBall?.let { runCatching { windowManager.removeView(it) } }
+        recordBall = null
     }
 
     /**
@@ -134,6 +181,7 @@ class OverlayUi(private val context: Context) {
 
     fun dispose() {
         hideStopBall()
+        hideRecordBall()
         confirmPanel?.let { removePanel(it) }
     }
 

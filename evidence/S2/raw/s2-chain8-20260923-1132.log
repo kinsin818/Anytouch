@@ -1,0 +1,46 @@
+[0;33m··[0m ===== 第 1/1 轮：录 → 编 → 放（8 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='540 299|343 1120|302 786|73 201|73 201|373 675|73 201|73 201'
+[0;31mFAIL[0m 第 7 下 前窗不是目标 App（[u0 com.google.android.settings.intelligence/com.google.android.settings.intelligence.modules.search.SearchActivity]，手指会打在别处）
+[0;33m··[0m 编译产物：09-23 03:28:45.684 32765 32765 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=1 merged=0 events=12 target=com.android.settings
+     09-23 03:28:05.082 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 03:28:19.447 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.settings.intelligence id=com.google.android.settings.intelligence:id/list_results delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 03:28:45.686 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 03:28:45.687 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+     09-23 03:28:45.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"resource_id":"com.android.settings:id/search_action_bar"}
+      | 09-23 03:27:59.666 32765 32765 I AnytouchRun: S2SMOKE record start target=com.android.settings
+      | 09-23 03:28:04.759 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Connected devices|Bluetooth, pairing/null src=android.widget.LinearLayout/null/null id=null
+      | 09-23 03:28:04.814 32765 32765 I AnytouchRun: S2SMOKE content no-match(严档 kids=2/事件拷贝): want=[Bluetooth, pairing, Connected devices] 同cls节点=0 roots=1 near=
+      | 09-23 03:28:04.935 32765 32765 I AnytouchRun: S2SMOKE path by unique content(宽档/事件拷贝): [0, 0, 0, 1, 0, 1, 0, 0, 0, 1] 窗口节点=51 cls=android.widget.LinearLayout texts=[Bluetooth, pairing, Connected devices]
+      | 09-23 03:28:05.080 32765 32765 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=androidx.recyclerview.widget.RecyclerView/null/null src=androidx.recyclerview.widget.RecyclerView/null/null id=com.android.settings:id/recycler_view
+      | 09-23 03:28:05.082 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 03:28:10.990 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageButton/Navigate up/Navigate up src=null/null/null id=null
+      | 09-23 03:28:11.637 32765 32765 I AnytouchRun: S2SMOKE content no-match(严档 kids=-1/事件拷贝): want=[Navigate up] 同cls节点=1 roots=1 near=[0, 0, 0, 0, 0, 0, 2, 0, 0, 0] kids=0 texts=([], [])
+      | 09-23 03:28:11.643 32765 32765 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[Navigate up] 同cls节点=1 roots=1 near=[0, 0, 0, 0, 0, 0, 2, 0, 0, 0] kids=0 texts=([], [])
+      | 09-23 03:28:11.646 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=null evt=android.widget.ImageButton/[Navigate up]/Navigate up walkDepth=-1 roots=android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null
+      | 09-23 03:28:11.914 32765 32765 I AnytouchRun: S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=Navigate up
+      | 09-23 03:28:17.806 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.view.ViewGroup/Search settings/null src=android.view.ViewGroup/null/null id=com.android.settings:id/search_action_bar
+      | 09-23 03:28:19.375 32765 32765 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.support.v7.widget.RecyclerView/null/null id=com.google.android.settings.intelligence:id/list_results
+      | 09-23 03:28:19.447 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.settings.intelligence id=com.google.android.settings.intelligence:id/list_results delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+      | 09-23 03:28:39.518 32765 32765 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageButton/Back/Back src=null/null/null id=null
+      | 09-23 03:28:39.518 32765 32765 I AnytouchRun: S2SMOKE content no-match(严档 kids=-1/事件拷贝): want=[Back] 同cls节点=0 roots=2 near=
+      | 09-23 03:28:39.518 32765 32765 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[Back] 同cls节点=0 roots=2 near=
+      | 09-23 03:28:39.538 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=null evt=android.widget.ImageButton/[Back]/Back walkDepth=-1 roots=android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null | android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null
+      | 09-23 03:28:39.938 32765 32765 I AnytouchRun: S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=Back
+      | 09-23 03:28:45.684 32765 32765 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=1 merged=0 events=12 target=com.android.settings
+      | 09-23 03:28:45.685 32765 32765 I AnytouchRun: S2SMOKE-DETAIL drop index=10 reason=CROSS_PACKAGE detail=事件包 com.google.android.settings.intelligence != 目标包 com.android.settings
+      | 09-23 03:28:45.686 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+      | 09-23 03:28:45.687 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+      | 09-23 03:28:45.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"resource_id":"com.android.settings:id/search_action_bar"}
+      | 09-23 03:28:45.694 32765 32765 I AnytouchRun: S2SMOKE-TASK [{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0004","type":"click","target":null,"value":{"content_desc":"Navigate up"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0006","type":"click","target":null,"value":{"resource_id":"com.android.settings:id/search_action_bar"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[0;31mFAIL[0m R1 录到 3 步 ≠ 人工 8 步
+     09-23 03:28:11.646 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=null evt=android.widget.ImageButton/[Navigate up]/Navigate up walkDepth=-1 roots=android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null
+     09-23 03:28:11.914 32765 32765 I AnytouchRun: S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=Navigate up
+     09-23 03:28:19.447 32765 32765 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.settings.intelligence id=com.google.android.settings.intelligence:id/list_results delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-23 03:28:39.538 32765 32765 W AnytouchRun: S2SMOKE path unprovable: src=null evt=android.widget.ImageButton/[Back]/Back walkDepth=-1 roots=android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null | android.widget.FrameLayout(1211,null)kids=2pkg=com.android.settingstext=null
+     09-23 03:28:39.938 32765 32765 I AnytouchRun: S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=Back
+     09-23 03:28:45.686 32765 32765 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-23 03:28:45.687 32765 32765 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"content_desc":"Navigate up"}
+     09-23 03:28:45.694 32765 32765 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"resource_id":"com.android.settings:id/search_action_bar"}
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-23 03:28:57.345 32765 32765 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：1/1 轮全绿（ratio=1.00 ≥ 1.0）

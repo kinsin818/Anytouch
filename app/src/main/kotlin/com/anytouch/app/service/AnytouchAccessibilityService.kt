@@ -7,11 +7,17 @@ import android.app.NotificationManager
 import android.content.pm.ServiceInfo
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.anytouch.app.AppState
 import com.anytouch.app.TaskPolicy
 import com.anytouch.app.TaskRequest
 import com.anytouch.app.executor.NodeTaskRunner
 import com.anytouch.app.platform.AccessibilityDevice
+import com.anytouch.app.recorder.capture.AndroidCaptureBridge
+import com.anytouch.app.recorder.capture.CaptureBridge
+import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.recorder.session.SessionState
 import com.anytouch.app.safety.KillSwitch
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionResult
@@ -24,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.buildJsonObject
@@ -42,9 +49,43 @@ class AnytouchAccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var overlay: OverlayUi? = null
 
+    /**
+     * 采集桥（薄桥）。rootProvider=当前可遍历的窗口根集合，与执行器 AccessibilityDevice.root() 同口径：
+     * 录进任务的 indexPath 只有相对"回放时同一把锚点"才有意义（设备实证父链会无端断裂，须能回溯到根）。
+     */
+    private val captureBridge: CaptureBridge = AndroidCaptureBridge { snapshotRoots() }
+
+    private fun snapshotRoots(): List<AccessibilityNodeInfo> {
+        // 转场进行中原子查询会空返回（设备实证：点击落下那一瞬 roots 直接为空，
+        // 事后同一棵树完好）。采证前有限重试，绝不因此丢用户一步；上限 2×80ms，不拖成 ANR。
+        repeat(ROOT_RETRY_TIMES) {
+            val roots = collectRoots()
+            if (roots.isNotEmpty()) return roots
+            runCatching { Thread.sleep(ROOT_RETRY_DELAY_MS) }
+        }
+        return collectRoots()
+    }
+
+    private fun collectRoots(): List<AccessibilityNodeInfo> {
+        val active = listOfNotNull(rootInActiveWindow)
+        val windows = runCatching {
+            (windows ?: emptyList())
+                .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                .sortedWith(
+                    compareByDescending<AccessibilityWindowInfo> { it.isFocused }
+                        .thenByDescending { it.isActive }
+                        .thenByDescending { it.layer },
+                )
+                .mapNotNull { runCatching { it.root }.getOrNull() }
+        }.getOrDefault(emptyList())
+        return active + windows
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         AppState.serviceConnected.value = true
+        RecorderStore.selfPkg = packageName
+        RecorderStore.onServiceReconnected()
         // 必须用服务自身 context：TYPE_ACCESSIBILITY_OVERLAY 的窗口 token 挂在 AccessibilityService
         // 的 WindowManager 上，applicationContext 加视图必失败（token null），面板/悬浮球将永远不可见。
         val ui = OverlayUi(this)
@@ -79,6 +120,31 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 runTask(request, ui)
             }
         }
+        watchRecordBall(ui)
+    }
+
+    /**
+     * 录制开关球（军令 S2-ONDEVICE L0：悬浮球开录）。跟随"会话态 + 执行态"两流刷新：
+     * 执行期收起——开录录进去的会是执行器自己的手，把机器动作伪装成用户意图（假绿形态）。
+     * 球的两次点击都走 RecorderStore 同一入口（与主窗按钮、adb 通道同一留痕口径）。
+     */
+    private fun watchRecordBall(ui: OverlayUi) {
+        scope.launch {
+            combine(RecorderStore.activeSession, AppState.running) { session, running ->
+                (session?.state == SessionState.RECORDING) to running
+            }.collect { (recording, running) ->
+                if (running) ui.hideRecordBall() else ui.showRecordBall(recording) { toggleRecording(ui) }
+            }
+        }
+    }
+
+    private fun toggleRecording(ui: OverlayUi) {
+        if (AppState.running.value) {
+            Log.w(TAG, "S2SMOKE record ball refused: 执行中不开录（见 watchRecordBall）")
+            return
+        }
+        if (RecorderStore.isRecording) RecorderStore.stopAndCompile() else RecorderStore.start()
+        ui.setRecordBallRecording(RecorderStore.isRecording)
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
@@ -87,7 +153,13 @@ class AnytouchAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // S1 骨架：不处理。录制事件流属 S2（门票门禁外，不开工）
+        // S2-ONDEVICE 采集钩子：仅录制会话在场时翻译入流（薄桥，语义全在纯 JVM 适配器/编译器）。
+        // 零派发、零网络；录制期外的普通事件与 S1 骨架同——不处理。
+        if (event == null) return
+        val session = RecorderStore.activeSession.value ?: return
+        if (session.state != SessionState.RECORDING) return
+        runCatching { captureBridge.capture(event) }
+            .onFailure { Log.w(TAG, "S2SMOKE capture bridge failed (event dropped with trace): ${it.message}", it) }
     }
 
     override fun onInterrupt() {
@@ -100,6 +172,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
         overlay = null
         scope.cancel()
         AppState.serviceConnected.value = false
+        // 采集半边随服务消亡：钩子已无人驱动，会话置空防"UI 显示在录但永不进事件"的假开录态
+        RecorderStore.abandonRecording()
         super.onDestroy()
     }
 
@@ -213,6 +287,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
         const val TAG = "AnytouchRun"
         const val CHANNEL_ID = "executor"
         const val NOTIF_ID = 1
+
+        /** 采集根缺席时的有限重试（转场中原子查询空返回，见 snapshotRoots）。 */
+        const val ROOT_RETRY_TIMES = 3
+        const val ROOT_RETRY_DELAY_MS = 80L
     }
 }
 

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- flagReportViewIds：不加则 AccessibilityNodeInfo.viewIdResourceName 全为 null（一阶 resource-id 定位在真机形同虚设，模拟器实测）。
-     flagIncludeNotImportantViews：补齐被标为非重要而被裁掉的节点（如 Settings 网络页 Airplane mode 标题）。 -->
+     flagIncludeNotImportantViews：补齐被标为非重要而被裁掉的节点（如 Settings 网络页 Airplane mode 标题）。
+     typeViewClicked/TextChanged/Scrolled/LongClicked：S2-ONDEVICE 录制采集所需——不加事件型则点击/打字/滚动根本不下发。
+     不加 flagRequestInitialAccessibleContent：AAPT 的 accessibilityFlags 枚举未收录该位（写了直接 resource linking failed，
+     android-36 实测），且点击/文本/滚动事件的 source 句柄由 canRetrieveWindowContent 已下发——设备实测为准。
+     不加 typeWindowContentChanged：每秒可产千条的洪流对"用户动作"零语义，只会淹没事件预算（采集面在桥层已拒，配置面再挡一道）。 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked|typeViewLongClicked|typeViewTextChanged|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews"
     android:canPerformGestures="true"
