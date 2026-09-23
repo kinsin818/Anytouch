@@ -28,6 +28,13 @@ object AppState {
 
     val running = MutableStateFlow(false)
 
+    /**
+     * AI 编译这一跑是否在路上（裁决 S3-R4-1 的状态真值，见 `orders/ANYTOUCH-S3-byok-ORDER.md` §0.1）：
+     * 录制面（开录 / 停止并编译）与面板按钮读的都是这一格，编译侧 `beginCompile` 翻 true、
+     * `endCompile` 翻 false——"编译中"若面板一份、录制面一份，就是两套真值（雷 18 同族）。
+     */
+    val compileBusy = MutableStateFlow(false)
+
     /** 最近一次执行的 RunReport JSON（人读 + 归因数据源）。 */
     val lastRunReport = MutableStateFlow<String?>(null)
 

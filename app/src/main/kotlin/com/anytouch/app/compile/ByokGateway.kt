@@ -88,6 +88,9 @@ class ByokGateway private constructor(private val appContext: Context) {
                 crashReport(e)
             }
             state.endCompile(report)
+            // 编译归位＝"编译在跑"这一格翻假，两句被挡话术（开录/停止并编译）到此失去依据，必须当场作废
+            // （判据在纯函数里，此处只负责"什么时候量一次"，见 `RecorderStore.revalidateAfterCompile`）。
+            RecorderStore.revalidateAfterCompile()
             if (report.published) {
                 Log.i(TAG, "S3SMOKE compile ok steps=${report.steps} replaced=${report.replaced} rows=${report.rows()}")
             } else {

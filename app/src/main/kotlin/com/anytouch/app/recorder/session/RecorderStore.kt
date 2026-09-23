@@ -5,6 +5,8 @@ import com.anytouch.app.AppState
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.recordGateOf
 import com.anytouch.app.platform.startRejectionAfterStateChange
+import com.anytouch.app.platform.stopCompileGateOf
+import com.anytouch.app.platform.stopRejectionAfterStateChange
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.RecEvent
 import com.anytouch.app.recorder.RecorderCompiler
@@ -89,6 +91,26 @@ object RecorderStore {
 
     /** 最近一次被拒的开录话术：UI 必须显示（L2-③"错误必显示"），新一次开录（成功或失败）即覆盖。 */
     val startRejection = MutableStateFlow<String?>(null)
+
+    /**
+     * 最近一次被拒的「停止并编译」话术（裁决 S3-R4-1：编译在跑即拒）。与 [startRejection] 分格：
+     * 两件事同时红着时不许互相盖（同 [com.anytouch.app.compile.ByokPanelState.configMessage] 与编译结论分格的理由）。
+     */
+    val stopRejection = MutableStateFlow<String?>(null)
+
+    /** 那次「停止并编译」被拒时判的是哪一档（话术单源 + 过期边认身份，与 [editRejectionGate] 同律）。 */
+    @Volatile
+    private var stopRejectionGate: RecordGate? = null
+
+    private fun rejectStop(gate: RecordGate) {
+        stopRejectionGate = gate
+        stopRejection.value = gate.userCopy()
+    }
+
+    private fun clearStopRejection() {
+        stopRejectionGate = null
+        stopRejection.value = null
+    }
 
     /** 最近一次被拒的步骤编辑话术：同上，禁静默禁用；新一次编辑（成功或失败）即覆盖。 */
     val editRejection = MutableStateFlow<String?>(null)
@@ -205,6 +227,7 @@ object RecorderStore {
             serviceConnected = AppState.serviceConnected.value,
             running = AppState.running.value,
             ballAttached = recordBallAttached,
+            compileBusy = AppState.compileBusy.value,
         )
         startRejection.value = startRejectionAfterStateChange(current, gate)
         if (current != null && startRejection.value == null) {
@@ -231,11 +254,38 @@ object RecorderStore {
         return false
     }
 
+    /**
+     * 「停止并编译」拒因的过期边（裁决 S3-R4-1，判据在纯函数 [stopRejectionAfterStateChange]）：
+     * 编译回来即撤红字——那一句话描述的是"刚才那一刻编译在跑"，跑完还挂着就是假红。
+     * @return true=本次复核作废了一条陈旧话术。
+     */
+    fun revalidateStopRejection(): Boolean {
+        val current = stopRejectionGate
+        val next = stopRejectionAfterStateChange(current, AppState.compileBusy.value)
+        if (current != null && next == null) {
+            clearStopRejection()
+            Log.i(TAG, "S3SMOKE record stop rejection expired gate_was=$current detail=编译已归，陈旧拒因作废")
+            return true
+        }
+        return false
+    }
+
+    /**
+     * 编译归来的那一次状态跃迁要复核的两条陈旧话术（开录格 + 停止格，判据各自住在纯函数里）。
+     * 为什么由编译侧调、不等服务侧合流：`watchRecordBall` 的三股流里没有"编译在跑"这一股，
+     * 服务没连上时那条 collect 根本不转——把过期边挂上去，编译红字就有一条永远等不到作废。
+     */
+    fun revalidateAfterCompile() {
+        revalidateStartRejection()
+        revalidateStopRejection()
+    }
+
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {
         val gate = recordGateOf(
             serviceConnected = AppState.serviceConnected.value,
             running = AppState.running.value,
             ballAttached = recordBallAttached,
+            compileBusy = AppState.compileBusy.value,
         )
         if (gate != RecordGate.READY) {
             val copy = gate.userCopy()
@@ -266,6 +316,7 @@ object RecorderStore {
                     )
                 }
                 clearEditRejection()
+                clearStopRejection()
                 compiledActions.value = emptyList()
                 activeSession.value = fresh
                 // 开窗基线：窗态事件只在"换窗"瞬间下发，直接开始录制时会话内将无任何窗口态，
@@ -377,8 +428,21 @@ object RecorderStore {
     /**
      * 停止并编译（RECORDING→STOPPED 或直接编译只读注入档）。空动作数组**不**写建议——
      * 把"录制全被丢弃"静默变成"空任务可回放"是假绿形态；归因走日志明细。
+     *
+     * 入口先过 [stopCompileGateOf]（裁决 S3-R4-1）：AI 编译那一跑还在路上就**整条不动**——
+     * 不许停会话、不许编译、更不许写账（前后两份产物压进同一格=串状态，用户事后分不清哪步是谁的）。
      */
     fun stopAndCompile(): CompileResult {
+        val gate = stopCompileGateOf(AppState.compileBusy.value)
+        if (gate != RecordGate.READY) {
+            val copy = gate.userCopy()
+            rejectStop(gate)
+            Log.w(TAG, "S3SMOKE record stop refused gate=$gate detail=$copy")
+            // 返回空产物但不写任何状态：调用方（UI/球/adb）拿到的 json 恒为 "[]"，
+            // 与"无会话可编"同一形态——会话原样留着，等编译归了再点一次。
+            return CompileResult(RecorderOutput(emptyList(), emptyList(), 0), "[]")
+        }
+        clearStopRejection()
         val current = session
         if (current == null) {
             Log.w(TAG, "S2SMOKE record stop rejected: 无会话")

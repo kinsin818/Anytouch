@@ -69,6 +69,8 @@ class MainActivity : ComponentActivity() {
                     val startRejection by RecorderStore.startRejection.collectAsState()
                     val steps by RecorderStore.compiledActions.collectAsState()
                     val editRejection by RecorderStore.editRejection.collectAsState()
+                    val stopRejection by RecorderStore.stopRejection.collectAsState()
+                    val compileBusy by AppState.compileBusy.collectAsState()
                     val taskRejection by AppState.taskRejection.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
@@ -94,7 +96,14 @@ class MainActivity : ComponentActivity() {
                             else RecordGate.SERVICE_OFF.userCopy().orEmpty(),
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        Text(if (running) "任务执行中…（可点悬浮球停止）" else "空闲")
+                        Text(
+                            when {
+                                running -> "任务执行中…（可点悬浮球停止）"
+                                // 编译持有的那一段时间必须看得见（裁决 S3-R4-1：屏上不说，用户只会觉得按钮自己坏了）
+                                compileBusy -> "AI 编译中…（一问一答在路上，录制与改账此刻不动）"
+                                else -> "空闲"
+                            },
+                        )
                         OutlinedTextField(
                             value = targetPkg,
                             onValueChange = { targetPkg = it },
@@ -105,12 +114,13 @@ class MainActivity : ComponentActivity() {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { RecorderStore.start(targetPkg.trim()) },
-                                enabled = connected && recording == null,
+                                // 编译在跑即置灰（灰只是提示，门禁在 RecorderStore 入口，adb 通道同样被拒）
+                                enabled = connected && recording == null && !compileBusy,
                                 modifier = Modifier.testTag("record_start"),
                             ) { Text("开始录制") }
                             Button(
                                 onClick = { RecorderStore.stopAndCompile() },
-                                enabled = recording != null,
+                                enabled = recording != null && !compileBusy,
                                 modifier = Modifier.testTag("record_stop"),
                             ) { Text("停止并编译") }
                         }
@@ -125,6 +135,15 @@ class MainActivity : ComponentActivity() {
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.testTag("record_rejection"),
+                            )
+                        }
+                        // 「停止并编译」被拒另开一格（裁决 S3-R4-1）：与开录拒因分格，两件事同时红时不许互相盖
+                        stopRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("record_stop_rejection"),
                             )
                         }
                         // 屏上下文的账目与 AI 编译结论都在这块面板里（判据一行不在 UI，见 ui/ByokPanel 的说明）

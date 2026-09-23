@@ -1,8 +1,10 @@
 package com.anytouch.app.platform
 
+import com.anytouch.app.compile.ByokPreflight
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 /**
@@ -13,36 +15,99 @@ import kotlin.test.assertNull
 class AccessibilityGateTest {
 
     @Test
-    fun `三项齐备才 READY`() {
-        assertEquals(RecordGate.READY, recordGateOf(serviceConnected = true, running = false, ballAttached = true))
+    fun `四项齐备才 READY`() {
+        assertEquals(
+            RecordGate.READY,
+            recordGateOf(serviceConnected = true, running = false, ballAttached = true, compileBusy = false),
+        )
     }
 
     @Test
     fun `服务未连即拒，且优先级最高`() {
-        // 执行中/球未挂时同样不能放行：缺服务=采集钩子不触发，开录必是空会话
-        assertEquals(RecordGate.SERVICE_OFF, recordGateOf(serviceConnected = false, running = false, ballAttached = false))
-        assertEquals(RecordGate.SERVICE_OFF, recordGateOf(serviceConnected = false, running = true, ballAttached = true))
+        // 执行中/球未挂/编译在跑时同样不能放行：缺服务=采集钩子不触发，开录必是空会话
+        assertEquals(
+            RecordGate.SERVICE_OFF,
+            recordGateOf(serviceConnected = false, running = false, ballAttached = false, compileBusy = false),
+        )
+        assertEquals(
+            RecordGate.SERVICE_OFF,
+            recordGateOf(serviceConnected = false, running = true, ballAttached = true, compileBusy = true),
+        )
     }
 
     @Test
     fun `执行中即拒（录进去的是执行器自己的手）`() {
-        assertEquals(RecordGate.RUNNING, recordGateOf(serviceConnected = true, running = true, ballAttached = true))
+        assertEquals(
+            RecordGate.RUNNING,
+            recordGateOf(serviceConnected = true, running = true, ballAttached = true, compileBusy = false),
+        )
     }
 
     @Test
     fun `挂不上球即拒（L1 原判据，不做看不见球的降级录制）`() {
         assertEquals(
             RecordGate.BALL_UNAVAILABLE,
-            recordGateOf(serviceConnected = true, running = false, ballAttached = false),
+            recordGateOf(serviceConnected = true, running = false, ballAttached = false, compileBusy = false),
+        )
+    }
+
+    // ---- 裁决 S3-R4-1：编译在跑 = 录制面互斥（跟"执行中禁编辑"一个逻辑）----
+
+    @Test
+    fun `编译在跑即拒开录（其余三项齐备也不放行）`() {
+        assertEquals(
+            RecordGate.COMPILING,
+            recordGateOf(serviceConnected = true, running = false, ballAttached = true, compileBusy = true),
         )
     }
 
     @Test
-    fun `READY 无话术，其余三档必须有人读归因`() {
+    fun `执行中优先于编译中（账本先归执行器，别让两把锁互相伪装）`() {
+        assertEquals(
+            RecordGate.RUNNING,
+            recordGateOf(serviceConnected = true, running = true, ballAttached = true, compileBusy = true),
+        )
+    }
+
+    @Test
+    fun `球挂不上优先于编译中（长期缺项先说：编译归了那句话还成立，过期边才不会留下失去依据的红字）`() {
+        assertEquals(
+            RecordGate.BALL_UNAVAILABLE,
+            recordGateOf(serviceConnected = true, running = false, ballAttached = false, compileBusy = true),
+        )
+    }
+
+    @Test
+    fun `停止并编译两档：编译中拒、否则 READY（会话在不在不归门禁判）`() {
+        assertEquals(RecordGate.COMPILING, stopCompileGateOf(compileBusy = true))
+        assertEquals(RecordGate.READY, stopCompileGateOf(compileBusy = false))
+    }
+
+    @Test
+    fun `两个入口共用一份判据与一句话术（一份判据两处用，改一处漏一处=串状态）`() {
+        val viaStart = recordGateOf(
+            serviceConnected = true,
+            running = false,
+            ballAttached = true,
+            compileBusy = true,
+        )
+        val viaStop = stopCompileGateOf(compileBusy = true)
+        assertEquals(viaStart, viaStop)
+        assertEquals(viaStart.userCopy(), viaStop.userCopy())
+    }
+
+    @Test
+    fun `录制面被挡与编译侧不开第二跑，是两句不同的话（同一句会把用户引到错误的环节）`() {
+        assertNotEquals(ByokPreflight.copyOf(ByokPreflight.Gate.BUSY_COMPILE), RecordGate.COMPILING.userCopy())
+    }
+
+    @Test
+    fun `READY 无话术，其余四档必须有人读归因`() {
         assertNull(RecordGate.READY.userCopy())
         assertNotNull(RecordGate.SERVICE_OFF.userCopy())
         assertNotNull(RecordGate.RUNNING.userCopy())
         assertNotNull(RecordGate.BALL_UNAVAILABLE.userCopy())
+        assertNotNull(RecordGate.COMPILING.userCopy())
     }
 
     @Test
@@ -76,10 +141,40 @@ class AccessibilityGateTest {
     }
 
     @Test
-    fun `设备实证过的假红形态：执行中转假且三项齐备，RUNNING 话术必须已作废`() {
+    fun `设备实证过的假红形态：执行中转假且四项齐备，RUNNING 话术必须已作废`() {
         // 复现 evidence/S2/raw/recui-probe-stale-red-20260923.log：红字挂着→注入开录→门禁判 READY
-        val gate = recordGateOf(serviceConnected = true, running = false, ballAttached = true)
+        val gate = recordGateOf(
+            serviceConnected = true,
+            running = false,
+            ballAttached = true,
+            compileBusy = false,
+        )
         assertEquals(RecordGate.READY, gate)
         assertNull(startRejectionAfterStateChange(RecordGate.RUNNING.userCopy(), gate))
+    }
+
+    // ---- 停止并编译拒因的过期边（裁决 S3-R4-1，与 V-2 同一条纪律）----
+
+    @Test
+    fun `编译归位即作废停止话术（跑完还挂着「编译还在路上」=假红）`() {
+        assertNull(stopRejectionAfterStateChange(RecordGate.COMPILING, compileBusy = false))
+    }
+
+    @Test
+    fun `编译还在跑时停止话术原样保留（不许把有效拒因悄悄抹掉）`() {
+        assertEquals(RecordGate.COMPILING, stopRejectionAfterStateChange(RecordGate.COMPILING, compileBusy = true))
+    }
+
+    @Test
+    fun `停止面无拒因时不凭空造档位`() {
+        assertNull(stopRejectionAfterStateChange(null, compileBusy = true))
+        assertNull(stopRejectionAfterStateChange(null, compileBusy = false))
+    }
+
+    @Test
+    fun `非持有档不许被编译过期边顺手抹掉（过期边只认自己那一档）`() {
+        listOf(RecordGate.SERVICE_OFF, RecordGate.RUNNING, RecordGate.BALL_UNAVAILABLE).forEach {
+            assertEquals(it, stopRejectionAfterStateChange(it, compileBusy = false), "$it 不归这条边管")
+        }
     }
 }

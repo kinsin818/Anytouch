@@ -1,5 +1,6 @@
 package com.anytouch.app.compile
 
+import com.anytouch.app.AppState
 import com.anytouch.app.compile.ByokPreflight.Gate
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -22,11 +23,12 @@ fun byokContextFlagOf(raw: String?): Boolean? = when (raw) {
  *
  * [contextEnabled] 默认 **开**（S3 裁 2 原文：带屏上下文、可开关），且只在本进程内活着——
  * 落盘一个开关状态=多一条"用户以为关着但其实开着"的争议面，本片不做持久化。
+ *
+ * [busy] 默认直接是全局那一格（[AppState.compileBusy]）：面板按钮、开录门禁、停止并编译门禁读的
+ * 必须是同一个真值（裁决 S3-R4-1 要求"状态机互斥"，两套"编译中"=两套真值，雷 18 同族）。
+ * 用例可以传自己的 flow 做隔离。
  */
-class ByokPanelState {
-
-    /** 一问一答在路上：期间按钮置灰（灰只是提示，真门禁在 [beginCompile]）。 */
-    val busy = MutableStateFlow(false)
+class ByokPanelState(val busy: MutableStateFlow<Boolean> = AppState.compileBusy) {
 
     /**
      * 待编译的那句话。住在状态里而不是住在 Compose 里：UI 输入框与 adb 注入通道必须写同一格，
@@ -56,6 +58,10 @@ class ByokPanelState {
      * 开跑许可：false=上一跑还没回来，本次直接拒并把话术上屏（禁并发烧钱，也禁后回来的产物
      * 静默盖掉先回来的那份）。成功领取时顺手撤下旧结论——新一次编译已经开始，还挂着上一条红字
      * 就是假红。
+     *
+     * 领取成功即把 [busy]（默认就是全局那格 [AppState.compileBusy]）翻成 true：**录制面从此被挡**
+     * （开录 / 停止并编译各判一档 COMPILING，裁决 S3-R4-1）。被拒的那一次不许翻格——
+     * 第二跑没开起来却把持有置真，等于凭空锁死录制面。
      */
     fun beginCompile(): Boolean {
         if (busy.value) {

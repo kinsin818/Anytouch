@@ -25,6 +25,23 @@
 **S3 门票状态**：本开工令即老板对 S3（BYOK）的放行令。原门票"T3 + MediaProjection 判官项"中，
 MediaProjection 一项与本批无关（本批不采集不截图上行），仍按原口径挂账，不在此结。
 
+## §0.1 S3-R4：切片 D 之后的裁决（老板 2026-09-23 第四批，原文照录）
+
+> 1. 编译在跑时要拒开录/停止，跟执行中禁编辑一个逻辑，状态机互斥，避免串状态
+> 2. Key 上机你自己在手机上手动输就行，不用 adb 下发，字面量进 shell 确实不安全
+> 3. 这次自纠（差点把不存在的裁决当真、全回退没提交）做得对，纪律生效了，JVM 到 320、红线全清认可
+> 继续往下做切片 E：上真机验证面板、真 HTTPS 调用、Keystore 存储这四个点。
+
+（同一条消息重发了一遍，编号 4/5/6 与 1/2/3 逐字相同，非两批。）
+
+| # | 裁决 | 落点 |
+|---|---|---|
+| R4-1 | **编译在跑 → 开录与停止并编译都拒**，与"执行中禁编辑"同一逻辑（纯档 + 过期边 + 话术单源 + JVM 锁） | 结案 STATUS 待办 13①。**注意：比主窗原倾向更严**——我原写"停止并编译拒、开始录制不拒"，老板一句"状态机互斥"把两个入口一起纳进来，倾向作废，按裁决落码 |
+| R4-2 | 真机 Key 由老板在手机上手输，**不走 adb 下发** | E 的脚本口径：全链路不得出现 Key 字面量进 shell/日志/git/证据；`ByokPanel` 的 `byok_key` 只能手点手输 |
+| R4-3 | 切片 D 的自纠与账面认可 | 不作为放行 E 之外的授权；E 仍按 §5.1 逐片交账 |
+| R4-4 | **继续切片 E**：真机验证四点是硬验收（面板屏上形态 / 真 HTTPS / 真 Keystore / 词表真采几条） | §5.1 E 行 |
+
+
 ## §1 范围（做什么，按可独立验收的切片排）
 
 - **A 模块与搬迁**：新建 `:byok`（纯 JVM 模块，零 android 依赖），把 `:tools:compiler` 的
@@ -95,6 +112,10 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
 7. **不留第二套真值**：编译成功产物写入既有 `RecorderStore.compiledActions` 单一真值源，
    编辑面/回放面/建议流全部沿用现门禁（含本批刚落地的执行中禁编辑 RUNNING 档）。
 8. **执行器零改动**：`executor/`、`locator/`、`safety/` 本批**一行不改**；若必须改，视为设计失败，上报待裁。
+9. **状态机互斥（裁决 S3-R4-1 落成的判据）**：AI 编译那一跑在路上时，录制面两个入口（「开始录制」「停止并编译」）
+   一律拒并显因，判据只住 `stopCompileGateOf` 一处（开录门禁转调它），话术只住 `RecordGate.userCopy()` 一处，
+   编译归位必须作废陈旧红字（纯状态档不许留屏=假红）。"编译在跑"全仓只允许一格真值（`AppState.compileBusy`）。
+   **范围按裁决字面**：「执行任务」「步骤编辑」两个入口未并进来，已登记 STATUS 待办 14 等一句话。
 
 ## §4 已知偏差与诚实边界（开工前先备案，不许事后洗）
 
@@ -142,5 +163,6 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
 | C 屏上下文 | **已落**（09-23） | 判据全住 `:byok` 纯函数（`ScreenNodeFact`→`ScreenContextBuilder`→`ScreenContext`：关闭=零条、输入框只报存在、密码类整条剔除、白名单只有"可见 text + resource-id entry"、去重、封顶 40、可见优先稳定序、五条丢弃账全上屏）；取数只有**一个设备缝**（`accessibilityFlagsOf` 读 `isEditable/isPassword/isVisibleToUser` 三布尔，不读任何文本）。`compile(intent, context)` 新增可选参、SYSTEM 只追加规则 9、**单参老链路逐字零漂移**。`:app`→`:byok` 依赖**本片加上**（本片是第一个真实消费者，B 行"故意未加"到此为止），红线 G 重跑仍**能 FAIL**。**+24 例、JVM 262→286**（app 208/byok 59/contracts 19）。详见 `evidence/S3/slice-c-screen-context.md`（§4 两条自纠：平台 API 名按 jar 量、证据同名覆盖；根集合口径待裁已登记 §4-6） |
 | D–E | 未开始 | **C 结束时 BYOK 端到端仍然完全不可用**：词表开关与条数的**屏上形态一行未接**、无编译入口，真 HTTPS 与真 Keystore 两条 JVM 覆盖仍为 0（留 D/E 设备实证）；"执行期零网络"仍只有结构锁，行为证据（飞行模式对拍）留 E |
 | D APP 接线 | **已落**（09-23） | 创建期链路第一次成一条：Key 配置面（掩码 + 尾 4 位 + 保存必读回比对 + 清除双槽复查 + 地址知情回显）→ 意图框 → 「AI 编译」→ **`RecorderStore.acceptModelActions` 唯一落账口**（建议由 `encodeActions` 现算，与账逐字相等）→ 既有「执行任务」/V-3/执行器**零改动**。判据四件全是纯函数：`ByokPreflight`（七档出门前门禁，判序即判据；`checkSave` 把地址政策提到写盘前）、`ByokCompileController`（**任何一档没走通都不落账**）、`ByokPanelState`（不开第二跑 / 新一次撤陈旧话术 / 清除后不留"看起来还配着"）、`uplinkRootOf`（自家活动窗不参与上行）。设备缝只剩 `ByokGateway`（Keystore 现读 + 主线程取树 + 后台 HTTP）与 `ByokPanel`。**§4-6 根集合口径按授权自裁落地：上行面==回放面**（服务只交一个 `root()` 钩子）。executor/locator/safety 一行未改；service/ 只加挂/摘钩两处（§3-8 未锁该目录、钩子不含判据，已在此显式登记）。**+34 例、JVM 286→320**（app 242/byok 59/contracts 19），ci-local 九线 PASS、`redline-probe.sh` F/G/H/I 仍逐条能 FAIL。**四条自纠入证据 §4**：**§4-0 最严重——主窗凭空引出一段并不存在的"老板 09-23 第四批裁决"并据此动工，落盘前 grep 自查发现磁盘查无此令、全部回退**（纪律回写：凡说"老板裁过 X"必须能在磁盘上指到原文行）；① 红线 C 把 `:byok` 公开 API 名 `uploadNotice` 算到调用方头上→改名 `keyDestination`；② 同类雷第二次 `uploadedCount`；③ **本窗 `rm -f` 删掉了本批一份 raw 日志**——"证据只追加不删除"不按"未提交"豁免，四条命中事实照录。另：该次误推引出的真问题（编译在跑时点开始录制/停止并编译要不要拒）已按**待裁**登记 STATUS 待办 13，未擅自实现。详见 `evidence/S3/slice-d-app-wiring.md` |
-| E 验证 | 未开始 | **D 结束时设备侧零验证**（节奏如此）：面板屏上形态、词表真能采几条、真 HTTPS、真 Keystore 四条全部未证；`acceptModelActions` 的 JVM 覆盖为 0（Log + object 单例），其两条判据（执行中拒换账 / AI 产物不被 V-3 误拒）转为 E 设备断言；**Key 上机通道未定**（故意不做 adb 下发：字面量进 shell 即进设备进程表与脚本历史）——E 需老板手输一次或另裁 |
+| E0 前置批（编译期互斥） | **已落**（09-23，裁决 S3-R4-1） | "编译在跑"升格为全仓一格真值 `AppState.compileBusy`（`ByokPanelState.busy` 默认就是它，`assertSame` 锁；领取成功才翻、被拒第二跑不许翻）；开录走 `recordGateOf` 第四输入、停止并编译走 `stopCompileGateOf`（**判据唯一住处**，开录面转调它→两入口档位与话术必然逐字相等）；拒时会话不停/账不动，`stopRejection` 另起一格（testTag `record_stop_rejection`）；过期边由编译归位触发（不挂 `watchRecordBall`，理由见证据 §7-3）。判序 `SERVICE_OFF→RUNNING→BALL_UNAVAILABLE→COMPILING`。**主窗原倾向（"开录不拒"）被裁掉，按裁决两入口都拒**。**+12 例、JVM 320→332**（app 254/byok 59/contracts 19），ci-local 九线 PASS、probe F/G/H/I 仍逐条能 FAIL。设备断言留 E。详见 `evidence/S3/slice-e0-compile-mutex.md` |
+| E 验证 | 未开始 | **D+E0 之后设备侧零验证**（节奏如此）：面板屏上形态、词表真能采几条、真 HTTPS、真 Keystore 四条全部未证；`acceptModelActions` 与 `RecorderStore` 两入口的 JVM 覆盖为 0（Log + object 单例），其判据转为 E 设备断言：执行中拒换账 / AI 产物不被 V-3 误拒 / **编译在跑时开录与停止并编译双拒且会话不停账不动红字在**；**Key 上机通道已裁（S3-R4-2）：老板在手机上手输，不走 adb 下发**——脚本与日志任何一处出现 Key 字面量即为纪律事故 |
 

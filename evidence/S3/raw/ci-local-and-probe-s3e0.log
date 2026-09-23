@@ -1,0 +1,919 @@
+=== [2026-09-23 21:27:14] S3-E0 提交前终验：scripts/ci-local.sh（全量 build+四模块测试+红线 A-I）===
+==> [1/4] gradle build (:core:contracts + :byok + :app + :tools:compiler)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :core:contracts:assemble UP-TO-DATE
+> Task :core:contracts:compileTestKotlin UP-TO-DATE
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+> Task :core:contracts:test UP-TO-DATE
+> Task :core:contracts:check UP-TO-DATE
+> Task :core:contracts:build UP-TO-DATE
+> Task :byok:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :byok:compileKotlin UP-TO-DATE
+> Task :byok:compileJava NO-SOURCE
+> Task :byok:processResources NO-SOURCE
+> Task :byok:classes UP-TO-DATE
+> Task :byok:jar UP-TO-DATE
+> Task :byok:assemble UP-TO-DATE
+> Task :byok:compileTestKotlin UP-TO-DATE
+> Task :byok:compileTestJava NO-SOURCE
+> Task :byok:processTestResources NO-SOURCE
+> Task :byok:testClasses UP-TO-DATE
+> Task :byok:test UP-TO-DATE
+> Task :byok:check UP-TO-DATE
+> Task :byok:build UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:mergeDebugJavaResource UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :tools:compiler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :tools:compiler:compileKotlin UP-TO-DATE
+> Task :tools:compiler:compileJava NO-SOURCE
+> Task :tools:compiler:processResources NO-SOURCE
+> Task :tools:compiler:classes UP-TO-DATE
+> Task :tools:compiler:jar UP-TO-DATE
+> Task :tools:compiler:startScripts UP-TO-DATE
+> Task :tools:compiler:distTar
+> Task :tools:compiler:distZip
+> Task :tools:compiler:assemble
+> Task :tools:compiler:compileTestKotlin NO-SOURCE
+> Task :tools:compiler:compileTestJava NO-SOURCE
+> Task :tools:compiler:processTestResources NO-SOURCE
+> Task :tools:compiler:testClasses UP-TO-DATE
+> Task :tools:compiler:test NO-SOURCE
+> Task :tools:compiler:check UP-TO-DATE
+> Task :tools:compiler:build
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 2s
+48 actionable tasks: 5 executed, 43 up-to-date
+==> [2/4] gradle test (:core:contracts, :byok, :app, :tools:compiler, --rerun-tasks)
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :core:contracts:compileTestKotlin
+> Task :core:contracts:compileTestJava NO-SOURCE
+> Task :core:contracts:testClasses UP-TO-DATE
+
+> Task :core:contracts:test
+
+ContractsTest > commandSampleFromContractsDoc() PASSED
+
+ContractsTest > actionResultRoundTrip() PASSED
+
+ContractsTest > actionRoundTrip() PASSED
+
+ContractsTest > stopReasonSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanRoundTrip() PASSED
+
+ContractsTest > commandRoundTrip() PASSED
+
+ContractsTest > actionResultSampleFromContractsDoc() PASSED
+
+ContractsTest > stopReasonRoundTrip() PASSED
+
+ContractsTest > defaultSemanticsAndUnknownFields() PASSED
+
+ContractsTest > observationRoundTrip() PASSED
+
+ContractsTest > actionSampleFromContractsDoc() PASSED
+
+ContractsTest > observationSampleFromContractsDoc() PASSED
+
+ContractsTest > actionPlanSampleFromContractsDoc() PASSED
+
+PipelineTest > safety gate viewport blocks chain with STOP receipt() PASSED
+
+PipelineTest > empty input yields empty result list without stopping() PASSED
+
+PipelineTest > normal chain executes all actions and echoes landed() PASSED
+
+PipelineTest > safety gate click disabled blocks first action only() PASSED
+
+PipelineTest > mock backend directly honors gates and echo() PASSED
+
+PipelineTest > dirty input fails loudly instead of faking success() PASSED
+
+BUILD SUCCESSFUL in 3s
+4 actionable tasks: 4 executed
+> Task :byok:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :byok:processResources NO-SOURCE
+> Task :byok:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :byok:compileKotlin
+> Task :byok:compileJava NO-SOURCE
+> Task :byok:classes UP-TO-DATE
+> Task :byok:jar
+> Task :byok:compileTestKotlin
+> Task :byok:compileTestJava NO-SOURCE
+> Task :byok:testClasses UP-TO-DATE
+
+> Task :byok:test
+
+BaseUrlPolicyTest > 尾部斜杠被归一 端口与子路径保留() PASSED
+
+BaseUrlPolicyTest > 空串与不可解析串拒 且每档都有人话() PASSED
+
+BaseUrlPolicyTest > https 公网地址通过且回显只有主机名() PASSED
+
+BaseUrlPolicyTest > 放行时必须给出 Key 去向回显 且只含主机名() PASSED
+
+BaseUrlPolicyTest > 公网 IP 字面量与 100 段之外公网地址放行() PASSED
+
+BaseUrlPolicyTest > 本机 内网 链路本地元数据段全拒() PASSED
+
+BaseUrlPolicyTest > 政策消息里不回显 Key 形态片段() PASSED
+
+BaseUrlPolicyTest > 明文 http 一律拒（Key 不许裸奔）() PASSED
+
+BaseUrlPolicyTest > 内嵌凭据 查询参数 片段 一律拒() PASSED
+
+ByokErrorTest > 传输失败的 message 就是安全细节 不藏请求内容() PASSED
+
+ByokErrorTest > 非受控异常兜底为不可达而不是无档() PASSED
+
+ByokErrorTest > 话术里不出现密钥形态与地址片段() PASSED
+
+ByokErrorTest > 编译器各拒绝档都带上机器可读档 UI 不必猜字符串() PASSED
+
+ByokErrorTest > 状态码分档 2xx 放行 401与403 429 5xx 各自归位 其余落坏应答() PASSED
+
+ByokErrorTest > 八档齐全 每档有话术且互不雷同() PASSED
+
+ByokErrorTest > 传输层带类型的失败原样透传到编译结果() PASSED
+
+DslCompilerTest > safety 未显式放行必须拒() PASSED
+
+DslCompilerTest > 坐标字段 target 残留必须拒() PASSED
+
+DslCompilerTest > 非 JSON 胡话走 parse 拒绝() PASSED
+
+DslCompilerTest > action_id 重复必须拒() PASSED
+
+DslCompilerTest > transport 抛异常走 transport 拒绝不崩调用方() PASSED
+
+DslCompilerTest > 白名单外 type 必须拒() PASSED
+
+DslCompilerTest > 合法输出通过校验且解码为契约 Action() PASSED
+
+DslCompilerTest > value 内藏坐标键 x 必须拒（ignoreUnknownKeys 静默吞不掉校验层）() PASSED
+
+DslCompilerTest > type_text 缺 input 必须拒() PASSED
+
+DslCompilerTest > source 非 node 必须拒() PASSED
+
+DslCompilerTest > 空数组走拒绝而非假绿() PASSED
+
+DslCompilerTest > markdown 围栏与寒暄包裹的数组被提取() PASSED
+
+KeyMaskerTest > 掩码后的串不可能再被拼进日志泄露() PASSED
+
+KeyMaskerTest > 普通文本不被误伤 长哈希才被吞() PASSED
+
+KeyMaskerTest > 没给字面量时也要靠形态认出各家前缀 Key() PASSED
+
+KeyMaskerTest > json 字段与键值对形态的凭据一并打码() PASSED
+
+KeyMaskerTest > 已知字面量 Key 无论形态都从文本里消失() PASSED
+
+KeyMaskerTest > 展示形态只给尾四位 短串整段打码() PASSED
+
+OpenAiCompatTransportTest > IO 异常按可分诊断分档() PASSED
+
+OpenAiCompatTransportTest > 端点拼接 已有 chat completions 不双拼() PASSED
+
+OpenAiCompatTransportTest > 成功路径取回 content 且 Key 只出现在头里() PASSED
+
+OpenAiCompatTransportTest > 应答正文成功时不脱敏 打码会破坏待编译的 JSON() PASSED
+
+OpenAiCompatTransportTest > 非 2xx 按状态码分档且细节脱敏截断() PASSED
+
+OpenAiCompatTransportTest > 请求体只有模型与提示词 Key 不在体内() PASSED
+
+OpenAiCompatTransportTest > 鉴权门户的 HTML 与缺字段应答都归坏应答 不崩调用方() PASSED
+
+ScreenContextPromptTest > 带上词表不削弱校验 模型仍编坐标照样拒() PASSED
+
+ScreenContextPromptTest > 关闭态编译时用户消息里没有任何屏幕词() PASSED
+
+ScreenContextPromptTest > 带上下文时意图在前 词表在后 且 SYSTEM 未被动过() PASSED
+
+ScreenContextPromptTest > 无上下文时用户消息逐字等于意图() PASSED
+
+ScreenContextTest > 密码类节点整条剔除 连资源id都不上行() PASSED
+
+ScreenContextTest > 封顶默认40条 超出部分计入账而不是静默丢弃() PASSED
+
+ScreenContextTest > 无文本无id的纯容器不产出一行() PASSED
+
+ScreenContextTest > 取数层漏给 editable 旗标时按类名兜住 内容照样不上行() PASSED
+
+ScreenContextTest > resource-id 只上行 entry 段 不带包名前缀() PASSED
+
+ScreenContextTest > 上行行只有白名单三种形态() PASSED
+
+ScreenContextTest > 重复词只上行一条() PASSED
+
+ScreenContextTest > 输入框只上行存在这一事实 其内容一个字都不上行() PASSED
+
+ScreenContextTest > cap 非法直接拒 不允许 0 或负数伪装成关闭() PASSED
+
+ScreenContextTest > 不可见节点不占上行名额 且名额优先给可见项() PASSED
+
+ScreenContextTest > 排序稳定 可见项按文档序() PASSED
+
+ScreenContextTest > 关闭开关时零条上行且渲染为空串() PASSED
+
+ScreenContextTest > 话术里的条数必须等于真实上行条数() PASSED
+
+ScreenContextTest > 事实类的 toString 不回显节点文本() PASSED
+
+BUILD SUCCESSFUL in 4s
+6 actionable tasks: 6 executed
+> Task :byok:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:compileKotlin UP-TO-DATE
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:processResources NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar UP-TO-DATE
+> Task :byok:compileKotlin UP-TO-DATE
+> Task :byok:compileJava NO-SOURCE
+> Task :byok:processResources NO-SOURCE
+> Task :byok:classes UP-TO-DATE
+> Task :byok:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+
+> Task :app:testDebugUnitTest
+
+AppStateTest > submit 落新鲜请求且可被消费作废 PASSED
+
+AppStateTest > TTL 内请求不过期 PASSED
+
+AppStateTest > 超过 TTL 一毫秒即过期 PASSED
+
+TaskAdmissionTest > 用户手改过的文本自证其权：即便账非空也不拦（不夺字） PASSED
+
+TaskAdmissionTest > 账被编辑过而框内是编辑前那条建议：拒放 PASSED
+
+TaskAdmissionTest > 本轮从未发布建议：放行（首启样例与 adb 注入都走这条） PASSED
+
+TaskAdmissionTest > 八条拒因话术互不雷同（同屏出现时用户要分得清是哪一环拦的） PASSED
+
+TaskAdmissionTest > 空账序列化为空数组字面量，不可能与任何非空建议相等（拒放边的前提） PASSED
+
+TaskAdmissionTest > 机器建议与当前账逐字一致：放行 PASSED
+
+TaskAdmissionTest > 空任务框不是孤儿建议形态：交下游解码归因，不在此处造第二套判据 PASSED
+
+TaskAdmissionTest > 重新开录作废旧账后仍挂着上次建议：拒放（同一孤儿形态的另一条来路） PASSED
+
+TaskAdmissionTest > 话术说清三件事：为什么没放、账已不含这些步、不夺用户输入 PASSED
+
+TaskAdmissionTest > 账删到清零而框内仍挂机器旧建议：拒放（V-3 设备实证形态） PASSED
+
+TaskAdmissionTest > 拒放必有人读话术，放行无话术 PASSED
+
+ByokCompileControllerTest > 传输失败按档给话术 归因里不许有 Key PASSED
+
+ByokCompileControllerTest > 写口拒收时明说这一步没有写进去 PASSED
+
+ByokCompileControllerTest > 成功时按写口给的步数说话 PASSED
+
+ByokCompileControllerTest > 预检拒时不落账 也不碰模型 PASSED
+
+ByokCompileControllerTest > 模型编出坐标时校验拒 一步都不落账 PASSED
+
+ByokCompileControllerTest > 词表开着却一个节点没采到时必须说破 PASSED
+
+ByokCompileControllerTest > 开关关闭时不追加零节点提醒 PASSED
+
+ByokCompileControllerTest > 模型交回空数组时按空档给话术 PASSED
+
+ByokCompileControllerTest > transport 之外的未知异常不崩链路 按不可达档上屏 PASSED
+
+ByokCompileControllerTest > 词表随意图一起上行 SYSTEM 提示词一字不改 PASSED
+
+ByokPanelStateTest > 开关默认开 且只有 on 与 off 两个字面能改它 PASSED
+
+ByokPanelStateTest > 新一次编译开始时撤下上一条陈旧话术 PASSED
+
+ByokPanelStateTest > 清除凭据后屏上不留任何看起来还配着的痕迹 PASSED
+
+ByokPanelStateTest > 领取成功才翻全局 被拒的第二跑不许凭空锁死录制面 PASSED
+
+ByokPanelStateTest > 结论落地时 busy 必须落位 否则按钮永远灰着 PASSED
+
+ByokPanelStateTest > 第一跑未归时不开第二跑 PASSED
+
+ByokPanelStateTest > 默认就是全局那一格 不是面板自己的一本账 PASSED
+
+ByokPanelStateTest > 待编译那句话只有一格 UI 与注入通道写同一处 PASSED
+
+ByokPreflightTest > 执行中不编译 即使配置完全正确 PASSED
+
+ByokPreflightTest > 本机从没存过凭据时拒在出门前 PASSED
+
+ByokPreflightTest > 已存地址现在过不了政策时带上政策原因 PASSED
+
+ByokPreflightTest > 意图为空先拒意图 连凭据和执行态都不看 PASSED
+
+ByokPreflightTest > READY 给出归一化地址 尾 4 位主机回显和原样 Key PASSED
+
+ByokPreflightTest > READY 不能由 block 造出来 PASSED
+
+ByokPreflightTest > 除 READY 外每档都有独立话术 且都不空 PASSED
+
+ByokPreflightTest > credentialsOf 把存储层三态搬成三档 PASSED
+
+ByokPreflightTest > 凭据读不出时把存储层的归因一起上屏 PASSED
+
+ByokPreflightTest > plan 与结论的 toString 都不许印出 Key PASSED
+
+ByokPreflightTest > 保存门禁 半条配置一个字都不落盘 PASSED
+
+ByokPreflightTest > 模型名为空时不替用户猜一个默认模型 PASSED
+
+CredentialRepositoryTest > 读回的是另一份凭据时报不一致 不报已保存 PASSED
+
+CredentialRepositoryTest > 保存后逐字段读回 含竖线 中文与空串 PASSED
+
+CredentialRepositoryTest > 重复保存以最后一次为准 PASSED
+
+CredentialRepositoryTest > 落盘字节里找不到明文 Key 也找不到完整地址 PASSED
+
+CredentialRepositoryTest > 写返回成功但读不回 一律不算已保存 PASSED
+
+CredentialRepositoryTest > 换一把密钥后旧密文一律解不开 PASSED
+
+CredentialRepositoryTest > 密钥库取不出时保存明确失败 不静默 PASSED
+
+CredentialRepositoryTest > 清除成功后读不回 单边没清掉就点名 PASSED
+
+CredentialRepositoryTest > 写入被拒时报写失败 且没有半条凭据留下 PASSED
+
+CredentialRepositoryTest > 配过但坏了 与从没配过 两档不同形 PASSED
+
+GcmBlobCipherTest > 解码对截断与畸形长度头一律拒 PASSED
+
+GcmBlobCipherTest > 编解码保住三个字段 含竖线 换行 中文与空串 PASSED
+
+GcmBlobCipherTest > toString 打不出来 Key 两条泄露路径都堵 PASSED
+
+GcmBlobCipherTest > 四档失败话术互不雷同 且没有一档是空的 PASSED
+
+GcmBlobCipherTest > 改一个字节就是 TAMPERED 而不是解出乱码 PASSED
+
+GcmBlobCipherTest > 空文件 短blob 与取不到密钥 三档各自分明 PASSED
+
+GcmBlobCipherTest > 密文里找不到明文字节 且同一明文两次密文不同 PASSED
+
+GcmBlobCipherTest > 换一把密钥同样解不开 PASSED
+
+ScreenContextCollectorTest > 整棵树的节点都被扫到 父先子后 PASSED
+
+ScreenContextCollectorTest > 多窗口根并扫 同词只上行一次 PASSED
+
+ScreenContextCollectorTest > 平台旗标说可编辑时 类名不像输入框也照样只报存在 PASSED
+
+ScreenContextCollectorTest > 根缺席时零条而不是空对象 PASSED
+
+ScreenContextCollectorTest > 取数层不判输入框 类名像输入框就不上行其内容 PASSED
+
+ScreenContextCollectorTest > 开关关闭时屏上有字也零条上行 PASSED
+
+UplinkRootFilterTest > 取树钩子缺席时就是没有树 PASSED
+
+UplinkRootFilterTest > 包名取不到的树不裁 因为回放面同样看得见它 PASSED
+
+UplinkRootFilterTest > 目标窗整棵保留 PASSED
+
+UplinkRootFilterTest > 钩子抛错不冒泡 按没有树处理 PASSED
+
+UplinkRootFilterTest > 自家活动窗不参与上行 PASSED
+
+UplinkRootFilterTest > 自家包名还没绑定时一律按别家窗处理 fail-closed 在取数侧而不是裁树侧 PASSED
+
+VaultWipeTest > 从没配过 两处都不存在 直接算清干净且不动手擦 PASSED
+
+VaultWipeTest > 单边成功不算清干净 且话术点名为留下的是哪个槽 PASSED
+
+VaultWipeTest > 擦除抛异常按仍在处理 不算成功 PASSED
+
+VaultWipeTest > 两处都在且都擦掉 才算清除成功 PASSED
+
+NodeTaskRunnerTest > action门禁未放行则设备零调用 PASSED
+
+NodeTaskRunnerTest > click与wait与type_text混合队列按序执行 PASSED
+
+NodeTaskRunnerTest > 二次确认等待期间kill取消面板等待并产USER_STOP回执 PASSED
+
+NodeTaskRunnerTest > 停止回执Command与ClosedLoop形状同字段无损 PASSED
+
+NodeTaskRunnerTest > type_text 句柄过期但字已落进换新输入节点 扫树自证不误红 PASSED
+
+NodeTaskRunnerTest > 执行前kill已置位则整队不执行并产USER_STOP回执 PASSED
+
+NodeTaskRunnerTest > 缺少定位线索以INVALID_INPUT中止不猜测 PASSED
+
+NodeTaskRunnerTest > 高危节点确认后执行且details带second_confirmed PASSED
+
+NodeTaskRunnerTest > type_text SET_TEXT虚报后paste兜底落字 成功且details记route PASSED
+
+NodeTaskRunnerTest > 多类同中主判取声明序最高类别 PASSED
+
+NodeTaskRunnerTest > 队列中途kill立即中止剩余步骤 PASSED
+
+NodeTaskRunnerTest > performAction返回false以EXECUTOR_ERROR中止 PASSED
+
+NodeTaskRunnerTest > type_text虚报 performAction为true但未落字 回执翻失败并停机 PASSED
+
+NodeTaskRunnerTest > type_text明示拒绝边重派一次封顶仍拒收perform_failed PASSED
+
+NodeTaskRunnerTest > 定位轮询期间kill立即中止并产USER_STOP回执而非NODE_NOT_FOUND PASSED
+
+NodeTaskRunnerTest > 词表装载失败时任何节点默认拒绝 PASSED
+
+NodeTaskRunnerTest > type_text 过渡态谎报后整步重试落字则判成功 PASSED
+
+NodeTaskRunnerTest > 高危确认超时视为拒绝 PASSED
+
+NodeTaskRunnerTest > 定位失败产NODE_NOT_FOUND并带三阶attempts证据后中止 PASSED
+
+NodeTaskRunnerTest > 末步执行中kill在步界补发回执_队列不以stopped_false收官 PASSED
+
+NodeTaskRunnerTest > 落字复核期间kill中止轮询且不误报set_text_unverified PASSED
+
+NodeTaskRunnerTest > 不支持的动作类型以EXECUTOR_ERROR中止 PASSED
+
+NodeTaskRunnerTest > root为空时按miss归因且队列中止 PASSED
+
+NodeTaskRunnerTest > 三步click链全绿并留痕定位信息 PASSED
+
+NodeTaskRunnerTest > 高危节点无人确认则SAFETY_GATE中止且后续步不执行 PASSED
+
+NodeTreeLocatorTest > 二阶落空后三阶语法非法，两阶记录都在 miss 里 PASSED
+
+NodeTreeLocatorTest > 一阶落空自动走二阶，尝试链留两阶记录 PASSED
+
+NodeTreeLocatorTest > L3 前段命中为叶子时后段无范围可扫 PASSED
+
+NodeTreeLocatorTest > L1 唯一 resource-id 命中并留下 nodeRef 与活句柄 PASSED
+
+NodeTreeLocatorTest > L3 段内序号越界精确到段 PASSED
+
+NodeTreeLocatorTest > L1 多命中按 instance 取文档序 PASSED
+
+NodeTreeLocatorTest > L2 trim 后全等命中 PASSED
+
+NodeTreeLocatorTest > L2 contentDescription 等值命中并在 matchedBy 留痕 PASSED
+
+NodeTreeLocatorTest > L3 军令原例三段路径命中深层第三可点节点 PASSED
+
+NodeTreeLocatorTest > L3 中间段落空时精确报告段号与扫描范围 PASSED
+
+NodeTreeLocatorTest > L3 段内无序号取第一个可点节点且不受 instance 影响 PASSED
+
+NodeTreeLocatorTest > L3 通配段与空格分隔容错 PASSED
+
+NodeTreeLocatorTest > L1 instance 越界只报 miss 不降级 PASSED
+
+NodeTreeLocatorTest > L2 禁止 contains 式模糊命中 PASSED
+
+NodeTreeLocatorTest > 无任何线索的请求产出三阶 NOT_ATTEMPTED 而非猜测 PASSED
+
+NodeTreeLocatorTest > L3 前两阶落空由路径兜住且三阶尝试链完整 PASSED
+
+NodeTreeLocatorTest > L2 深层嵌套可命中 PASSED
+
+NodeTreeLocatorTest > 根节点为空时三阶一律 NOT_ATTEMPTED PASSED
+
+NodeTreeLocatorTest > L3 后代深度可变，段在锚点子树内按层序就近取 PASSED
+
+NodeTreeLocatorTest > 三阶线索齐备全空时逐级留痕 PASSED
+
+NodeTreeLocatorTest > 空串 resource-id 记为非法而非静默跳过 PASSED
+
+NodeTreeLocatorTest > L2 空串线索记为非法 PASSED
+
+NodeTreeLocatorTest > L1 可命中根节点自身 PASSED
+
+NodeTreeLocatorTest > L2 多命中按文档序深度优先取 instance PASSED
+
+NodeTreeLocatorTest > L3 谓词组合：class 短名与全名、id entry、package 与 text 与 scrollable PASSED
+
+NodeTreeLocatorTest > L3 路径语法非法一律记 INVALID_QUERY 不猜 PASSED
+
+NodeTreeLocatorTest > L2 text 与 desc 同时给出时按节点先后取命中 PASSED
+
+NodeTreeLocatorTest > L1 resource-id 整串全等，同名 entry 跨包不算命中 PASSED
+
+NodeTreeLocatorTest > L1 定位不读坐标，bounds 相同的两节点靠 resource-id 分辨 PASSED
+
+AccessibilityGateTest > 四项齐备才 READY PASSED
+
+AccessibilityGateTest > 编译归位即作废停止话术（跑完还挂着「编译还在路上」=假红） PASSED
+
+AccessibilityGateTest > 服务未连即拒，且优先级最高 PASSED
+
+AccessibilityGateTest > 非持有档不许被编译过期边顺手抹掉（过期边只认自己那一档） PASSED
+
+AccessibilityGateTest > 无拒因时不凭空造话术 PASSED
+
+AccessibilityGateTest > 执行中即拒（录进去的是执行器自己的手） PASSED
+
+AccessibilityGateTest > 挂不上球即拒（L1 原判据，不做看不见球的降级录制） PASSED
+
+AccessibilityGateTest > READY 无话术，其余四档必须有人读归因 PASSED
+
+AccessibilityGateTest > 停止并编译两档：编译中拒、否则 READY（会话在不在不归门禁判） PASSED
+
+AccessibilityGateTest > 门禁转 READY 即作废陈旧拒因（空闲态不许再挂着执行中话术） PASSED
+
+AccessibilityGateTest > 未连接话术含立即可见动作与禁用结论（L2-① 字面判据） PASSED
+
+AccessibilityGateTest > 仍判拒时话术原样保留（不许把有效拒因悄悄抹掉） PASSED
+
+AccessibilityGateTest > 编译还在跑时停止话术原样保留（不许把有效拒因悄悄抹掉） PASSED
+
+AccessibilityGateTest > 球挂不上优先于编译中（长期缺项先说：编译归了那句话还成立，过期边才不会留下失去依据的红字） PASSED
+
+AccessibilityGateTest > 设备实证过的假红形态：执行中转假且四项齐备，RUNNING 话术必须已作废 PASSED
+
+AccessibilityGateTest > 录制面被挡与编译侧不开第二跑，是两句不同的话（同一句会把用户引到错误的环节） PASSED
+
+AccessibilityGateTest > 编译在跑即拒开录（其余三项齐备也不放行） PASSED
+
+AccessibilityGateTest > 两个入口共用一份判据与一句话术（一份判据两处用，改一处漏一处=串状态） PASSED
+
+AccessibilityGateTest > 停止面无拒因时不凭空造档位 PASSED
+
+AccessibilityGateTest > 执行中优先于编译中（账本先归执行器，别让两把锁互相伪装） PASSED
+
+RecorderAdjudicationLockTest > 裁决1锁定 非空白resourceId独占且产物永不携带空白串id PASSED
+
+RecorderAdjudicationLockTest > 裁决2锁定 路径形态为首段加一后续等子下标的AnyNode链 不嵌入className PASSED
+
+RecorderAdjudicationLockTest > 裁决1锁定 空白resourceId不进一阶 按缺失落text或路径 PASSED
+
+RecorderCompilerTest > L2-2 SET_TEXT 原文不 trim 不转义丢失，JSON 往返后全等 PASSED
+
+RecorderCompilerTest > L2-3 confirmed=false 不产步骤，产 DroppedBySafety 记录（fail-closed） PASSED
+
+RecorderCompilerTest > L1 输入结构与产物零坐标字段 PASSED
+
+RecorderCompilerTest > L2-1 只保留目标包且窗口在目标包的动作，跨包丢弃并计数归因 PASSED
+
+RecorderCompilerTest > L2-8 未知事件子类型丢弃并计数，不崩不产步骤 PASSED
+
+RecorderCompilerTest > L2-5 仅路径词汇：产物路径串可被 PathPatternParser 解析且 NodeTreeLocator 回放命中同一节点 PASSED
+
+RecorderCompilerTest > L2-10 丢弃原因枚举 total 映射到 STAGE-02 回执 6 类，稳定码与冻结文件对齐 PASSED
+
+RecorderCompilerTest > L2-7 全丢弃时零步骤但归因完整，半步与非法路径也在此族 PASSED
+
+RecorderCompilerTest > L2-5 有 resourceId 时步骤 value 只用 resource_id，其余词汇一概不进 PASSED
+
+RecorderCompilerTest > L2-4 合并判定用时间戳与索引路径，异路径或被其他动作打断不合并 PASSED
+
+RecorderCompilerTest > L2-5 无 id（含空白 id）用 trim 全等 text 与 desc，仍无才落层级路径 PASSED
+
+RecorderCompilerTest > L2-6 产物为 contracts Action 列表 JSON，decode 回读等值且键名符合执行器解码口径 PASSED
+
+RecorderCompilerTest > L2-4 去抖边界 恰好300ms不合并，299ms合并 PASSED
+
+RecorderCompilerTest > L2-4 同 indexPath 连续 CLICK 小于300ms 合并为一步，merged 计数 PASSED
+
+RecorderCompilerTest > L2-7 空事件流产出空步骤与零归因，不抛异常 PASSED
+
+RecorderCompilerTest > 金链 compile到encode到decode到NodeTaskRunner 全绿且SET_TEXT原文送达设备 PASSED
+
+RecorderEditingTest > L2-9 删第2步后原第5步逐字段原样且活树仍可定位命中 PASSED
+
+RecorderEditingTest > L2-9 编辑后的列表重新序列化往返仍等值（删步不产脏 JSON） PASSED
+
+RecorderEditingTest > L2-9 改名与移序为纯列表函数，其余步骤逐条不动 PASSED
+
+RecorderEditingTest > L2-9 编辑原语越界与空名一律拒绝，不静默吞 PASSED
+
+StepEditingTest > 执行中一律拒为 RUNNING 且排在其余三档之前 PASSED
+
+StepEditingTest > 标题按类型带专属字段 超长截断 PASSED
+
+StepEditingTest > 三操作在合法下标与非空名时 READY PASSED
+
+StepEditingTest > 跑完即可编 同一请求由 RUNNING 转 READY PASSED
+
+StepEditingTest > 标题线索优先级 text 优于 desc 优于 id 优于 path PASSED
+
+StepEditingTest > 非执行中三参判定与两参逐档同果（禁编辑不得顺手改坏旧判据） PASSED
+
+StepEditingTest > 删移重排后每步标题原样跟随 不产生新线索 PASSED
+
+StepEditingTest > 门禁优先级 先空账后越界 先越界后空名 PASSED
+
+StepEditingTest > 非 READY 判据下冻结原语必抛 证明门禁一步不漏 PASSED
+
+StepEditingTest > 越界下标拒为 OUT_OF_RANGE 且移序目标位单判 PASSED
+
+StepEditingTest > READY 无话术 四档拒因各自有话术且互不雷同 PASSED
+
+StepEditingTest > 改名先 trim 且只动 actionId 不碰定位线索 PASSED
+
+StepEditingTest > 空步序账三操作一律拒为 EMPTY_LEDGER PASSED
+
+StepEditingTest > opName 三操作各自可辨（日志留痕要能归因） PASSED
+
+StepEditingTest > READY 判据下 applyStepEdit 与冻结原语逐字段同果 PASSED
+
+StepEditingTest > 过期边只作废纯状态档 请求档不得被状态跃迁顺手抹掉 PASSED
+
+StepEditingTest > 空步骤名拒为 BLANK_NAME PASSED
+
+StepEditingTest > 编辑后空账不写建议 非空账序列化解得回同步数 PASSED
+
+CaptureAdapterTest > 一次慢拖的多条滚动事件只成一步 PASSED
+
+CaptureAdapterTest > computeIndexPath 父链断裂返回负路径交编译期丢弃 PASSED
+
+CaptureAdapterTest > 窗态切换翻译为 WindowChanged PASSED
+
+CaptureAdapterTest > click 快照翻译为已确认节点动作 PASSED
+
+CaptureAdapterTest > 被折叠的打字中间态可由会话层取走 PASSED
+
+CaptureAdapterTest > computeIndexPath 自叶到根记录子下标 PASSED
+
+CaptureAdapterTest > 自家 App 事件永不入流 PASSED
+
+CaptureAdapterTest > 连续同节点打字折叠为终态一条 PASSED
+
+CaptureAdapterTest > computeIndexPath 父链终点非根时判不可信 PASSED
+
+CaptureAdapterTest > 跨节点打字不互相折叠 PASSED
+
+CaptureAdapterTest > computeIndexPath 根节点得空路径 PASSED
+
+CaptureAdapterTest > 长按以 UNKNOWN 入流交编译期留痕丢弃 PASSED
+
+CaptureAdapterTest > 滚动方向按位置变化判定 PASSED
+
+CaptureAdapterTest > signed delta 优先于位置比较定方向 PASSED
+
+CaptureAdapterTest > 首见滚动到底时判回退否则判前进 PASSED
+
+CaptureAdapterTest > 零位移证据的滚动判噪不成事件但留痕 PASSED
+
+CaptureAdapterTest > 高危词命中不枪毙：录制保留，回放期二次确认负责 PASSED
+
+RecorderSessionTest > S22-1a 合法转移逐条正例 IDLE→RECORDING⇄PAUSED→STOPPED PASSED
+
+RecorderSessionTest > S22-9 金链 断点续录后compile产物与一次性compile逐字段等值 PASSED
+
+RecorderSessionTest > S22-7 损坏或非法存档 8 种形态均返回 CORRUPT_ARCHIVE 不抛异常 PASSED
+
+RecorderSessionTest > S22-3b maxEvents 为 0 时任何 append 均溢出拒绝 构造参可低至 0 PASSED
+
+RecorderSessionTest > S22-3 溢出 第N加1条被拒且归因OVERFLOW 计数可读 前N条完好 PASSED
+
+RecorderSessionTest > S22-4b 带事件往返 特殊字符与null字段保真 STOPPED档字节全等 PASSED
+
+RecorderSessionTest > S22-4c 溢出计数与被拒副本随存档往返 PASSED
+
+RecorderSessionTest > S22-8 clock 为会话唯一时间源 连续取号单调递增且测试零真实等待 PASSED
+
+RecorderSessionTest > S22-5b 续录后的时间戳来自读档时注入的 clock 而非墙钟 PASSED
+
+RecorderSessionTest > S22-7b 损坏档读失败后原会话不受影响 可继续正常录制 PASSED
+
+RecorderSessionTest > S22-1b 非法转移全表 14 组 每态每非法操作均拒绝带归因且状态不变不抛 PASSED
+
+RecorderSessionTest > S22-5 读档恒 STOPPED只读 RECORDING或PAUSED档不复活 append被拒 resumeAsRecording后受理 PASSED
+
+RecorderSessionTest > S22-10 会话只读视图 eventList 返回拷贝 后续录制不回灌旧视图 PASSED
+
+RecorderSessionTest > S22-6 事件结构复用冻结 RecEvent 子类 读档产物仍是同一批类型实例 PASSED
+
+RecorderSessionTest > S22-4 serialize 四态各调一次不抛 含targetPkg与state与事件序列 往返结构等值 PASSED
+
+RecorderSessionTest > S22-2 append 在 IDLE PAUSED STOPPED 三态均拒 事件不入缓冲且带归因 PASSED
+
+UiSmokeSessionFixtureTest > 预置档可被冻结读档口受理且编译出三步 PASSED
+
+UiSmokeSessionFixtureTest > 预置档与脚本内字面量逐字一致 PASSED
+
+HighRiskMatcherTest > 英文关键词大小写不敏感命中 PASSED
+
+HighRiskMatcherTest > 三字段全空或null不崩溃且放行 PASSED
+
+HighRiskMatcherTest > 词表装载为空表视为坏装载默认拒绝 PASSED
+
+HighRiskMatcherTest > 已支付金额展示文本同样命中支付类（宁可多一次二次确认） PASSED
+
+HighRiskMatcherTest > 普通设置节点三字段均未命中则放行 PASSED
+
+HighRiskMatcherTest > 七类中文关键词逐一命中 PASSED
+
+HighRiskMatcherTest > 多类同中按声明顺序取最高优先级为主判并全量留痕 PASSED
+
+HighRiskMatcherTest > snake_case的resourceId命中子串匹配路径 PASSED
+
+HighRiskMatcherTest > contentDesc字段同样受检 PASSED
+
+HighRiskMatcherTest > 发送键盘命中发送类而非支付类 PASSED
+
+HighRiskMatcherTest > 未初始化matcher默认拒绝 PASSED
+
+HighRiskMatcherTest > 词表装载抛异常则任何动作默认拒绝 PASSED
+
+KillSwitchTest > stop幂等且首信号不被覆盖 PASSED
+
+KillSwitchTest > 初始为运行态且flow可见当前信号 PASSED
+
+KillSwitchTest > reset恢复运行态可再次停止 PASSED
+
+KillSwitchTest > stop后isStopped与flow同时翻转并携带现场 PASSED
+
+SafetyQueueRunnerTest > 高危步无人确认则整条队列以SAFETY_GATE_BLOCKED中止 PASSED
+
+SafetyQueueRunnerTest > 高危步经二次确认后放行执行 PASSED
+
+SafetyQueueRunnerTest > 队列中途kill则剩余步中止 PASSED
+
+SafetyQueueRunnerTest > 全绿队列逐步执行且无停止回执 PASSED
+
+SafetyQueueRunnerTest > 词表坏时首步即拒且执行器零调用 PASSED
+
+SafetyQueueRunnerTest > 开跑前已被kill则一步不执行并产Command风格回执 PASSED
+
+InterruptedRunReportTest > 过期丢弃回执带 REQUEST_EXPIRED 且注明未开始执行 PASSED
+
+InterruptedRunReportTest > 中断回执标记停止且结果集为空并注明不可信 PASSED
+
+InterruptedRunReportTest > 中断回执是合法 stop 命令且每次调用 commandId 唯一 PASSED
+
+InterruptedRunReportTest > 忙中丢弃回执注明会被执行中任务覆写 PASSED
+
+BUILD SUCCESSFUL in 16s
+26 actionable tasks: 1 executed, 25 up-to-date
+> Task :byok:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:contracts:processResources NO-SOURCE
+> Task :byok:processResources NO-SOURCE
+> Task :tools:compiler:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :tools:compiler:processResources NO-SOURCE
+> Task :tools:compiler:processTestResources NO-SOURCE
+> Task :core:contracts:compileKotlin
+> Task :core:contracts:compileJava NO-SOURCE
+> Task :core:contracts:classes UP-TO-DATE
+> Task :core:contracts:jar
+> Task :byok:compileKotlin
+> Task :byok:compileJava NO-SOURCE
+> Task :byok:classes UP-TO-DATE
+> Task :byok:jar
+> Task :tools:compiler:compileKotlin
+> Task :tools:compiler:compileJava NO-SOURCE
+> Task :tools:compiler:classes UP-TO-DATE
+> Task :tools:compiler:jar
+> Task :tools:compiler:compileTestKotlin NO-SOURCE
+> Task :tools:compiler:compileTestJava NO-SOURCE
+> Task :tools:compiler:testClasses UP-TO-DATE
+> Task :tools:compiler:test NO-SOURCE
+
+BUILD SUCCESSFUL in 2s
+6 actionable tasks: 6 executed
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+  redline F clean (network code confined to byok/ and tools/)
+  redline G clean (execution path cannot see the compiler module)
+  redline H clean (no key-bearing log statements)
+  redline I clean (no plaintext credential storage channel in app)
+==> [4/4] ci-local PASS
+
+=== [2026-09-23 21:27:14] S3-E0：scripts/redline-probe.sh（F/G/H/I 逐条放探针）===
+PROBE-F OK: 能 FAIL（REDLINE-F HIT: byok/ 与 tools/ 之外出现网络代码）
+PROBE-G OK: 能 FAIL（REDLINE-G HIT: 执行路径 import 了编译模块（执行期零网络的结构锁失效））
+PROBE-H OK: 能 FAIL（REDLINE-H HIT: 日志语句里出现密钥形态字段）
+PROBE-I OK: 能 FAIL（REDLINE-I HIT: 出现明文落盘通道（Key 只能进 Keystore 加密 blob））
+REDLINE-PROBE PASS: F/G/H/I 四条逐条独立验证能 FAIL，且撤探针后门禁回到 PASS
+
+=== [2026-09-23 21:27:24] JVM 计数口径：--rerun-tasks 单变体，逐模块 <testsuite tests> 求和（同一轮 ci-local 产物）===
+app        tests=254 failures=0
+byok       tests=59 failures=0
+contracts  tests=19 failures=0
+JVM total = 332, failures = 0
+
+=== [2026-09-23 21:27:40] Key 形态扫描（本批只追加日志/文档/kt 源码，扫本批 diff 的新增行）===
+0 hit（新增行无任何密钥形态字面量）
+
+=== [2026-09-23 21:34:53] 提交前终验（KDoc 悬挂注释/注释位清理后重跑，改一件重验一件）===
+ci-local.sh RC=0 尾部：
+6 actionable tasks: 6 executed
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+  redline F clean (network code confined to byok/ and tools/)
+  redline G clean (execution path cannot see the compiler module)
+  redline H clean (no key-bearing log statements)
+  redline I clean (no plaintext credential storage channel in app)
+==> [4/4] ci-local PASS
+
+redline-probe.sh RC=0 尾部：
+PROBE-F OK: 能 FAIL（REDLINE-F HIT: byok/ 与 tools/ 之外出现网络代码）
+PROBE-G OK: 能 FAIL（REDLINE-G HIT: 执行路径 import 了编译模块（执行期零网络的结构锁失效））
+PROBE-H OK: 能 FAIL（REDLINE-H HIT: 日志语句里出现密钥形态字段）
+PROBE-I OK: 能 FAIL（REDLINE-I HIT: 出现明文落盘通道（Key 只能进 Keystore 加密 blob））
+REDLINE-PROBE PASS: F/G/H/I 四条逐条独立验证能 FAIL，且撤探针后门禁回到 PASS
+
+JVM 终验计数（单变体分模块 testsuite 求和）：
+  app        tests=254
+  byok       tests=59
+  contracts  tests=19
+  JVM total = 332, failures = 0

@@ -104,16 +104,18 @@ class TaskAdmissionTest {
     }
 
     @Test
-    fun `四条拒因话术互不雷同（同屏出现时用户要分得清是哪一环拦的）`() {
+    fun `八条拒因话术互不雷同（同屏出现时用户要分得清是哪一环拦的）`() {
         val copies = listOfNotNull(
             TaskAdmission.STALE_SUGGESTION.userCopy(),
             RecordGate.RUNNING.userCopy(),
             RecordGate.SERVICE_OFF.userCopy(),
             RecordGate.BALL_UNAVAILABLE.userCopy(),
+            // 裁决 S3-R4-1 新增：编译持有档若抄了执行中的话术，用户会以为有任务在跑
+            RecordGate.COMPILING.userCopy(),
             StepEditGate.BLANK_NAME.stepGateCopy(),
             StepEditGate.EMPTY_LEDGER.stepGateCopy(),
             StepEditGate.OUT_OF_RANGE.stepGateCopy(),
         )
-        assertEquals(7, copies.distinct().size, copies.toString())
+        assertEquals(8, copies.distinct().size, copies.toString())
     }
 }
