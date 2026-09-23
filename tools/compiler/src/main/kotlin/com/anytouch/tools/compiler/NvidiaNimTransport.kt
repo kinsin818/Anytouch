@@ -53,9 +53,8 @@ class NvidiaNimTransport(
             .build()
         val response = client.send(request, HttpResponse.BodyHandlers.ofString())
         if (response.statusCode() / 100 != 2) {
-            // 只透出状态码与脱敏后的响应体前 200 字符——兜底防任何 nvapi-* 形态串进日志
-            val masked = response.body().replace(Regex("nvapi-[A-Za-z0-9_-]+"), "nvapi-***")
-            error("HTTP ${response.statusCode()}: ${masked.take(200)}")
+            // 兜底防任何密钥形态串进日志：脱敏口径与设备侧同一个实现（:byok KeyMasker），host 侧不另写一份正则
+            error("HTTP ${response.statusCode()}: ${com.anytouch.byok.KeyMasker.mask(response.body(), apiKey).take(200)}")
         }
         val root = json.parseToJsonElement(response.body()).jsonObject
         return root["choices"]!!.jsonArray[0].jsonObject["message"]!!.jsonObject["content"]!!.jsonPrimitive.content

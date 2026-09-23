@@ -62,6 +62,14 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
   因此"编译期联网、执行期零网络"不是注释里的承诺。）
 - **红线 H｜Key 不进日志**：`byok/` 与 `app/src/main/**/compile/**` 内，`Log.` / `println` 行若同时出现
   `apiKey|Bearer|nvapi-|Authorization` 即 FAIL。（脱敏由纯函数承担 + JVM 锁，grep 只兜底防手滑。）
+  **B 片修正**：原正则写作 `Log\.[vdiwe] `（要求括号前有空格），`Log.d(` 永远匹配不上——即一条**不能 FAIL 的假锁**。
+  现改为 `(Log\.[vdiwe]\(|println\().*(apiKey|ApiKey|Bearer|nvapi-|Authorization|authHeader)`。
+- **红线 I｜Key 不落公共盘**（B 片新增）：`app/src/main/` 出现 `getSharedPreferences|getExternalFilesDir|
+  getExternalStorageDirectory|MODE_WORLD_READABLE|externalCacheDir` 即 FAIL。凭据只能进 `filesDir` 私有目录，
+  SharedPreferences 是明文 XML 且可被备份/other-app 读到，属"Key 落盘"的另一种写法。
+- **锁的锁｜红线自证脚本**：`scripts/redline-probe.sh` 对 F/G/H/I **逐条**放探针 → 断言 rc≠0 且命中行号正确 →
+  删探针 → 复跑断言回到 PASS。一条不能 FAIL 的门禁就是假门禁；本批靠它当场抓出 H 是假锁、以及清理顺序导致的
+  假红（见 `evidence/S3/slice-b-key-surface.md` §4）。
 
 **行为侧对拍（grep 之外必须有一条真机证据）**：设备断网（飞行模式/关数据）跑 `device-smoke` 13/13 全绿——
 执行链在物理无网下可用，才是"执行期零网络"的正面证据；红线 F/G 是反面锁。
@@ -89,6 +97,8 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
 1. **示例语料按海外 App 写**：产品定位海外专供（军令硬约束），故 UI 占位文案、内置示例、测试语料一律用
    海外可见 App/系统页（Settings、Chrome、Amazon 等）；开工令里"打开美团点一份黄焖鸡"按**口语举例**理解，
    不进产品文案与测试断言。若老板要的就是美团形态，需另裁（涉及目标市场口径）。
+   → **已裁生效（S3-R2，09-23 第三批原文）**："备案同意：示例语料全用海外App，不用美团，本来就是海外专供，没问题。"
+   本条不再待裁。
 2. **现有 UI 全中文**：与"海外专供"的本地化冲突是**已知待办**（S4 清单），本批不顺手改语言，
    新面文案先按中文写以与现屏一致，避免半中半英。
 3. **真机端到端只证一次**：一次真 Key 跑通不等于命中率达标。命中率统计需要 ≥10 条真实意图的矩阵，
@@ -109,5 +119,6 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
 | 切片 | 状态 | 事实 |
 |---|---|---|
 | A 模块与搬迁 | **已落**（09-23） | `:byok` 纯 JVM 模块立起；`DslCompiler`/`CompilerPrompt`/`LlmTransport`/`CompileResult` + 12 例测试 `git mv` 搬入，判据主体零改动（`git diff -M --stat` 只有 12 行，全为 package/import/KDoc）；`:tools:compiler` 反向依赖 `:byok`，探针行为不变；红线 F/G/H 新增并**逐条放探针验证能 FAIL**；ci-local 八线全清 PASS。`:app` 依赖**故意未加**（无消费者不预铺）。详见 `evidence/S3/slice-a-byok-module.md` |
-| B–E | 未开始 | BYOK 端到端目前**完全不可用**，切片 A 只是地基；"执行期零网络"目前只有结构锁（F/G），行为证据（飞行模式对拍）留 E |
+| B Key 面 | **已落**（09-23） | `:byok` 侧 android-free 判据四件（`BaseUrlPolicy` 九档拒因 / `KeyMasker` 四类密钥形态脱敏 + 尾 4 位 / `ByokError` 八档话术 + `httpKindOf` 状态映射 / `OpenAiCompatTransport` HttpURLConnection 假件可注入），`:app` 侧凭据存储三件（`GcmBlobCipher`+`VaultCodec`、`CredentialRepository`、`VaultWipe`）全部为**零 android 纯函数**，只有 `AndroidKeyVault.create()` 与 `connect()` 两处是设备缝。**+51 例、JVM 211→262**（app 202 / byok 41 / contracts 19，单变体 testsuite 逐模块求和）；红线 H 修正为真锁、新增红线 I、`scripts/redline-probe.sh` 逐条自证 F/G/H/I **能 FAIL 且撤探针能回 PASS**；ci-local PASS。`:app`→`:byok` 依赖**仍故意未加**（无消费者）。详见 `evidence/S3/slice-b-key-surface.md` |
+| C–E | 未开始 | **B 结束时 BYOK 端到端仍然完全不可用**（无 UI 入口、无屏上下文、app 未依赖 byok）；"执行期零网络"目前只有结构锁（F/G/H/I），行为证据（飞行模式对拍）留 E |
 

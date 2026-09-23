@@ -30,8 +30,15 @@ interface LlmTransport {
 
 sealed interface CompileResult {
     data class Ok(val actions: List<Action>, val actionsJson: String) : CompileResult
-    /** stage: transport|parse|decode|validate；detail 人读归因。模型输出永远不直接进执行器。 */
-    data class Reject(val stage: String, val detail: String) : CompileResult
+    /**
+     * stage: transport|parse|decode|validate；detail 人读归因。模型输出永远不直接进执行器。
+     * [kind] 是机器可读的失败档（S3-B 失败话术落点）：UI 按它选文案，绝不拿 detail 文本做分支。
+     */
+    data class Reject(
+        val stage: String,
+        val detail: String,
+        val kind: ByokErrorKind? = null,
+    ) : CompileResult
 }
 
 object CompilerPrompt {
@@ -57,57 +64,60 @@ class DslCompiler(private val transport: LlmTransport) {
     fun compile(intent: String): CompileResult {
         val raw = try {
             transport.complete(CompilerPrompt.SYSTEM, intent)
+        } catch (e: TransportFailure) {
+            // 传输层已把失败分成不可达/鉴权/限速/服务端/超时几档，这里只做搬运，不降级成一个字符串
+            return CompileResult.Reject("transport", e.safeDetail, e.kind)
         } catch (e: Exception) {
-            return CompileResult.Reject("transport", e.message ?: e.javaClass.simpleName)
+            return CompileResult.Reject("transport", e.message ?: e.javaClass.simpleName, ByokErrorKind.UNREACHABLE)
         }
         val snippet = extractJsonArray(raw)
-            ?: return CompileResult.Reject("parse", "模型输出中无 JSON 数组: ${raw.take(160)}")
+            ?: return reject("模型输出中无 JSON 数组: ${raw.take(160)}", ByokErrorKind.BAD_RESPONSE, stage = "parse")
         val actions = try {
             ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), snippet)
         } catch (e: Exception) {
-            return CompileResult.Reject("decode", (e.message ?: e.javaClass.simpleName).take(300))
+            return reject((e.message ?: e.javaClass.simpleName).take(300), ByokErrorKind.BAD_RESPONSE, stage = "decode")
         }
-        validate(snippet)?.let { (stage, detail) -> return CompileResult.Reject(stage, detail) }
+        validate(snippet)?.let { return it }
         return CompileResult.Ok(actions = actions, actionsJson = snippet)
     }
 
     /** 校验必须看原始 JSON（ContractJson ignoreUnknownKeys=true，解码会静默吞掉未知键）。 */
-    private fun validate(snippet: String): Pair<String, String>? {
+    private fun validate(snippet: String): CompileResult.Reject? {
         val root = try {
             ContractJson.instance.parseToJsonElement(snippet).jsonArray
         } catch (e: Exception) {
-            return "decode" to "二次解析失败: ${e.message}"
+            return reject("二次解析失败: ${e.message}", ByokErrorKind.BAD_RESPONSE, stage = "decode")
         }
-        if (root.isEmpty()) return "validate" to "空动作数组（模型拒编或意图不可编译）"
+        if (root.isEmpty()) return reject("空动作数组（模型拒编或意图不可编译）", ByokErrorKind.EMPTY_ACTIONS)
         val ids = HashSet<String>()
         for ((i, el) in root.withIndex()) {
-            val obj = el as? JsonObject ?: return "validate" to "action[$i] 不是对象"
-            if (obj.containsKey("target")) return "validate" to "action[$i] 出现坐标字段 target——产品红线禁止"
+            val obj = el as? JsonObject ?: return reject("action[$i] 不是对象")
+            if (obj.containsKey("target")) return reject("action[$i] 出现坐标字段 target——产品红线禁止")
             val id = obj["action_id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
-                ?: return "validate" to "action[$i] 缺 action_id"
-            if (!ids.add(id)) return "validate" to "action_id 重复: $id"
+                ?: return reject("action[$i] 缺 action_id")
+            if (!ids.add(id)) return reject("action_id 重复: $id")
             val type = obj["type"]?.jsonPrimitive?.contentOrNull
-            if (type !in ALLOWED_TYPES) return "validate" to "action[$i] type=$type 不在白名单 ${ALLOWED_TYPES}"
-            if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return "validate" to "action[$i] source 必须为 node"
-            val safety = obj["safety"] as? JsonObject ?: return "validate" to "action[$i] 缺 safety"
+            if (type !in ALLOWED_TYPES) return reject("action[$i] type=$type 不在白名单 ${ALLOWED_TYPES}")
+            if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return reject("action[$i] source 必须为 node")
+            val safety = obj["safety"] as? JsonObject ?: return reject("action[$i] 缺 safety")
             if (safety["viewport_ok"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
-                return "validate" to "action[$i] safety.viewport_ok 未显式放行"
+                return reject("action[$i] safety.viewport_ok 未显式放行")
             if (type == "click" && safety["click_enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
-                return "validate" to "action[$i] click 未显式 click_enabled"
-            val value = obj["value"] as? JsonObject ?: return "validate" to "action[$i] 缺 value"
+                return reject("action[$i] click 未显式 click_enabled")
+            val value = obj["value"] as? JsonObject ?: return reject("action[$i] 缺 value")
             value.keys.intersect(FORBIDDEN_VALUE_KEYS).let {
-                if (it.isNotEmpty()) return "validate" to "action[$i] value 含坐标类键 $it"
+                if (it.isNotEmpty()) return reject("action[$i] value 含坐标类键 $it")
             }
             when (type) {
-                "click" -> if (value["text"].strOrNull().isNullOrBlank()) return "validate" to "action[$i] click 缺可见文本"
+                "click" -> if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] click 缺可见文本")
                 "type_text" -> {
-                    if (value["text"].strOrNull().isNullOrBlank()) return "validate" to "action[$i] type_text 缺输入框文本"
-                    if (value["input"].strOrNull() == null) return "validate" to "action[$i] type_text 缺 input"
+                    if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] type_text 缺输入框文本")
+                    if (value["input"].strOrNull() == null) return reject("action[$i] type_text 缺 input")
                 }
                 "scroll" -> if (value["direction"]?.jsonPrimitive?.contentOrNull !in setOf("forward", "backward"))
-                    return "validate" to "action[$i] scroll direction 非法"
+                    return reject("action[$i] scroll direction 非法")
                 "key" -> if (value["key"]?.jsonPrimitive?.contentOrNull !in setOf("back", "home", "enter"))
-                    return "validate" to "action[$i] key 值非法"
+                    return reject("action[$i] key 值非法")
             }
         }
         return null
@@ -115,6 +125,13 @@ class DslCompiler(private val transport: LlmTransport) {
 
     private fun JsonElement?.strOrNull(): String? =
         (this as? JsonPrimitive)?.contentOrNull
+
+    /** 拒绝口：一档一因。校验类拒绝天然都是 COMPILE_REJECT，只有跨档的（空数组/坏应答/传输）必须显式给。 */
+    private fun reject(
+        detail: String,
+        kind: ByokErrorKind = ByokErrorKind.COMPILE_REJECT,
+        stage: String = "validate",
+    ): CompileResult.Reject = CompileResult.Reject(stage, detail, kind)
 
     companion object {
         val ALLOWED_TYPES = setOf(ActionType.CLICK, ActionType.TYPE_TEXT, ActionType.SCROLL, ActionType.KEY)

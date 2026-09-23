@@ -6,6 +6,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# SKIP_GRADLE=1 只跑红线段：给 scripts/redline-probe.sh 逐条放探针用（同一条门禁，不另写一份 grep）
+if [ -n "${SKIP_GRADLE:-}" ]; then
+    echo "==> [1/4][2/4] gradle SKIPPED (SKIP_GRADLE=1, 只验红线)"
+    SKIP_STEPS=1
+else
 echo "==> [1/4] gradle build (:core:contracts + :byok + :app + :tools:compiler)"
 # 依赖解析走 settings.gradle.kts 中配置的阿里云镜像源，离线/不可达环境会失败，属预期
 # 口径注记：:tools:compiler 是 host 侧 T2 测量工具（允许网络，Key 仅环境变量），
@@ -18,6 +23,7 @@ echo "==> [2/4] gradle test (:core:contracts, :byok, :app, :tools:compiler, --re
 ./gradlew :byok:test --rerun-tasks
 ./gradlew :app:testDebugUnitTest --rerun
 ./gradlew :tools:compiler:test --rerun-tasks
+fi
 
 echo "==> [3/4] 红线 grep"
 
@@ -84,11 +90,21 @@ fi
 echo "  redline G clean (execution path cannot see the compiler module)"
 
 # 红线 H（S3）: Key 不进日志（兜底防手滑；真正的脱敏由 :byok 纯函数 + JVM 用例承担）
-if grep -rnE --include='*.kt' '(Log\.[vdiwe] |println).*(apiKey|Bearer|nvapi-|Authorization)' \
+# 口径修正由反面锁自证：原来写作 `Log\.[vdiwe] `（字母后要求空格），`Log.d(` 根本匹配不上＝假锁。
+if grep -rnE --include='*.kt' '(Log\.[vdiwe]\(|println\().*(apiKey|ApiKey|Bearer|nvapi-|Authorization|authHeader)' \
     byok/ app/src/main/ 2>/dev/null; then
     echo "REDLINE-H HIT: 日志语句里出现密钥形态字段"
     exit 1
 fi
 echo "  redline H clean (no key-bearing log statements)"
+
+# 红线 I（S3-B）: 凭据只允许住 Keystore 加密后的应用私有文件。SharedPreferences / 外部目录 / 世界可读文件
+# 都是"明文 Key 落盘"的常见手滑路径，一旦走了这些口子，红线 H 的日志脱敏就毫无意义。
+if grep -rnE --include='*.kt' 'getSharedPreferences|getExternalFilesDir|getExternalStorageDirectory|MODE_WORLD_READABLE|externalCacheDir' \
+    app/src/main/; then
+    echo "REDLINE-I HIT: 出现明文落盘通道（Key 只能进 Keystore 加密 blob）"
+    exit 1
+fi
+echo "  redline I clean (no plaintext credential storage channel in app)"
 
 echo "==> [4/4] ci-local PASS"
