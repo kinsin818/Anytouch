@@ -1,4 +1,4 @@
-package com.anytouch.tools.compiler
+package com.anytouch.byok
 
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionType
@@ -14,10 +14,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * 创建期编译器（T2/BYOK 测量层，host 侧工具，非设备产品路径）：
+ * 创建期编译器（S3 BYOK 的判据核心，**一份两处用**：设备 `:app` 与 host 探针 `:tools:compiler` 共用本类）。
  * 自然语言意图 -> 模型 -> Action JSON -> fail-closed 校验。
- * 设备端红线（core/ 与 app/src/main 零网络）不在此列——本模块是测试通道，
- * 豁免先例同 device-smoke C6/C7（脚本内留痕，不污染产品代码）。
+ *
+ * 本模块是纯 JVM 工件（零 android 依赖），因此：
+ * - 设备端红线 C（`app/src/main` 零网络关键字）字面不动——网络代码住在 `:byok`，app 只调本类的 `compile`；
+ * - 执行路径（executor/locator/service/safety/recorder/platform）被红线 G 禁止 import 本模块，
+ *   所以"编译期联网、执行期零网络"是结构事实而不是注释里的承诺（军令 `orders/ANYTOUCH-S3-byok-ORDER.md` §2）。
+ * 校验必须跑在**原始 JSON 文本**上（`ContractJson` 的 ignoreUnknownKeys 会静默吞掉模型偷塞的坐标键）。
  */
 
 interface LlmTransport {

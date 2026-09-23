@@ -21,5 +21,6 @@ dependencyResolutionManagement {
 rootProject.name = "anytouch"
 
 include(":core:contracts")
+include(":byok")
 include(":app")
 include(":tools:compiler")

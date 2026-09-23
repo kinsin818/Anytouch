@@ -1,5 +1,6 @@
 package com.anytouch.tools.compiler
 
+import com.anytouch.byok.LlmTransport
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest

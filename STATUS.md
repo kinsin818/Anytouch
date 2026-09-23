@@ -26,6 +26,13 @@ V-3 口径收窄经裁 1 **转为已裁**。复验同构建：ui-smoke 34→**41
 （:app 180 / contracts 19 / compiler 12，本批 +4 例）、ci-local PASS；证据 §7、裁决落地账 `orders/ANYTOUCH-S2-recui-ORDER.md` §8。
 同批踩出并固化一条测试通道新律：**uiautomator dump 会取消正在跑的 runTask**（设备实证 09:01:32.372 SERVICE_INTERRUPTED、
 两条屏上读数同时 0/0=假绿形态）——读屏只在无在跑任务时做，执行中的屏上状态改用截图取证。下一批：平台层 94 例 JVM 缺口（S2-R2）。
+**S3 BYOK 主线开工（09-23 老板口头开工令 + 四项裁决，切片 A 已落）**：把"手机里填自己的 OpenAI 兼容 Key → APP 内把自然语言编译成 DSL 步骤 → 一键执行"接进产品，
+不再连电脑跑编译。四项裁决：① 网络代码**单独成模块**（红线 C 原文不动，新增 F/G/H 三条锁 + 飞行模式对拍）；② 编译**带屏上下文、可开关**（只上行可见 text 与 resource-id，
+不上行输入框内容、不截图）；③ Key 走 **Keystore 加密持久化**；④ 验收 = **JVM 假传输 + 一次真机真 Key**。切片 A：`:byok` 纯 JVM 模块立起，
+`DslCompiler`（含 12 项 fail-closed 校验）从 host 工具**原样搬入**、`:tools:compiler` 反向依赖它，实现"一份编译器两处用"；
+三条新红线逐条放探针验证**能 FAIL**（第一轮循环误删探针、三条同报 clean 的同型错误已如实登记）。ci-local 八线全清 PASS、JVM 211（四模块分列，搬迁不计新增）。
+执行器/定位/安全包**一行未改**（军令 §3-8）。证据 `evidence/S3/slice-a-byok-module.md`、军令 `orders/ANYTOUCH-S3-byok-ORDER.md`。
+
 
 
 
@@ -36,7 +43,8 @@ V-3 口径收窄经裁 1 **转为已裁**。复验同构建：ui-smoke 34→**41
 | S0 奠基+契约+CI | ✅ 完成 | — | `docs/ANYTOUCH-S0-final-report.md`，commits de3d6b4→2c7ddf1 |
 | S1 核心执行器 | ✅ 完成（模拟器口径） | — | `docs/ANYTOUCH-S1-final-report.md`，commits 5049b05→0c5ebbc；demo 录像 `evidence/S1/demo/`；真机 ≥95% 归 T3 |
 | S2 录制 | 🟡 框架层：STAGE-21/22 双验收（会话状态机 16/16 绿，清单先行 3e67664，worker 会话 18a07ee7）；设备回归固化为 `scripts/device-smoke.sh`（13/13 PASS：高危超时默认拒绝负例 + C6 停止球即时响应 + C7 面板挂起期点球即停 + C8/C8b 执行中解绑中断回执与自愈 + C5x/C7x 输入通道洁净锁 + C9/C10 开录门禁双路径）；输入链 demo + 安全链双幕 demo（确认放行/挂起期急停）`evidence/S2/demo/`；停止球全局停设备实证 `evidence/S2/kill-ball-device.md`（115 例绿）。**T2 编译链首批已结案**：NVIDIA NIM 单通道端到端打通（中文意图→AI 编译→12 项校验→设备执行 ok=3/3，`evidence/S2/t2-key-adaptation.md`）。**实测层首批已结案（产品脊梁立住）**：悬浮球开录→人工操作→停止→RecorderCompiler 出 JSON→一键回放全链打通，3 步链 10/10 轮全绿（≥90% 判据以 100% 达标）、8 步链 8 录→8 编→8 放零降级、SC 一次慢拖只成一步、JVM 176 绿（原写 289 系双变体合并误标，已自纠，见证据 §8.4）、ci-local PASS；产品侧三雷 15/16/17（事件拷贝词字段错位／0 命中帧被当歧义／无句柄无证据=整步失踪）全闭且各自设备实证（`evidence/S2/s2-ondevice-record-replay.md`）。**实测层第二批已结案**：磁盘判据 L0（8 步×10 轮 ≥90%）补齐——**10/10 轮逐轮 `actions=8`、回放 `ok=8 total=8`**（修复前同判据 8/10），差的那 2 轮抓出 **雷 18**（采集根集合把同一活动窗数两遍 → 自家双计把唯一线索判成歧义 → 整步失踪；修=与执行器共用同一词表并把"分母必须等于回放面"写成契约）；**L1/L2/红线 E 开录门禁落地**（`platform/AccessibilityGate.kt` 纯函数 + 门禁在会话入口 `RecorderStore.start()`，UI 置灰不算门禁；球挂载事实单源、服务重连即清零；拒因上主屏显示=L2-③，未连接话术含"请立即"=L2-①），设备实证 C9（服务不在场→注入通道同拒且**不产生空会话**）/C10（执行中球收起→拒开录），JVM 新增 6 例；同构建 device-smoke **13 项断言五连全绿**、ci-local 四步 PASS。SC"一次慢拖 0 步"间歇红归因＝测试通道 `home_to_top` 固定 2 下拖不复核（前序用例把首页滚到底 → 拖在边界 → 框架不发 viewScrolled），改 dump 复核到顶 + 红项加归因面后同场景绿（改前 2 红 2 绿，样本小，锁的判据是"红了分得开环境/产品"）。**录制 UI 面（步序账编辑）+ 三修已结案**：编译产物逐行上屏、删/改名/移序全走 STAGE-21 冻结纯函数、UI 与 adb 注入共用 `applyEdit` 唯一写口 + 四档 fail-closed 门禁；老板裁决 1/2/3 落地为 V-1 球移右缘+半透明、V-2 拒因话术补过期边（实测 15 ms 作废）、V-3 执行前按来源比对账与框（孤儿建议拒放上屏、手敲 JSON 不误伤），最终构建 ui-smoke **34 断言 × 2 轮 0 红**、device-smoke **13/13**、JVM **207**、ci-local PASS（`evidence/S2/recui-step-edit.md` §1–§6，裁决原文 `orders/ANYTOUCH-S2-recui-ORDER.md` §7）。**执行中禁编辑门禁已结案（老板裁 2）**：编辑门禁第五档 `RUNNING`（纯函数判 / `applyEdit` 唯一写口 / UI 置灰仅提示，注入通道同拒）、话术带过期边（只作废纯状态档）、停止球零改动故三台真机急停坐标证据仍有效、重叠区自然消解；同构建 ui-smoke **41 断言 × 2 轮 0 红**、device-smoke **13/13**、JVM **211**（app 180/contracts 19/compiler 12）、ci-local PASS（证据 §7、ORDER §8）。测试通道新律入档：**dump 会打断在跑任务**（执行期禁 dump，改截图） | 三档模型（Gemini/GPT/Haiku）待老板 Key+回禀；步骤列表编辑页**已成型**（录→编→放三面 + 三修 + 执行中禁编辑门禁全部落地，真实手指/IME 路径仍零设备实证）| 军令 `orders/ANYTOUCH-S2-ondevice-DRAFT.md` L0 + `orders/ANYTOUCH-S2-ORDER.md`；验收清单+设备覆盖面+冒烟输出 `evidence/S2/`；门票裁决 `RULINGS-20260922.md` P0-1 |
-| S3 兜底 | 🔒 门票门禁 | T3（需真机，含 MediaProjection 判官项） | 同上 P0-3 |
+| S3 兜底/BYOK | 🟡 **老板 09-23 开工令放行**（BYOK 创建期编译链接进 APP）：切片 A 已落——新建纯 JVM 模块 `:byok`，`:tools:compiler` 的 `DslCompiler`/12 项校验/12 例测试**原样搬入**（判据主体零改动，一份编译器两处用）；红线 A/C 字面不动，新增 **F/G/H** 三条机器锁并**逐条反面验证能 FAIL**；ci-local 八线全清 PASS、JVM 211（四模块分列，搬迁不计新增） | 切片 B（设备侧 HttpURLConnection 传输 + Keystore Key 面）→ C（屏上下文最小化）→ D（APP 接线）→ E（飞行模式对拍 + 真机真 Key 端到端）；MediaProjection 判官项仍按原口径挂账 | 军令 `orders/ANYTOUCH-S3-byok-ORDER.md`（含老板四裁原文）、执行账 `evidence/S3/slice-a-byok-module.md` |
+
 | S4 上线 | 🔒 门票门禁 | T-US + 模板合规预检 | 同上 P0-4 |
 | W 轨 Windows 先行验证 | 🔒 老板拍板人力 | — | RULINGS P1-2 |
 
@@ -66,6 +74,16 @@ V-3 口径收窄经裁 1 **转为已裁**。复验同构建：ui-smoke 34→**41
    JVM **211**、ci-local PASS（`evidence/S2/recui-step-edit.md` §7）。
 9. **下一批已排（老板指定）**：平台层 JVM **94 例缺口**补案（S2-R2）——先盘 `OverlayUi`/`AndroidCaptureBridge`/服务接线/注入解码
    里可下沉成 android-free 纯函数的判据，再补真用例，**不凑数**；凑数不如不补。
+10. **94 例缺口的盘点结论需要老板重裁（照报不选有利口径）**：09-23 全量审计（9 个平台文件 + 18 个既有测试类逐条读）结果——
+    **真实可锁判据只有约 27–30 例，94 例补不满**。可补的最高价值项：执行器 CLICK/SCROLL 的"假边重派一次封顶"（现仅 TYPE_TEXT 有锁，
+    且既有 `performAction返回false以EXECUTOR_ERROR中止` 一例**根本没断言设备被调用几次**，改坏成"永不重派"或"无限重派"都不会红）、
+    `awaitLanded` 扫树自证的**反向半边**（丢掉 EditText 类型过滤后，搜索结果里恰好含该词的 TextView 会被判"字已落进"=假绿）、
+    采集层 `descendantClue`/`pinEventClue` 两处判据（需小改成走自家 `UiNode`）。补不满的原因也是结论：
+    `OverlayUi` 每一行都是窗口系统调用、`AnytouchAccessibilityService`/`MainActivity` 的分支只读 Intent/AccessibilityEvent、
+    `SafetyQueueRunner` **在现产品里根本没有调用方**（STAGE-12 遗留，实际执行器是 NodeTaskRunner）——给它加用例=给不跑的代码上锁。
+    **另抓出 2 例恒真断言**（`RecorderSessionTest` 里"构造参数等于自身"与"常量>0"），属 STAGE-22 已验收交付，登记不追溯改它、只待补真判据。
+    请裁：(a) 把 S2-R2 的 270 阈值改成"按真实判据数记账、不设阈值"；或 (b) 明确授权把采集层两处 android 判据做接口化改造以换可测性（工作量另计）。
+
 
 
 ## 纪律数据

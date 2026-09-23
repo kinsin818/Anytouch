@@ -1,5 +1,8 @@
 package com.anytouch.tools.compiler
 
+import com.anytouch.byok.CompileResult
+import com.anytouch.byok.DslCompiler
+
 /**
  * T2 探针入口（host 侧手动工具，不进 CI 网络路径）：
  *   ANYTOUCH_NVIDIA_KEY=... ./gradlew :tools:compiler:run --args="--model z-ai/glm-5.3 --intent 点击 Connected devices 然后进入蓝牙"

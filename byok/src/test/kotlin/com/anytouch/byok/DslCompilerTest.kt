@@ -1,4 +1,4 @@
-package com.anytouch.tools.compiler
+package com.anytouch.byok
 
 import com.anytouch.contracts.ContractJson
 import kotlinx.serialization.builtins.ListSerializer
