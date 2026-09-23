@@ -144,11 +144,19 @@ class AnytouchAccessibilityService : AccessibilityService() {
      */
     private fun watchRecordBall(ui: OverlayUi) {
         scope.launch {
-            combine(RecorderStore.activeSession, AppState.running) { session, running ->
-                (session?.state == SessionState.RECORDING) to running
-            }.collect { (recording, running) ->
+            combine(
+                RecorderStore.activeSession,
+                AppState.running,
+                AppState.serviceConnected,
+            ) { session, running, connected ->
+                Triple(session?.state == SessionState.RECORDING, running, connected)
+            }.collect { (recording, running, _) ->
                 if (running) ui.hideRecordBall()
                 else RecorderStore.recordBallAttached = ui.showRecordBall(recording) { toggleRecording(ui) }
+                // V-2（老板 09-23 裁决）：状态跃迁后立刻复核陈旧拒因——本轮 collect 覆盖
+                // 会话态/执行态/连接态三股流，正是"执行中不能开录"这类话术失去依据的那些时刻。
+                // 判据在纯函数里（JVM 锁），此处只负责"什么时候量一次"。
+                RecorderStore.revalidateStartRejection()
             }
         }
     }

@@ -47,3 +47,18 @@ fun RecordGate.userCopy(): String? = when (this) {
         "录制球无法显示：录制全靠这颗球开录与急停，看不见球就不允许开始。请重新开启无障碍服务后重试" +
             "（小米/红米机型被强行停止后绑定会被清掉，见装机引导 G2）。"
 }
+
+/**
+ * 拒因话术的过期边（老板 09-23 裁决 V-2）：门禁已转为 READY 时，上一次被拒留下的红字必须作废。
+ *
+ * 为什么需要这条：`startRejection` 原本只有"下一次开录（成功或失败）"一条覆盖边。设备实证过
+ * 空闲态屏上仍挂着"任务执行中不能开录"（`evidence/S2/img/recui-probe-A-idle-stale-red.png`），
+ * 而同刻注入 `record_start` 被门禁放行——**门禁说可以、话术说不行，假红**，与"假红与假绿同罪"同族。
+ * 规则写成纯函数：判据要能在 JVM 里锁住，且状态跃迁的接线（服务侧 collect）不该自带第二份判据。
+ *
+ * @param current 屏上正在显示的开录拒因（null=无）。
+ * @param gate 以当前三项真值重算出的门禁。
+ * @return 过期后的话术：READY 即 null（作废），否则原样保留（仍在拒，不许悄悄抹掉）。
+ */
+fun startRejectionAfterStateChange(current: String?, gate: RecordGate): String? =
+    if (current != null && gate == RecordGate.READY) null else current

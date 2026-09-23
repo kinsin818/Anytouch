@@ -56,6 +56,9 @@ class OverlayUi(private val context: Context) {
             isClickable = true
             setOnClickListener { onStop() }
             contentDescription = "anytouch_stop_ball"
+            // V-1（老板裁决 09-23：半透明别压字）。位置有意不动：device-smoke 的 BALL_TAP
+            // 与 K40/K80 两台真机实证坐标沿用同一停点，挪球=作废三台设备的急停证据。
+            alpha = 0.7f
         }
         val params = overlayParams(notFocusable = true).apply {
             gravity = Gravity.END or Gravity.CENTER_VERTICAL
@@ -73,9 +76,10 @@ class OverlayUi(private val context: Context) {
     }
 
     /**
-     * 录制开关球（军令 S2-ONDEVICE L0：悬浮球开录）。与停止球分居屏幕两侧、互不遮挡：
+     * 录制开关球（军令 S2-ONDEVICE L0：悬浮球开录）。与停止球同在右缘，但**永不同屏**：
      * 停止球只在执行期出现，录制球只在空闲/录制期出现（执行期不得开录——录进去的是执行器自己的手，
-     * 见 service 侧 hideRecordBall 调用点）。
+     * 见 service 侧 hideRecordBall 调用点）。同缘不同屏是 V-1 修复后的有意布局：
+     * 两球若同屏会互相遮挡，而"看不见球=没有急停入口"这条 L1 判据不允许任何一颗球被另一颗盖住。
      *
      * @return 挂上与否。**军令 L1（老板派单 09-23 生效版）：挂不上球=拒绝开始录制**——
      * 调用侧把返回值写进 `RecorderStore.recordBallAttached`，开录门禁据此拒，本函数不再自行降级。
@@ -92,9 +96,13 @@ class OverlayUi(private val context: Context) {
             contentDescription = "anytouch_record_ball"
         }
         styleRecordBall(fresh, recording)
+        // V-1（老板 09-23 裁决）：原挂左缘正好压住步骤名输入框首字与拒因红字尾行（截图实证）。
+        // 右缘 + 半透明：文字从左往右读，行尾被盖的代价小于行首被盖；alpha 让底下内容仍可辨。
+        // 停止球位置**不动**——device-smoke 的 BALL_TAP 与 K40/K80 两台真机实证坐标沿用同一停点。
+        fresh.alpha = 0.7f
         val params = overlayParams(notFocusable = true).apply {
-            gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            x = 24
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            x = 12
         }
         return runCatching { windowManager.addView(fresh, params) }
             .onSuccess { recordBall = fresh }

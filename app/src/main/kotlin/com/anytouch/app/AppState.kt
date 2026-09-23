@@ -31,6 +31,12 @@ object AppState {
     /** 最近一次执行的 RunReport JSON（人读 + 归因数据源）。 */
     val lastRunReport = MutableStateFlow<String?>(null)
 
+    /**
+     * 最近一次被拒的派发话术（准入见 [taskAdmission]）：与开录/编辑拒因同律——**必须显示**，
+     * 静默吞掉一次"点了没反应"就是黑洞。新一次派发（成功或失败）即覆盖。
+     */
+    val taskRejection = MutableStateFlow<String?>(null)
+
     fun submit(json: String) {
         taskRequests.value = TaskRequest(System.nanoTime(), json)
     }

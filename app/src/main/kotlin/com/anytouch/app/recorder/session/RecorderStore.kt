@@ -4,6 +4,7 @@ import android.util.Log
 import com.anytouch.app.AppState
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.recordGateOf
+import com.anytouch.app.platform.startRejectionAfterStateChange
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.RecEvent
 import com.anytouch.app.recorder.RecorderCompiler
@@ -51,6 +52,22 @@ object RecorderStore {
 
     /** UI 消费的一次性建议：编译完成时写入，用户手改任务框即清空（不夺用户已敲的字）。 */
     val suggestedTaskJson = MutableStateFlow<String?>(null)
+
+    /**
+     * 机器最近一次"发布进任务框"的建议原文（V-3 准入的唯一判据输入）。
+     * 与 [suggestedTaskJson] 的区别是它**不被 UI 消费掉**：建议进框即作废成一次性信号，
+     * 而"这句话是机器说的、不是用户敲的"这一事实必须活到执行那一刻，否则孤儿建议无从认定。
+     * 只在发布点写（`publishSuggestion`），步序账作废（start/空编译）不清它——那正是被拦的场景。
+     */
+    @Volatile
+    var lastSuggestedJson: String? = null
+        private set
+
+    /** 发布建议进任务框：一次性信号 + 机器来源事实，两处必须同写（漏一处=准入判据失明）。 */
+    private fun publishSuggestion(json: String) {
+        suggestedTaskJson.value = json
+        lastSuggestedJson = json
+    }
 
     /**
      * 录制目标包：主窗输入框写入，悬浮球开录取此值。
@@ -107,7 +124,7 @@ object RecorderStore {
             // 删到清零=无步骤可放；空任务进建议流会被当"成品"（与 stopAndCompile 同一条禁律）
             Log.w(TAG, "S2SMOKE step edit ok=${edit.opName()} 步序账清零，不写回放建议（无步骤可放）")
         } else {
-            suggestedTaskJson.value = suggestion
+            publishSuggestion(suggestion)
             Log.i(
                 TAG,
                 "S2SMOKE step edit ok=${edit.opName()} index=${edit.index} " +
@@ -120,6 +137,27 @@ object RecorderStore {
             Log.i(TAG, "S2SMOKE-TASK $suggestion")
         }
         return true
+    }
+
+    /**
+     * 状态跃迁后复核开录拒因（V-2 的接线端，判据在纯函数 [startRejectionAfterStateChange]）：
+     * 服务侧 `watchRecordBall` 在 会话态/执行态/连接态 任一变化后调用一次。
+     * 只在"门禁此刻确实判 READY"时作废红字；仍判拒则原样保留——不许把还有效的话术悄悄抹掉。
+     * @return true=本次复核作废了一条陈旧话术。
+     */
+    fun revalidateStartRejection(): Boolean {
+        val current = startRejection.value
+        val gate = recordGateOf(
+            serviceConnected = AppState.serviceConnected.value,
+            running = AppState.running.value,
+            ballAttached = recordBallAttached,
+        )
+        startRejection.value = startRejectionAfterStateChange(current, gate)
+        if (current != null && startRejection.value == null) {
+            Log.i(TAG, "S2SMOKE record rejection expired gate_now=$gate detail=状态已变，陈旧拒因作废（$current）")
+            return true
+        }
+        return false
     }
 
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {
@@ -307,7 +345,7 @@ object RecorderStore {
         } else {
             compiledActions.value = output.actions
             editRejection.value = null
-            suggestedTaskJson.value = json
+            publishSuggestion(json)
             // 测试通道取件口：脚本据此把"录出来的步骤"回注执行，验证录→编→放闭环
             Log.i(TAG, "S2SMOKE-TASK $json")
         }

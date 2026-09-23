@@ -12,6 +12,9 @@ set -u
 ADB="adb"
 [ -n "${ANDROID_SERIAL:-}" ] && ADB="adb -s ${ANDROID_SERIAL}"
 
+# 词表（真机中文 ROM 用环境变量覆盖，与 device-smoke 同一口径）
+TXT_CONNECTED="${TXT_CONNECTED:-Connected devices}"
+
 fail=0
 RED='\033[0;31m'; GRN='\033[0;32m'; NCT='\033[0m'
 pass() { printf "${GRN}PASS${NCT} %s\n" "$1"; }
@@ -211,6 +214,98 @@ if [ "${before:-0}" = "0" ] && [ "${after:-0}" -ge "1" ]; then
     pass "U9b 拒因计数 0→$after（本轮新造，非旧痕复用）"
 else
     bad "U9b 拒因计数异常 :: before=$before after=$after"
+fi
+
+# ---------- U10 V-3 准入：孤儿建议必拒（账=0 步，框内还挂着机器上一次发布的建议） ----------
+# 走到这里屏上正好是 V-3 的实证形态：U8 把账删到清零，而 U8 中途发布的那条 1 步建议仍是框里那份。
+stale=$(latest_task)
+stale_steps=$(printf '%s' "$stale" | grep -ao '"type":"click"' | wc -l | tr -d ' ')
+if [ "$stale_steps" = "1" ]; then pass "U10a 前置：机器最后一条建议恰 1 步（账已 0 步=孤儿形态）"
+else bad "U10a 前置 :: 最后一条建议步数=$stale_steps（期望 1） :: $stale"; fi
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+inject "--es task_json '$stale'"
+assert_edit "U10b 孤儿建议被拒留痕" "submit refused gate=STALE_SUGGESTION"
+refused=$(count_line 'submit refused gate=STALE_SUGGESTION')
+execs=$(count_line 'S1SMOKE ok=')
+if [ "${refused:-0}" -ge 1 ] && [ "$execs" = "0" ]; then
+    pass "U10c 拒而未放：refused=$refused 且本轮零执行回执（账外步骤没被跑）"
+else
+    bad "U10c :: refused=$refused 执行回执=$execs（期望 ≥1 / 0）"
+    log "$(logs | grep -a -E 'S1SMOKE' | tail -3 | tr '\n' '~')"
+fi
+u10d=$(ui_has 'task_rejection')
+if [ "$u10d" = "1" ]; then pass "U10d 拒因上屏（错误必显示，不是静默吞掉一次点击）"; else bad "U10d 拒因未上屏 :: task_rejection 读数=$u10d"; fi
+
+# ---------- U11 准入的反面：用户手敲的 JSON 照常执行（不夺字，S1 主路径不许被误伤） ----------
+SAFE='"safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}'
+HAND="[{\"action_id\":\"u11\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE}]"
+stop_settings_ui
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
+sleep 8
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+inject "--es task_json '$HAND'"
+r11=$(wait_line "S1SMOKE ok=" 60)
+if printf '%s' "$r11" | grep -aq 'ok=1 total=1'; then
+    pass "U11a 账外手敲任务仍放行并跑成 :: $r11"
+else
+    bad "U11a :: 期望 [ok=1 total=1]，实际 [$r11]"
+    log "$(logs | grep -a 'S1SMOKE-DETAIL' | tail -2 | tr '\n' '~')"
+fi
+# dump 读数互控：同一对模式 U10d 读到 1、这里读到 0（放行后红字必须撤，读数器不能只会命中）
+# 必须先显式回自家前台：那一下点击发生在 Settings 窗口里，导航把 Settings 抬到了前面，
+# 直接 dump 读到的是别人的窗（首轮实测 自家窗=0——0 在这里不是"红字没了"，是"没在读自家窗"）。
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
+sleep 2
+u11b=$(ui_has 'run_task')
+u11c=$(ui_has 'task_rejection')
+if [ "$u11b" = "1" ] && [ "$u11c" = "0" ]; then
+    pass "U11b 放行后拒因撤下（读到自家窗=$u11b，红字=$u11c）"
+else
+    bad "U11b :: 自家窗=$u11b（期望 1，否则 0 是读错窗口的假绿） 红字=$u11c（期望 0）"
+fi
+
+# ---------- U12 V-2 过期边：执行中拒录话术，跑完必须自动作废（空闲态不许挂着"执行中不能开录"） ----------
+LONG="[{\"action_id\":\"u12a\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_ui_smoke__\"},$SAFE}]"
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '$LONG'" >/dev/null 2>&1
+sleep 3   # 落在 15s 定位轮询窗口内（device-smoke C10 同一配方）
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es record_start com.android.settings" >/dev/null 2>&1
+sleep 2
+assert_edit "U12a 执行中开录被拒（话术入 startRejection）" "record start refused gate=RUNNING"
+r12=$(wait_line "S1SMOKE ok=0 total=1" 60)
+if [ -n "$r12" ]; then pass "U12b 本轮执行结束（running 转假） :: $r12"; else bad "U12b :: 等不到执行结束回执"; fi
+expired=$(wait_line "record rejection expired" 20)
+if [ -n "$expired" ]; then pass "U12c 陈旧拒因自动作废 :: $expired"; else
+    bad "U12c :: 期望日志含 [record rejection expired]，实际无（红字仍挂在空闲态=V-2 复发）"
+    log "$(logs | grep -a -E 'record (start|rejection)' | tail -3 | tr '\n' '~')"
+fi
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
+sleep 2
+u12d=$(ui_has 'run_task')
+u12e=$(ui_has 'record_rejection')
+if [ "$u12d" = "1" ] && [ "$u12e" = "0" ]; then
+    pass "U12d 屏上红字确已消失（自家窗=$u12d 读数器可用，红字=$u12e）"
+else
+    bad "U12d :: 自家窗=$u12d（期望 1） 红字=$u12e（期望 0）"
+fi
+
+# ---------- U13 V-1 球位：录制球必须在右缘（左缘会压住步骤名框与拒因红字首字） ----------
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PY=$(command -v python3 || command -v python || true)
+if [ -z "$PY" ]; then
+    log "U13 跳过：无 python（球位像素判据需要 PIL）"
+else
+    MSYS_NO_PATHCONV=1 $ADB shell screencap -p /sdcard/.uiball.png >/dev/null 2>&1
+    MSYS_NO_PATHCONV=1 $ADB pull /sdcard/.uiball.png uismoke-ball.png >/dev/null 2>&1
+    MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.uiball.png >/dev/null 2>&1
+    ball=$("$PY" "$SCRIPT_DIR/ball_position.py" uismoke-ball.png 2>&1); ball_rc=$?
+    ratio=$(printf '%s' "$ball" | sed -n 's/.*BALL_X_RATIO=\([0-9.]*\).*/\1/p')
+    if [ "$ball_rc" -eq 0 ] && [ -n "$ratio" ] && awk -v r="$ratio" 'BEGIN{ exit !(r > 0.75) }'; then
+        pass "U13 录制球在右缘 :: $ball"
+    else
+        bad "U13 球位 :: $ball（期望中心横占比 >0.75，左缘旧值约 0.11）"
+    fi
+    rm -f uismoke-ball.png
 fi
 
 echo

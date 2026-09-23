@@ -51,4 +51,35 @@ class AccessibilityGateTest {
         assertEquals(true, copy.contains("请立即"))
         assertEquals(true, copy.contains("不能开始录制"))
     }
+
+    // ---- V-2（老板 09-23 裁决）：拒因的过期边 ----
+
+    @Test
+    fun `门禁转 READY 即作废陈旧拒因（空闲态不许再挂着执行中话术）`() {
+        val stale = RecordGate.RUNNING.userCopy()
+        assertNotNull(stale)
+        assertNull(startRejectionAfterStateChange(stale, RecordGate.READY))
+    }
+
+    @Test
+    fun `仍判拒时话术原样保留（不许把有效拒因悄悄抹掉）`() {
+        val copy = RecordGate.SERVICE_OFF.userCopy()
+        assertEquals(copy, startRejectionAfterStateChange(copy, RecordGate.RUNNING))
+        assertEquals(copy, startRejectionAfterStateChange(copy, RecordGate.SERVICE_OFF))
+        assertEquals(copy, startRejectionAfterStateChange(copy, RecordGate.BALL_UNAVAILABLE))
+    }
+
+    @Test
+    fun `无拒因时不凭空造话术`() {
+        assertNull(startRejectionAfterStateChange(null, RecordGate.READY))
+        assertNull(startRejectionAfterStateChange(null, RecordGate.RUNNING))
+    }
+
+    @Test
+    fun `设备实证过的假红形态：执行中转假且三项齐备，RUNNING 话术必须已作废`() {
+        // 复现 evidence/S2/raw/recui-probe-stale-red-20260923.log：红字挂着→注入开录→门禁判 READY
+        val gate = recordGateOf(serviceConnected = true, running = false, ballAttached = true)
+        assertEquals(RecordGate.READY, gate)
+        assertNull(startRejectionAfterStateChange(RecordGate.RUNNING.userCopy(), gate))
+    }
 }

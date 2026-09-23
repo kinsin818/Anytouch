@@ -2,6 +2,7 @@ package com.anytouch.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.StepEdit
+import com.anytouch.app.recorder.encodeActions
 import com.anytouch.app.recorder.session.RecorderStore
 import com.anytouch.app.ui.StepListEditor
 
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     val startRejection by RecorderStore.startRejection.collectAsState()
                     val steps by RecorderStore.compiledActions.collectAsState()
                     val editRejection by RecorderStore.editRejection.collectAsState()
+                    val taskRejection by AppState.taskRejection.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
                         suggestion?.let {
@@ -138,10 +141,19 @@ class MainActivity : ComponentActivity() {
                             minLines = 8,
                         )
                         Button(
-                            onClick = { AppState.submit(taskJson) },
+                            onClick = { submitTask(taskJson, "ui_button") },
                             enabled = connected,
                             modifier = Modifier.testTag("run_task"),
                         ) { Text("执行任务") }
+                        // V-3：被拦下的派发必须显形（与开录/编辑拒因同律：静默"点了没反应"=黑洞）
+                        taskRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("task_rejection"),
+                            )
+                        }
                         report?.let {
                             Text(
                                 it,
@@ -196,13 +208,42 @@ class MainActivity : ComponentActivity() {
             handled = true
         }
         intent.getStringExtra(EXTRA_TASK_JSON)?.let { json ->
-            AppState.submit(json)
+            submitTask(json, "adb_inject")
             handled = true
         }
         if (handled && !intent.getBooleanExtra(EXTRA_KEEP_FG, false)) moveTaskToBack(true)
     }
 
+    /**
+     * 派发唯一入口（"执行任务"按钮与 adb 注入共用，与录制/编辑面同一条纪律：**门禁落入口不落按钮**）。
+     * 判据住在纯函数 [taskAdmission]（JVM 锁得住），此处只按结果分流；拒放既上屏（`task_rejection`）
+     * 又留痕（`S1SMOKE submit refused`）——静默 return 等于把一次"点了没反应"藏进黑洞。
+     */
+    private fun submitTask(json: String, via: String) {
+        val ledger = RecorderStore.compiledActions.value
+        val verdict = taskAdmission(
+            boxJson = json,
+            ledgerJson = encodeActions(ledger),
+            lastSuggestion = RecorderStore.lastSuggestedJson,
+        )
+        if (verdict != TaskAdmission.ACCEPT) {
+            val copy = verdict.userCopy()
+            AppState.taskRejection.value = copy
+            Log.w(
+                TAG,
+                "S1SMOKE submit refused gate=$verdict via=$via ledger=${ledger.size} " +
+                    "machineSuggestion=${RecorderStore.lastSuggestedJson?.length} detail=$copy",
+            )
+            return
+        }
+        AppState.taskRejection.value = null
+        AppState.submit(json)
+    }
+
     companion object {
+        /** 与执行器/录制面同一 tag：冒烟脚本按 `-s AnytouchRun:*` 过滤，换 tag 即断言失明。 */
+        private const val TAG = "AnytouchRun"
+
         const val EXTRA_TASK_JSON = "task_json"
         const val EXTRA_KEEP_FG = "keep_fg"
         const val EXTRA_RECORD_START = "record_start"

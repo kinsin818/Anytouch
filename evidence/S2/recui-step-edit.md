@@ -95,4 +95,46 @@
 准备上报"改名输入框拉起 IME 键盘压住列表"——A/C/E 三张图里**均无键盘**（测试通道注入不经过输入框，键盘从未弹起）。该条不成立，撤回不入账；同时说明它反过来证明：**IME 路径至今零覆盖**（§4 第 2 条维持原判）。
 
 ### 取证纪律补条
-本次探针用 `logcat -d -v brief`（不带时间戳），导致"紧邻两行"无法证明"前后两行"，一条上一轮残留行差点被我算进本轮证据（已在 `raw/recui-probe-stale-red-20260923.log` 末尾如实标注为不采信）。**规则：探针类取证一律 `-v time`，并在起停各打一条标记行。**
+本次探针用 `logcat -d -v brief`（不带时间戳），导致"紧邻两行"无法证明"前后两行"，一条上一轮残留行差点被我算进本轮证据（已在 `raw/recui-probe-stale-red-20260923.log` 末尾如实标注为不采信）。**规则：探针类取证一律 `-v time`，并在起停各打一条标记行。**（老板裁决 4 追认：以后探针日志必须带时间戳。）
+
+## 6. 三修落码与最终构建复验（09-23，老板裁决 1/2/3 落地）
+
+裁决原文与落点对照：
+
+| 缺陷 | 裁决 | 落码位置（纯函数在门禁侧，UI/存储只按结果路由） | 新增锁 |
+|---|---|---|---|
+| ① 球压字 | "悬浮球移右缘+半透明，别压字" | `OverlayUi.showRecordBall`：`gravity=END\|CENTER_VERTICAL, x=12, alpha=0.7f` | U13 像素判据（`scripts/ball_position.py` 扫深绿球中心横占比 >0.75，匹配像素 <40 直接 exit 2 响亮失败） |
+| ② 空闲态假红 | "running 转假/会话结束时清空拒因状态，加 JVM 锁" | 纯函数 `AccessibilityGate.startRejectionAfterStateChange(current, gate)`；`RecorderStore.revalidateStartRejection()` 由 `watchRecordBall` 三流合流处调用 | `AccessibilityGateTest` +4 例，含"设备实证过的假红形态"按探针时序回放 |
+| ③ 两套真值 | "同意你推荐的方案——执行前比对步序账和任务框 JSON，不一致就拒放提示用户" | 纯函数 `TaskAdmission.taskAdmission(boxJson, ledgerJson, lastSuggestion)`；`MainActivity.submitTask(json, via)` 单一漏斗（按钮与 adb 注入同路）；`AppState.taskRejection` 上屏红字 | `TaskAdmissionTest` 11 例（放行面 4 / 拒放面 3 / 序列化 1 / 话术 3）+ U10/U11 设备面 |
+
+### 6.1 ③ 的口径收窄（与裁决字面不同，必须显式上报）
+字面判据"框内 JSON ≠ 当前步序账 ⇒ 拒放"会把两条正当路径一起打死：
+- S1 主路径是**用户手敲 JSON 直接执行**，此刻步序账常为 0（录→编→放之外的老路径，device-smoke 全部 13 项与 C 系列都以此注入）；
+- 于是"账=0、框=1 步"既可能是孤儿建议（该拒），也可能是用户手敲（该放）——**单靠文本比对无法区分**。
+
+收窄后的判据：只有当"框内文本 == 机器上一次发布的建议"且"该建议 ≠ 当前账"时才拒（来源判定，不是文本相等判定）。为此在 `RecorderStore` 区分两个字段：`suggestedTaskJson`（一次性、被 UI 消费后置空）与 `lastSuggestedJson`（机器发布过什么的事实，不消费）。反面锁：U11a 手敲 JSON 必须跑成 `ok=1 total=1`、U11b 放行后红字必撤。裁决原意"不夺用户输入、不常驻标注挡 UI"两条均照办；偏差仅在"什么算不一致"。
+
+### 6.2 最终构建复验（停球补半透明后重装，全部同构建）
+构建：`:app:installDebug` 后 emulator-5554（API 35）。停球只加 `alpha=0.7f`、**位置有意不动**（`device-smoke` 的 `BALL_TAP=1002 1272` 与 K40/K80 两台真机实证坐标沿用同一停点，挪球=作废三台设备的急停证据）。
+
+- `scripts/ui-smoke.sh`：34 项 × 2 轮，两轮各 **34 PASS / 0 FAIL**（`raw/recui-uismoke-final-20260923-1623.log`、`-1628.log`；前一轮 23 项，本轮新增 U10a-d / U11a-b / U12a-d / U13 共 11 项）
+- `scripts/device-smoke.sh`：**13/13 ALL PASS**（`raw/recui-devicesmoke-final-20260923-1626.log`）——C6/C7 在停球半透明后仍按原坐标点球生效，证明 alpha 未伤及急停
+- `scripts/ci-local.sh`：见 §6.4 结论行
+- V-2 过期延迟实测：`08:33:12.784` 执行结束（`ok=0 total=1 stopped=true`）→ `08:33:12.799` `record rejection expired`，**15 ms**（另一轮 16 ms）
+- V-3 拒放留痕原文：`S1SMOKE submit refused gate=STALE_SUGGESTION via=adb_inject ledger=0 machineSuggestion=179`
+
+### 6.3 截图（final 为本批交付口径，build1 保留不删）
+| 图 | 文件 | 看到什么 |
+|---|---|---|
+| V-1 | `img/v1-ball-right-steplist.png` | 录制球「●开录」在右缘、半透明；三行步骤名框 `rec-0001/0002/0003` 全字可读，无一字被压 |
+| V-2a | `img/v2a-running-legit-red.png` | 执行中 + 红字"任务执行中不能开录…"（**合法红**：门禁真拒）；停球半透明压在 `#0` 行"改名"右缘 |
+| V-2b | `img/v2b-idle-red-expired.png` | 同一次执行结束后：状态"空闲"、红字已自动作废、球回右缘——§5 图 C 的假红形态不复现 |
+| V-3 | `img/v3-orphan-refused-on-screen.png` | 账=0（"步序账为空"）而框内仍挂 `rec-0003` 单步；点执行 → 红字完整上屏，任务未派发 |
+
+`-build1` 四张是同批前一个构建（停球未加 alpha）的取证，按"证据只追加不覆盖"留在原位；`img/v3-shot1-miscounted-removes-legit-run.png` 是我自己数错删步数（账=1 恰等于最后建议，属合法放行）拍到的一张误图，改名留档不删。
+
+### 6.4 遗留与边界（未修，待裁/待派）
+1. **停球与"改名"按钮右缘仍有重叠**：alpha 只解决"看得见字"，不解决"点得到按钮"——执行期间该行的改名本就无意义（执行中禁编辑门禁尚未落地，见 STATUS 待办），故登记为待裁：要么执行期把球位上移出列表区（作废三台设备坐标证据），要么落地"执行中禁编辑"门禁后此项自然消解。**未擅自挪球。**
+2. `scripts/ci-local.sh`：**PASS**，红线 A–E 全清（`raw/ci-local-final-20260923-1635.log`）。JVM 总数按"单变体（app=debug）逐模块 `<testsuite tests>` 求和 + `--rerun`"口径：**207 = app 176 / contracts 19 / compiler 12，failures=0**。注记一条口径坑：`app/build/test-results/` 下同时躺着 09-22 的 `testReleaseUnitTest` 残留 119 例，整目录 glob 会读出 295——**只认 `testDebugUnitTest/` 那 16 个文件**。
+3. **IME 路径仍零覆盖**：本批四张图里键盘从未弹起（注入通道不经过输入框），§5 撤回的那条"缺陷"反过来仍是这条边界。真实手指操作（拖球、点列表按钮、键盘改名）全部未验。
+4. JVM 总数与红线口径见 METRICS 本批条目；`94 例平台层缺口`（S2-R2）与雷 15–18 真机复验（S2-R4）仍延后。
