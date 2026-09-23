@@ -8,6 +8,13 @@ import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.RecEvent
 import com.anytouch.app.recorder.RecorderCompiler
 import com.anytouch.app.recorder.RecorderOutput
+import com.anytouch.app.recorder.StepEdit
+import com.anytouch.app.recorder.StepEditGate
+import com.anytouch.app.recorder.applyStepEdit
+import com.anytouch.app.recorder.opName
+import com.anytouch.app.recorder.stepEditGateOf
+import com.anytouch.app.recorder.suggestionAfterEdit
+import com.anytouch.app.recorder.userCopy
 import com.anytouch.app.recorder.WindowChanged
 import com.anytouch.app.recorder.capture.CaptureAdapter
 import com.anytouch.app.recorder.capture.CaptureEvent
@@ -65,7 +72,55 @@ object RecorderStore {
     /** 最近一次被拒的开录话术：UI 必须显示（L2-③"错误必显示"），新一次开录（成功或失败）即覆盖。 */
     val startRejection = MutableStateFlow<String?>(null)
 
+    /** 最近一次被拒的步骤编辑话术：同上，禁静默禁用；新一次编辑（成功或失败）即覆盖。 */
+    val editRejection = MutableStateFlow<String?>(null)
+
     val isRecording: Boolean get() = session?.state == SessionState.RECORDING
+
+    /**
+     * 步骤编辑唯一写口（军令 L2-9 调用侧）：UI 行内按钮与 adb 注入通道共用此入口。
+     * 门禁先于冻结原语（[stepEditGateOf]）——原语越界即 `require` 抛异常，崩在 UI 线程=无痕丢失；
+     * 每条边（成功/被拒）都落 S2SMOKE 日志，编辑面不许有静默。
+     * 编辑成功后重发任务 JSON 进建议流：步序账与回放任务框之间只允许一条流水线，
+     * 不做"另存一份编辑后的 JSON"（两份真值=第二套账，雷18 同族）。
+     * @return true=编辑已生效；false=被门禁拒绝（话术见 [editRejection]，调用方须显示）。
+     */
+    fun applyEdit(edit: StepEdit): Boolean {
+        val actions = compiledActions.value
+        val gate = stepEditGateOf(actions, edit)
+        if (gate != StepEditGate.READY) {
+            val copy = gate.userCopy()
+            editRejection.value = copy
+            Log.w(
+                TAG,
+                "S2SMOKE step edit refused gate=$gate op=${edit.opName()} index=${edit.index} " +
+                    "ledger=${actions.size} detail=$copy",
+            )
+            return false
+        }
+        val edited = applyStepEdit(actions, edit)
+        compiledActions.value = edited
+        editRejection.value = null
+        // 空账不写建议这条判据住在纯函数 suggestionAfterEdit 里（JVM 锁得住），此处只按结果分流
+        val suggestion = suggestionAfterEdit(edited)
+        if (suggestion == null) {
+            // 删到清零=无步骤可放；空任务进建议流会被当"成品"（与 stopAndCompile 同一条禁律）
+            Log.w(TAG, "S2SMOKE step edit ok=${edit.opName()} 步序账清零，不写回放建议（无步骤可放）")
+        } else {
+            suggestedTaskJson.value = suggestion
+            Log.i(
+                TAG,
+                "S2SMOKE step edit ok=${edit.opName()} index=${edit.index} " +
+                    "before=${actions.size} after=${edited.size}",
+            )
+            // 编辑后的步序逐条重打：账目要能对照"删之前那一条"，不能只报个总数
+            edited.forEachIndexed { i, action ->
+                Log.i(TAG, "S2SMOKE-STEP index=$i type=${action.type} value=${action.value}")
+            }
+            Log.i(TAG, "S2SMOKE-TASK $suggestion")
+        }
+        return true
+    }
 
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {
         val gate = recordGateOf(
@@ -91,6 +146,17 @@ object RecorderStore {
                 boundSession = null
                 boundAdapter = null
                 foldedAway.clear()
+                // 旧步序账随新录制作废，但这条作废边必须留痕（"上一步还在列表里"与"列表已清零"
+                // 之间不许有静默窗口）。任务框里的旧 JSON 是用户自己的文本，不夺字、也不当作步序账。
+                val stale = compiledActions.value
+                if (stale.isNotEmpty()) {
+                    Log.i(
+                        TAG,
+                        "S2SMOKE record start 作废旧步序账 steps=${stale.size}" +
+                            "（任务框文本不动，需保留请自行另存）",
+                    )
+                }
+                editRejection.value = null
                 compiledActions.value = emptyList()
                 activeSession.value = fresh
                 // 开窗基线：窗态事件只在"换窗"瞬间下发，直接开始录制时会话内将无任何窗口态，
@@ -233,9 +299,14 @@ object RecorderStore {
             Log.i(TAG, "S2SMOKE-STEP index=$i type=${action.type} value=${action.value}")
         }
         if (output.actions.isEmpty()) {
-            Log.w(TAG, "S2SMOKE compiled EMPTY task, 不写回放建议（丢弃归因见 DETAIL）")
+            // 步序账**照实清零**：编辑页若还挂着上一次的步骤，用户会在"看不见的产物"上删改（第二套账）。
+            // 只是不把空任务写成回放建议——那才是假绿形态。
+            compiledActions.value = emptyList()
+            editRejection.value = null
+            Log.w(TAG, "S2SMOKE compiled EMPTY task, 步序账清零、不写回放建议（丢弃归因见 DETAIL）")
         } else {
             compiledActions.value = output.actions
+            editRejection.value = null
             suggestedTaskJson.value = json
             // 测试通道取件口：脚本据此把"录出来的步骤"回注执行，验证录→编→放闭环
             Log.i(TAG, "S2SMOKE-TASK $json")

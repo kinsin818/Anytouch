@@ -32,7 +32,9 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.userCopy
+import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.ui.StepListEditor
 
 /**
  * 任务注入窗 + 录制控制窗（S2-ONDEVICE 主窗窄口）：
@@ -58,6 +60,8 @@ class MainActivity : ComponentActivity() {
                     val recording by RecorderStore.activeSession.collectAsState()
                     val suggestion by RecorderStore.suggestedTaskJson.collectAsState()
                     val startRejection by RecorderStore.startRejection.collectAsState()
+                    val steps by RecorderStore.compiledActions.collectAsState()
+                    val editRejection by RecorderStore.editRejection.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
                         suggestion?.let {
@@ -113,6 +117,20 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.testTag("record_rejection"),
                             )
                         }
+                        StepListEditor(
+                            actions = steps,
+                            onEdit = RecorderStore::applyEdit,
+                            modifier = Modifier.fillMaxWidth().testTag("step_list"),
+                        )
+                        // 编辑被拒同样必现（与开录拒绝同律：置灰/无回执=黑洞，用户要知道"没删掉"为什么）
+                        editRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("step_edit_rejection"),
+                            )
+                        }
                         OutlinedTextField(
                             value = taskJson,
                             onValueChange = { taskJson = it },
@@ -154,6 +172,24 @@ class MainActivity : ComponentActivity() {
             RecorderStore.stopAndCompile()
             handled = true
         }
+        // 步骤编辑注入通道（测试用，与 UI 按钮同走 RecorderStore.applyEdit 唯一写口）：
+        // 门禁判据不因通道而变——被拒时同样出 step edit refused 日志，脚本据此断言"注入不等于放行"。
+        intent.getStringExtra(EXTRA_STEP_REMOVE)?.toIntOrNull()?.let { index ->
+            RecorderStore.applyEdit(StepEdit.Remove(index))
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_STEP_RENAME)?.toIntOrNull()?.let { index ->
+            RecorderStore.applyEdit(
+                StepEdit.Rename(index, intent.getStringExtra(EXTRA_STEP_RENAME_TO).orEmpty()),
+            )
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_STEP_MOVE)?.toIntOrNull()?.let { from ->
+            val to = intent.getStringExtra(EXTRA_STEP_MOVE_TO)?.toIntOrNull()
+            // 目标位缺失/非数字不静默当 0：交给门禁按越界拒（默认拒绝，不猜意图）
+            RecorderStore.applyEdit(StepEdit.Move(from, to ?: -1))
+            handled = true
+        }
         intent.getStringExtra(EXTRA_SESSION_JSON)?.takeIf { it.isNotBlank() }?.let { json ->
             // 预置会话注入（冒烟通道）：合法与否由 RecorderStore 留痕归因，此处不重复判
             RecorderStore.injectSerialized(json)
@@ -172,6 +208,11 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_RECORD_START = "record_start"
         const val EXTRA_RECORD_STOP = "record_stop"
         const val EXTRA_SESSION_JSON = "session_json"
+        const val EXTRA_STEP_REMOVE = "step_remove"
+        const val EXTRA_STEP_RENAME = "step_rename"
+        const val EXTRA_STEP_RENAME_TO = "step_rename_to"
+        const val EXTRA_STEP_MOVE = "step_move"
+        const val EXTRA_STEP_MOVE_TO = "step_move_to"
 
         /** 冒烟任务：Connected devices → Connection preferences → Bluetooth（模拟器实测可三级钻取；真机口径属 T3）。门禁显式放行。 */
         const val SAMPLE_TASK =
