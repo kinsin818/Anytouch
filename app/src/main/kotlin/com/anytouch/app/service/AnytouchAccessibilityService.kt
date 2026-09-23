@@ -157,6 +157,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 // 会话态/执行态/连接态三股流，正是"执行中不能开录"这类话术失去依据的那些时刻。
                 // 判据在纯函数里（JVM 锁），此处只负责"什么时候量一次"。
                 RecorderStore.revalidateStartRejection()
+                // 编辑面同律：执行中禁编辑的 RUNNING 话术也是纯状态档，跑完必须一起作废。
+                RecorderStore.revalidateEditRejection()
             }
         }
     }

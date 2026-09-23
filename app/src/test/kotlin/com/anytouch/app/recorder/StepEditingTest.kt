@@ -87,6 +87,56 @@ class StepEditingTest {
         assertEquals(StepEditGate.OUT_OF_RANGE, stepEditGateOf(steps(1), StepEdit.Rename(3, "")))
     }
 
+    // ---------- 执行中禁编辑（老板 09-23 裁决：不动停止球位置，重叠区因执行期不让编辑自然消解） ----------
+    @Test
+    fun `执行中一律拒为 RUNNING 且排在其余三档之前`() {
+        val s = steps()
+        // 四份本来会放行/会各自归因的请求，在执行中统统只得到一个答案
+        listOf(
+            s to StepEdit.Remove(0),
+            emptyList<Action>() to StepEdit.Remove(0),
+            s to StepEdit.Remove(99),
+            s to StepEdit.Rename(0, ""),
+        ).forEach { (actions, edit) ->
+            assertEquals(StepEditGate.RUNNING, stepEditGateOf(actions, edit, running = true), "$edit 执行中不得放行")
+        }
+    }
+
+    @Test
+    fun `非执行中三参判定与两参逐档同果（禁编辑不得顺手改坏旧判据）`() {
+        val s = steps(2)
+        listOf(
+            s to StepEdit.Remove(0),
+            emptyList<Action>() to StepEdit.Remove(0),
+            s to StepEdit.Move(0, 9),
+            s to StepEdit.Rename(0, " "),
+        ).forEach { (actions, edit) ->
+            assertEquals(
+                stepEditGateOf(actions, edit),
+                stepEditGateOf(actions, edit, running = false),
+                "running=false 必须与两参判定一字不差（同一判据，不许两份账）",
+            )
+        }
+    }
+
+    @Test
+    fun `跑完即可编 同一请求由 RUNNING 转 READY`() {
+        val s = steps()
+        val edit = StepEdit.Remove(0)
+        assertEquals(StepEditGate.RUNNING, stepEditGateOf(s, edit, running = true))
+        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false))
+    }
+
+    @Test
+    fun `过期边只作废纯状态档 请求档不得被状态跃迁顺手抹掉`() {
+        assertNull(editRejectionAfterStateChange(StepEditGate.RUNNING, running = false), "执行结束还挂着 RUNNING=假红")
+        assertEquals(StepEditGate.RUNNING, editRejectionAfterStateChange(StepEditGate.RUNNING, running = true))
+        listOf(StepEditGate.EMPTY_LEDGER, StepEditGate.OUT_OF_RANGE, StepEditGate.BLANK_NAME).forEach {
+            assertEquals(it, editRejectionAfterStateChange(it, running = false), "$it 绑在那次请求上，不该随状态消失")
+        }
+        assertNull(editRejectionAfterStateChange(null, running = false), "无拒因时不得凭空造一条")
+    }
+
     // ---------- 门禁与原语严格对齐 ----------
     @Test
     fun `非 READY 判据下冻结原语必抛 证明门禁一步不漏`() {
@@ -124,14 +174,19 @@ class StepEditingTest {
 
     // ---------- 话术 ----------
     @Test
-    fun `READY 无话术 三档拒因各自有话术且互不雷同`() {
+    fun `READY 无话术 四档拒因各自有话术且互不雷同`() {
         assertNull(StepEditGate.READY.userCopy())
-        val copies = listOf(StepEditGate.EMPTY_LEDGER, StepEditGate.OUT_OF_RANGE, StepEditGate.BLANK_NAME)
-            .map { assertNotNull(it.userCopy(), "$it 必须给用户话术（L2-③ 禁静默禁用）") }
-        assertEquals(3, copies.distinct().size, "三档拒因话术雷同=用户无从知道该改哪一条")
-        assertTrue(copies[0].contains("录制"), "空账话术须指向'先录制编译'：${copies[0]}")
-        assertTrue(copies[1].contains("刷新"), "越界话术须提示看当前列表：${copies[1]}")
-        assertTrue(copies[2].contains("不能为空"), "空名话术须说明名不能空：${copies[2]}")
+        val copies = listOf(
+            StepEditGate.RUNNING,
+            StepEditGate.EMPTY_LEDGER,
+            StepEditGate.OUT_OF_RANGE,
+            StepEditGate.BLANK_NAME,
+        ).map { assertNotNull(it.userCopy(), "$it 必须给用户话术（L2-③ 禁静默禁用）") }
+        assertEquals(4, copies.distinct().size, "四档拒因话术雷同=用户无从知道该改哪一条")
+        assertTrue(copies[0].contains("执行中") && copies[0].contains("停止"), "执行中话术须给出出口（等完/点球停止）：${copies[0]}")
+        assertTrue(copies[1].contains("录制"), "空账话术须指向'先录制编译'：${copies[1]}")
+        assertTrue(copies[2].contains("刷新"), "越界话术须提示看当前列表：${copies[2]}")
+        assertTrue(copies[3].contains("不能为空"), "空名话术须说明名不能空：${copies[3]}")
     }
 
     // ---------- 空账不发建议 ----------

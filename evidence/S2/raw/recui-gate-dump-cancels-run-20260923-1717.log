@@ -1,0 +1,26 @@
+09-23 09:01:11.913 I/AnytouchRun(24388): S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+09-23 09:01:11.914 I/AnytouchRun(24388): S1SMOKE-DETAIL code=NODE_NOT_FOUND msg=L1 NOT_ATTEMPTED 请求未给出 resource-id | L2 NO_MATCH text='__no_such_node_ui_smoke__'/desc='null' trim 全等零命中（非 contains） | L3 NOT_ATTEMPTED 请求未给出层级路径
+09-23 09:01:11.931 I/AnytouchRun(24388): S2SMOKE record rejection expired gate_now=READY detail=状态已变，陈旧拒因作废（任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。）
+09-23 09:01:21.645 I/AnytouchRun(24388): S2SMOKE record inject accepted events=4 target=com.android.settings
+09-23 09:01:23.948 I/AnytouchRun(24388): S2SMOKE compiled ok actions=3 drops=0 merged=0 events=4 target=com.android.settings
+09-23 09:01:23.948 I/AnytouchRun(24388): S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+09-23 09:01:23.948 I/AnytouchRun(24388): S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+09-23 09:01:23.948 I/AnytouchRun(24388): S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+09-23 09:01:23.948 I/AnytouchRun(24388): S2SMOKE-TASK [{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+09-23 09:01:29.605 W/AnytouchRun(24388): S2SMOKE step edit refused gate=RUNNING op=remove index=0 ledger=3 detail=任务执行中不能改步骤：账本一边跑一边改，回放依据就对不上执行现场了。请等本轮结束（或点悬浮球停止）后再删改。
+09-23 09:01:32.372 W/AnytouchRun(24388): S1SMOKE run cancelled by service lifecycle (Job was cancelled), 回执缺席以此行为准 receipt={"stopped":true,"results":[],"stop_command":{"command_id":"dropped-service_interrupted-26534455136996","type":"stop","source":"accessibility_service","payload":{"stop_code":"SERVICE_INTERRUPTED","stop_reason":"Job was cancelled","note":"任务未走正常执行收尾；results 缺失，不代表已执行/未执行内容"},"confirm":"stopped"}}
+09-23 09:01:32.390 I/AnytouchRun(24388): S2SMOKE edit rejection expired gate_was=RUNNING detail=状态已变，陈旧拒因作废
+09-23 09:05:54.847 I/AnytouchRun(24388): S2SMOKE record inject accepted events=4 target=com.android.settings
+09-23 09:05:57.106 I/AnytouchRun(24388): S2SMOKE compiled ok actions=3 drops=0 merged=0 events=4 target=com.android.settings
+09-23 09:05:57.106 I/AnytouchRun(24388): S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+09-23 09:05:57.107 I/AnytouchRun(24388): S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+
+# ---- 出处与不采信声明（后补，不改上面原始行）----
+# 来源：主窗实验日志 /tmp/exp14.log 第 4575-4590 行（`adb logcat -d -v time` 全量 dump 的一段），
+# 构建=本批禁编辑门禁版（PID 24388，emulator-5554 / API 35），设备时钟 09-23 09:01。
+# 这段是**被丢弃的那一版 U14 写法**的现场：当时在跑任务期间执行了 `uiautomator dump` 读屏上红字，
+# 于是 09:01:32.372 自家服务被 UiTestAutomationService 挤掉 → 在跑的 runTask 直接取消
+# （SERVICE_INTERRUPTED、results 为空），紧接 09:01:32.390 过期边把 RUNNING 话术作废——
+# 两条 dump 读数同时为 0，看起来像"红字从未出现过"，实为**测试通道自毁现场**。
+# 本段不作为交付证据使用；交付证据是修复后的 `recui-uismoke-gate-20260923-1717.log`（执行期零 dump）。
+# 留它的唯一目的：把"dump 会打断在跑任务"这条新律钉在磁盘上，防止后人再踩。

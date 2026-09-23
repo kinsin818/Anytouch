@@ -308,6 +308,65 @@ else
     rm -f uismoke-ball.png
 fi
 
+# ---------- U14 执行中禁编辑（老板 09-23 裁决：门禁落入口，注入通道绕过置灰按钮同样被拒） ----------
+# 前置：账上要有步骤（U8 已清零，这里重新编译一份 3 步），并让本轮执行有足够长的定位窗口。
+# 先清日志再判"本轮真的编出了 3 步"——不清的话 wait_line 会命中 U1a 那条旧痕，前置就成了假绿。
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+inject "--es session_json '$SESSION_JSON'"
+if [ -z "$(wait_line "S2SMOKE record inject accepted" 15)" ]; then
+    bad "U14 前置：预置会话未受理，后续不判"; echo "ui-smoke: 前置不满足，后续不判"; exit 2
+fi
+inject "--ez record_stop true"
+if [ -z "$(wait_line 'S2SMOKE compiled ok actions=3' 25)" ]; then
+    bad "U14 前置：步序账没重建出 3 步，后续不判"; echo "ui-smoke: 前置不满足，后续不判"; exit 2
+fi
+# 两步"必然找不到节点"的手敲任务：每步 15s 定位轮询 → 约 30s 执行窗口（走 U11a 同一条手敲放行路径）
+LONG2="[{\"action_id\":\"u14a\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_ui_smoke__\"},$SAFE},{\"action_id\":\"u14b\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_ui_smoke__\"},$SAFE}]"
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '$LONG2'" >/dev/null 2>&1
+sleep 3
+inject "--es step_remove 0"
+refused_line=$(wait_line "step edit refused gate=RUNNING" 12)
+if [ -n "$refused_line" ]; then pass "U14a 执行中删步被拒 gate=RUNNING :: $refused_line"; else
+    bad "U14a :: 期望日志含 [step edit refused gate=RUNNING]，实际无"
+fi
+during=$(count_line 'step edit ok=remove')
+if [ "${during:-0}" = "0" ]; then
+    pass "U14b 执行期零条编辑放行（置灰不是门禁，注入通道同判）"
+else
+    bad "U14b :: 本轮 ok=remove 计数=$during（期望 0）"
+fi
+# 账没被动，正证取拒因行自带的 ledger= 字段（本段起点清过日志，S2SMOKE-TASK 回读会是空串=假红）
+ledger_at_refusal=$(printf '%s' "$refused_line" | sed -n 's/.*ledger=\([0-9]*\).*/\1/p')
+if [ "$ledger_at_refusal" = "3" ]; then pass "U14c 门禁读到的是真账：拒因行 ledger=3（步骤没被删掉）"; else
+    bad "U14c :: 拒因行 ledger=[$ledger_at_refusal]（期望 3）"
+fi
+# 本段**故意不做 uiautomator dump**：设备实证 dump 注册 UiTestAutomationService 会挤掉自家服务、
+# 连带把在跑的 runTask 取消（SERVICE_INTERRUPTED），"读屏"本身就成了被测量者的扰动源。
+# 执行期屏上红字与置灰提示改由人眼图取证（evidence/S2/img/v4-running-edit-locked.png），
+# 屏上"消失"那一半仍可机器断言——放在 U15c，那时已无在跑任务，dump 无害。
+
+# ---------- U15 过期边：跑完 RUNNING 话术必须自动作废，且同一操作立刻恢复可编 ----------
+ended=$(wait_line "S1SMOKE ok=" 90)
+if [ -n "$ended" ]; then pass "U15a 本轮执行结束 :: $ended"; else bad "U15a :: 等不到执行结束回执"; fi
+expired=$(wait_line "edit rejection expired gate_was=RUNNING" 20)
+if [ -n "$expired" ]; then pass "U15b 陈旧禁编辑话术自动作废 :: $expired"; else
+    bad "U15b :: 期望日志含 [edit rejection expired gate_was=RUNNING]，实际无（空闲态挂着 RUNNING=V-2 在编辑面复发）"
+    log "$(logs | grep -a 'edit rejection' | tail -3 | tr '\n' '~')"
+fi
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
+sleep 2
+u15c=$(ui_has 'run_task')
+u15d=$(ui_has 'step_edit_rejection')
+u15e=$(ui_has 'step_edit_locked_hint')
+if [ "$u15c" = "1" ] && [ "$u15d" = "0" ] && [ "$u15e" = "0" ]; then
+    pass "U15c 屏上红字与置灰提示均已撤（自家窗=$u15c 读数器可用，红字=$u15d 提示=$u15e）"
+else
+    bad "U15c :: 自家窗=$u15c（期望 1） 红字=$u15d（期望 0） 提示=$u15e（期望 0）"
+fi
+inject "--es step_remove 0"
+assert_edit "U15d 跑完立刻可编：同一请求转放行" "step edit ok=remove index=0 before=3 after=2"
+
 echo
 if [ "$fail" -eq 0 ]; then echo "ui-smoke: ALL PASS"; else echo "ui-smoke: 有失败项"; fi
 exit "$fail"

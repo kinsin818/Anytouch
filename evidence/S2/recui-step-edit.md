@@ -134,7 +134,69 @@
 `-build1` 四张是同批前一个构建（停球未加 alpha）的取证，按"证据只追加不覆盖"留在原位；`img/v3-shot1-miscounted-removes-legit-run.png` 是我自己数错删步数（账=1 恰等于最后建议，属合法放行）拍到的一张误图，改名留档不删。
 
 ### 6.4 遗留与边界（未修，待裁/待派）
-1. **停球与"改名"按钮右缘仍有重叠**：alpha 只解决"看得见字"，不解决"点得到按钮"——执行期间该行的改名本就无意义（执行中禁编辑门禁尚未落地，见 STATUS 待办），故登记为待裁：要么执行期把球位上移出列表区（作废三台设备坐标证据），要么落地"执行中禁编辑"门禁后此项自然消解。**未擅自挪球。**
+1. **停球与"改名"按钮右缘仍有重叠**：alpha 只解决"看得见字"，不解决"点得到按钮"——执行期间该行的改名本就无意义（执行中禁编辑门禁尚未落地，见 STATUS 待办），故登记为待裁：要么执行期把球位上移出列表区（作废三台设备坐标证据），要么落地"执行中禁编辑"门禁后此项自然消解。**未擅自挪球。**（09-23 老板裁决 2 选后者，已落地并复验，见 §7；本条原文不改。）
+
 2. `scripts/ci-local.sh`：**PASS**，红线 A–E 全清（`raw/ci-local-final-20260923-1635.log`）。JVM 总数按"单变体（app=debug）逐模块 `<testsuite tests>` 求和 + `--rerun`"口径：**207 = app 176 / contracts 19 / compiler 12，failures=0**。注记一条口径坑：`app/build/test-results/` 下同时躺着 09-22 的 `testReleaseUnitTest` 残留 119 例，整目录 glob 会读出 295——**只认 `testDebugUnitTest/` 那 16 个文件**。
 3. **IME 路径仍零覆盖**：本批四张图里键盘从未弹起（注入通道不经过输入框），§5 撤回的那条"缺陷"反过来仍是这条边界。真实手指操作（拖球、点列表按钮、键盘改名）全部未验。
 4. JVM 总数与红线口径见 METRICS 本批条目；`94 例平台层缺口`（S2-R2）与雷 15–18 真机复验（S2-R4）仍延后。
+
+## 7. 执行中禁编辑门禁（09-23 老板裁决第二批落地，同构建复验）
+
+裁决原文（09-23 第二条消息，三条，逐字照录）：
+
+> 1. **V-3改成来源判定认可**——没打死手敲路径和冒烟注入，比字面执行更稳，没问题
+> 2. 新待裁同意你推荐的方案：**做执行中禁编辑门禁**，不动停止球位置，保留三台真机急停的坐标证据，重叠区因为执行期不让编辑自然就消了
+> 3. 现在JVM 207例、UI smoke 34断言两轮全绿、device-smoke 13/13，数字全是真数，认可
+> 继续往下做：先把执行中禁编辑门禁加上，再补平台层那94例JVM缺口。
+
+三条的执行账：① V-3 收窄**转为已裁**（§6.1 的"待确认"标记作废，实现不改）；② 门禁本批落地，见 §7.1–§7.5，停止球坐标一个字节没动（`OverlayUi` 本批零改动）；③ 数字已按真账上报，本批在其上叠加。
+
+### 7.1 门禁落点（判据在纯函数，UI 置灰只是提示）
+
+| 面 | 改动 | 位置 |
+|---|---|---|
+| 判据 | 编辑门禁第五档 `RUNNING`；三参重载 `stepEditGateOf(actions, edit, running)`，**RUNNING 排在其余三档之前**（执行中空账也报"执行中"，不报"先录制"——那时用户该等，不该去点录制） | `app/.../recorder/StepEditing.kt` |
+| 写口 | `applyEdit` 读 `AppState.running.value` 后判门禁；非 READY 一律 `rejectEdit(gate)` + 留痕 `step edit refused gate=… op=… index=… ledger=…`，**UI 按钮与 adb 注入同一条路**（置灰不是门禁） | `RecorderStore.applyEdit` |
+| 过期边 | 纯函数 `editRejectionAfterStateChange(current, running)`：仅"当前挂 RUNNING 且已不跑"才作废；接线在 `watchRecordBall` 三流合流处，紧跟 V-2 的 `revalidateStartRejection()` 之后 | `StepEditing.kt` + `AnytouchAccessibilityService.kt` |
+| 话术 | "任务执行中不能改步骤：账本一边跑一边改，回放依据就对不上执行现场了。请等本轮结束（或点悬浮球停止）后再删改。" | `StepEditGate.userCopy()` |
+| 呈现 | `StepListEditor(actions, onEdit, modifier, editable = !running)`：行内改名/上移/下移/删除四钮置灰，并在列表头显示同一条 RUNNING 话术（`testTag=step_edit_locked_hint`） | `ui/StepListUi.kt` + `MainActivity` 传参 |
+
+两条设计约束照旧兑现：**冻结层零改动**（`RejectionReason` 无新档，归因走日志 `gate=` 字段）；**门禁落入口不落按钮**（与 V-2/V-3 同构）。
+
+### 7.2 拒因状态存枚举、不存文本
+`RecorderStore` 新增 `@Volatile editRejectionGate: StepEditGate?`，与 `editRejection: String?` 成对写（`rejectEdit`/`clearEditRejection` 两个私有口，全仓再无第三处赋值）。理由：过期边要判"挂的是不是纯状态档"，拿文本比对就是**字符串当身份**——话术改一个字，过期逻辑就静默失效。三处原有 `editRejection.value = null` 全部改走 `clearEditRejection()`。
+
+### 7.3 JVM 锁（`StepEditingTest` 14 → 18 例，本批 +4）
+1. `执行中一律拒为 RUNNING 且排在其余三档之前`——四档请求在 running=true 下全部转 RUNNING（含空账，锁"优先级"这条口径）
+2. `非执行中三参判定与两参逐档同果（禁编辑不得顺手改坏旧判据）`——running=false 时三参必须与两参一字不差，防"加一档顺手改坏老三门禁"
+3. `跑完即可编 同一请求由 RUNNING 转 READY`——同一 `Remove(0)` 请求两态互转
+4. `过期边只作废纯状态档 请求档不得被状态跃迁顺手抹掉`——RUNNING+不跑=null；RUNNING+跑=RUNNING；EMPTY/OUT_OF_RANGE/BLANK_NAME 三档在状态跃迁下**原样保留**（它们绑在那次请求上）；current=null 时不得凭空造话术
+另：原"三档拒因各有话术"扩为**四档**，新增断言 RUNNING 话术必须含"执行中"与"停止"（用户要能在话术里读到出路）。
+
+### 7.4 同构建复验真数（emulator-5554 / API 35，PID 24388）
+- `scripts/ui-smoke.sh`：34 → **41 条断言 × 2 轮，两轮各 41 PASS / 0 FAIL**（`raw/recui-uismoke-gate-20260923-1717.log`、`recui-uismoke-gate2-20260923-1717.log`）
+- `scripts/device-smoke.sh`：**13/13 ALL PASS**，C 系列零回归（`raw/recui-devicesmoke-gate-20260923-1717.log`）
+- `scripts/ci-local.sh`：**PASS**，红线 A–E 全清（`raw/ci-local-gate-20260923-1717.log`）。JVM 单变体口径：**211 = app 180 / contracts 19 / compiler 12，failures=0 errors=0**（app 16 个 testsuite 文件，本批 +4 例，与 §6.4-2 的 207 同一口径）
+- 新增 7 条设备断言（U14/U15，第一轮原文）：
+  - U14a `09:07:46.460 step edit refused gate=RUNNING op=remove index=0 ledger=3`（注入通道，绕过置灰按钮同样被拒）
+  - U14b 执行期 `ok=remove` 计数 = 0（拒了就是零放行，不许"拒了但改了"）
+  - U14c 拒因行自带 `ledger=3` → 门禁读到的是真账，三步没被删掉
+  - U15a `09:07:58.524 ok=0 total=1 stopped=true`（本轮结束回执）
+  - U15b `09:07:58.540 edit rejection expired gate_was=RUNNING` → **过期延迟 16 ms**，与 V-2 的 15 ms 同量级
+  - U15c 三方 dump 互控读数：自家窗 `run_task`=1（证明在读自己的窗）、`step_edit_rejection`=0、`step_edit_locked_hint`=0（红字与置灰提示双双撤净）
+  - U15d `09:08:09.784 step edit ok=remove index=0 before=3 after=2` → **跑完立刻可编**，同一请求由拒转放
+- 屏上实证：`img/v4-running-edit-locked.png`（"任务执行中…（可点悬浮球停止）"+ RUNNING 红字 + 四钮全灰；停球仍压在"改名"右缘，但该钮已禁用 → 裁决 2 说的"重叠区自然消解"目视成立）
+
+**构建一致性如实记一笔**：上表设备断言跑完之后，源码只再改了一行 **KDoc 注释**（`StepEditGate.RUNNING` 的注释从"V-1 待裁项"改为"裁决 2"，措辞纠错、零语义）。改后重跑 `:app:assembleDebug` + `:app:testDebugUnitTest --rerun-tasks`：**180 例 / 0 失败**（与上表同数）。设备侧未因这一行注释复跑——若按"改一件重拍一件"的严格口径，这条属已知偏差，如实登记不掩盖。
+
+### 7.5 测试通道新律：**dump 会打断正在跑的任务**（本批踩到，代价一轮整跑）
+旧口径只知"`uiautomator dump` 注册 UiTestAutomationService 会挤掉自家服务，不复绑则**下一条**用例假红"。本批第一次写 U14 时在**在跑任务期间** dump 读屏上红字，设备实证它不止挤掉服务，还会**取消当轮 runTask**：`09:01:32.372 S1SMOKE run cancelled by service lifecycle … SERVICE_INTERRUPTED`（results 为空），随后过期边正常作废，两条读数同时 0/0——看起来像"红字从没出现过"，实为**探针自毁现场**。若当时按"0=通过"写死断言，就是一枚假绿。
+处置：执行期那一段**零 dump**（`scripts/ui-smoke.sh` U14 段注释已写明），"红字出现过"改由人眼截图为证（§7.4 的 PNG），"红字消失"那一半仍留机器断言（U15c 在无在跑任务时 dump 无害）。原始日志节选留档：`raw/recui-gate-dump-cancels-run-20260923-1717.log`（末尾附不采信声明）。
+**律：任何 dump 都是一次服务抢占——只在"无在跑任务、无在跑录制"时读屏；要证执行中的屏上状态，用截图，不用 dump。**
+
+### 7.6 本批诚实边界（未验，别当已验）
+1. **真实手指点击**：U14 走的是 adb 注入通道（这正是"置灰不是门禁"的证明），但**手指点置灰按钮**这条 UI 路径未做设备断言——Compose 的 `enabled=false` 拦截只有代码依据，无触摸实证。
+2. **IME 仍零覆盖**（§6.4-3 原样维持）：截图里键盘从未弹起，改名框内的 `rec-0001` 是会话档预置值，非用户键入。
+3. **执行中改名草稿的存活**未断言：跑完置灰解除后草稿是否仍是用户输入的那份（`remember(action.actionId)` 只在步骤身份变化时回落真值），本批只锁了 JVM 侧的回落语义，设备侧未测。
+4. 停止球坐标证据沿用不变；雷 15–18 真机复验（S2-R4）与平台层 94 例缺口（S2-R2）仍延后，后者是老板指定的下一步。
+

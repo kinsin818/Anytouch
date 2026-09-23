@@ -123,6 +123,9 @@ class MainActivity : ComponentActivity() {
                         StepListEditor(
                             actions = steps,
                             onEdit = RecorderStore::applyEdit,
+                            // 执行中置灰（老板 09-23 裁决：禁编辑门禁，停止球位置因此不动）。
+                            // 灰只是提示——门禁在 applyEdit，adb 注入绕过按钮同样被拒。
+                            editable = !running,
                             modifier = Modifier.fillMaxWidth().testTag("step_list"),
                         )
                         // 编辑被拒同样必现（与开录拒绝同律：置灰/无回执=黑洞，用户要知道"没删掉"为什么）

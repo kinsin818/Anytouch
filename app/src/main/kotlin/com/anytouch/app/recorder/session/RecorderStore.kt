@@ -12,6 +12,7 @@ import com.anytouch.app.recorder.RecorderOutput
 import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.StepEditGate
 import com.anytouch.app.recorder.applyStepEdit
+import com.anytouch.app.recorder.editRejectionAfterStateChange
 import com.anytouch.app.recorder.opName
 import com.anytouch.app.recorder.stepEditGateOf
 import com.anytouch.app.recorder.suggestionAfterEdit
@@ -92,6 +93,25 @@ object RecorderStore {
     /** 最近一次被拒的步骤编辑话术：同上，禁静默禁用；新一次编辑（成功或失败）即覆盖。 */
     val editRejection = MutableStateFlow<String?>(null)
 
+    /**
+     * 那次编辑被拒时门禁判的是哪一档（话术的唯一来源，与 [editRejection] 必须同写）。
+     * 存档位而非只存文本：过期边要认"这条红字是不是纯状态档 RUNNING"，拿文本比对就是字符串当身份。
+     */
+    @Volatile
+    private var editRejectionGate: StepEditGate? = null
+
+    /** 拒一次编辑：档位与话术同写（漏一处=过期边认不出该作废哪条）。 */
+    private fun rejectEdit(gate: StepEditGate) {
+        editRejectionGate = gate
+        editRejection.value = gate.userCopy()
+    }
+
+    /** 撤下编辑拒因（成功编辑、或状态跃迁使话术失去依据）。 */
+    private fun clearEditRejection() {
+        editRejectionGate = null
+        editRejection.value = null
+    }
+
     val isRecording: Boolean get() = session?.state == SessionState.RECORDING
 
     /**
@@ -104,10 +124,10 @@ object RecorderStore {
      */
     fun applyEdit(edit: StepEdit): Boolean {
         val actions = compiledActions.value
-        val gate = stepEditGateOf(actions, edit)
+        val gate = stepEditGateOf(actions, edit, AppState.running.value)
         if (gate != StepEditGate.READY) {
             val copy = gate.userCopy()
-            editRejection.value = copy
+            rejectEdit(gate)
             Log.w(
                 TAG,
                 "S2SMOKE step edit refused gate=$gate op=${edit.opName()} index=${edit.index} " +
@@ -117,7 +137,7 @@ object RecorderStore {
         }
         val edited = applyStepEdit(actions, edit)
         compiledActions.value = edited
-        editRejection.value = null
+        clearEditRejection()
         // 空账不写建议这条判据住在纯函数 suggestionAfterEdit 里（JVM 锁得住），此处只按结果分流
         val suggestion = suggestionAfterEdit(edited)
         if (suggestion == null) {
@@ -160,6 +180,23 @@ object RecorderStore {
         return false
     }
 
+    /**
+     * 状态跃迁后复核**编辑**拒因（执行中禁编辑门禁的过期边，判据在纯函数 [editRejectionAfterStateChange]）：
+     * 与开录面同一条纪律——RUNNING 是纯状态档，执行一结束还挂着"任务执行中不能改步骤"就是假红。
+     * 请求绑定的那三档（空账/越界/空名）不在此列，由下一次请求覆盖。
+     * @return true=本次复核作废了一条陈旧话术。
+     */
+    fun revalidateEditRejection(): Boolean {
+        val current = editRejectionGate
+        val next = editRejectionAfterStateChange(current, AppState.running.value)
+        if (current != null && next == null) {
+            clearEditRejection()
+            Log.i(TAG, "S2SMOKE edit rejection expired gate_was=$current detail=状态已变，陈旧拒因作废")
+            return true
+        }
+        return false
+    }
+
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {
         val gate = recordGateOf(
             serviceConnected = AppState.serviceConnected.value,
@@ -194,7 +231,7 @@ object RecorderStore {
                             "（任务框文本不动，需保留请自行另存）",
                     )
                 }
-                editRejection.value = null
+                clearEditRejection()
                 compiledActions.value = emptyList()
                 activeSession.value = fresh
                 // 开窗基线：窗态事件只在"换窗"瞬间下发，直接开始录制时会话内将无任何窗口态，
@@ -340,11 +377,11 @@ object RecorderStore {
             // 步序账**照实清零**：编辑页若还挂着上一次的步骤，用户会在"看不见的产物"上删改（第二套账）。
             // 只是不把空任务写成回放建议——那才是假绿形态。
             compiledActions.value = emptyList()
-            editRejection.value = null
+            clearEditRejection()
             Log.w(TAG, "S2SMOKE compiled EMPTY task, 步序账清零、不写回放建议（丢弃归因见 DETAIL）")
         } else {
             compiledActions.value = output.actions
-            editRejection.value = null
+            clearEditRejection()
             publishSuggestion(json)
             // 测试通道取件口：脚本据此把"录出来的步骤"回注执行，验证录→编→放闭环
             Log.i(TAG, "S2SMOKE-TASK $json")

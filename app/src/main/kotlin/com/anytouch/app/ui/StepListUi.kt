@@ -20,19 +20,26 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.anytouch.app.recorder.StepEdit
+import com.anytouch.app.recorder.StepEditGate
 import com.anytouch.app.recorder.stepLabel
+import com.anytouch.app.recorder.userCopy
 import com.anytouch.contracts.Action
 
 /**
  * 步序账编辑区（军令 L2-9 的 UI 面）：删步 / 改名 / 移序，全部经 [onEdit] 送进
  * RecorderStore 的唯一写口——本组件不含任何"能不能编辑"的判断（置灰不是门禁），
  * 只做呈现与投递；被拒话术由调用方显示（与开录拒绝同一条显示路径）。
+ *
+ * [editable]=false 时行内四个操作置灰并显式说明原因（执行中禁编辑，老板 09-23 裁决）。
+ * 置灰只是**给人看的提示**：真正的门禁在唯一写口 `applyEdit` 里，adb 注入通道绕过这些按钮
+ * 也一样被拒（同一判据、同一条留痕），所以这里灰不灰都不影响安全性，只影响可见性。
  */
 @Composable
 fun StepListEditor(
     actions: List<Action>,
     onEdit: (StepEdit) -> Unit,
     modifier: Modifier = Modifier,
+    editable: Boolean = true,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("步骤 ${actions.size}（删/改名/移序只改这份步序账）", style = MaterialTheme.typography.titleSmall)
@@ -42,7 +49,14 @@ fun StepListEditor(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        actions.forEachIndexed { i, action -> StepRow(i, action, actions.size, onEdit) }
+        if (!editable && actions.isNotEmpty()) {
+            Text(
+                StepEditGate.RUNNING.userCopy().orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag("step_edit_locked_hint"),
+            )
+        }
+        actions.forEachIndexed { i, action -> StepRow(i, action, actions.size, onEdit, editable) }
     }
 }
 
@@ -52,6 +66,7 @@ private fun StepRow(
     action: Action,
     total: Int,
     onEdit: (StepEdit) -> Unit,
+    editable: Boolean,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -72,22 +87,24 @@ private fun StepRow(
             )
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Rename(index, draft)) },
+                enabled = editable,
                 modifier = Modifier.testTag("step_rename_$index"),
             ) { Text("改名") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Move(index, index - 1)) },
-                enabled = index > 0,
+                enabled = editable && index > 0,
                 modifier = Modifier.testTag("step_up_$index"),
             ) { Text("上移") }
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Move(index, index + 1)) },
-                enabled = index < total - 1,
+                enabled = editable && index < total - 1,
                 modifier = Modifier.testTag("step_down_$index"),
             ) { Text("下移") }
             Button(
                 onClick = { onEdit(StepEdit.Remove(index)) },
+                enabled = editable,
                 modifier = Modifier.testTag("step_delete_$index"),
             ) { Text("删除") }
         }
