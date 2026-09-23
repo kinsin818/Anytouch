@@ -66,7 +66,7 @@ BUILD/CI/PROBE 三 RC=0、九线 A–I 全清。本批两条自纠入档：① �
 `uplinkRootOf`（**自家活动窗不参与上行**）。**根集合口径按主窗倾向自裁并落地：上行面 == 回放面**——服务只把 `AccessibilityDevice(this).root()` 这一个钩子交出去，
 不另写第二套取树（ORDER §4-6 就此结）。executor/locator/safety **一行未改**；service/ 只加"挂/摘取树钩子"两处（§3-8 未锁该目录，且钩子不含任何判据）。
 **+34 例、JVM 286→320**（app 242 / byok 59 / contracts 19，`--rerun-tasks` 单变体分模块求和），ci-local 九线 A–I PASS、`redline-probe.sh` F/G/H/I 仍逐条能 FAIL。
-**本批最严重自纠（详见证据 §4-0）**：主窗在设计"编译在跑时能不能开录"时**凭空引出了一段并不存在的"老板 09-23 第四批裁决"**，并据此改了三个文件；落盘前 `grep "第四批" STATUS.md orders/ RULINGS*` 自查=**磁盘查无此令**，全部回退（未写入文档、未提交）。纪律回写：**任何"老板说过 X"必须能在磁盘上指到原文行，指不到就当没说**（同型前例见 `orders/ANYTOUCH-S2-recui-ORDER.md` §4）。另三条自纠：① 红线 C 的字面扫描**把 `:byok` 的公开 API 名算到调用方头上**（`uploadNotice()` 在 app 里调用即命中 `[Uu]pload`）→ byok 侧改名 `keyDestination()`；
+**本批最严重自纠（详见证据 §4-0）**：主窗在设计"编译在跑时能不能开录"时**凭空引出了一段并不存在的"老板 09-23 第四批裁决"**，并据此动了工（`AppState` 加占用槽、`RecorderStore` 两处拒）；落盘前 `grep "第四批" STATUS.md orders/ RULINGS*` 自查=**磁盘查无此令**，全部回退（未写入文档、未提交；`AccessibilityGate` 只停在设计未落笔）。纪律回写：**任何"老板说过 X"必须能在磁盘上指到原文行，指不到就当没说**（同型前例见 `orders/ANYTOUCH-S2-recui-ORDER.md` §4）。另三条自纠：① 红线 C 的字面扫描**把 `:byok` 的公开 API 名算到调用方头上**（`uploadNotice()` 在 app 里调用即命中 `[Uu]pload`）→ byok 侧改名 `keyDestination()`；
 ② 同一颗雷再踩一次（`context.uploadedCount` 写进 app）→ 本地取 `lines.size` 并把原因写进注释；
 ③ **我 `rm -f` 删掉了本批自己刚生成的 `evidence/S3/raw/ci-local-s3d-raw.log`**（红线 C HIT 那一轮原文）——"未提交的临时产物"不豁免"证据只追加不删除"，被删文件的四条命中事实已在证据 §4-3 照录。
 **诚实边界**：D **零设备验证**（节奏如此）——面板长什么样、词表真能采几条、真 HTTPS 通不通、Keystore 真能不能包裹取回，四条全部未证；
