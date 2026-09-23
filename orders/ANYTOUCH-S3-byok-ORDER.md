@@ -107,6 +107,12 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
    老板一句话即换（本批不擅自假设配给范围可扩展）。
 5. **BYOK 引入的第三方依赖面**：`HttpURLConnection` 属平台自带，本批**零新增依赖**（不引 OkHttp/Retrofit），
    减少供应链与包体；若超时/重试语义不够用，另案上报再裁。
+6. **屏上下文的"根集合"口径待裁（切片 C 落地下一步）**：上行词表时扫**当前活动窗**还是**全部应用窗**？
+   - 只扫活动窗：词表最干净，但输入法候选窗/系统弹窗上的按钮词模型看不见（用户看得见却编不出来）。
+   - 扫全部窗：命中率可能更高，但雷 18 的同族风险回来了——**"分母必须等于回放真正被扫的那棵树"**，
+     回放面（`AccessibilityDevice.root()`）取的是按焦点排序的应用窗，若上行面多扫状态栏/无障碍浮窗，
+     模型会拿到屏上不可点的词，编出的步骤在回放面必然 `NO_MATCH`（假绿近亲：上行面比执行面宽）。
+   主窗倾向：**与执行面同一套根**（宁缺勿多），切片 D 前请老板一句话，或主窗按此倾向自裁并登记。
 
 ## §5 施工节奏（主窗自裁，可被老板覆盖）
 
@@ -121,4 +127,6 @@ MediaProjection 一项与本批无关（本批不采集不截图上行），仍�
 | A 模块与搬迁 | **已落**（09-23） | `:byok` 纯 JVM 模块立起；`DslCompiler`/`CompilerPrompt`/`LlmTransport`/`CompileResult` + 12 例测试 `git mv` 搬入，判据主体零改动（`git diff -M --stat` 只有 12 行，全为 package/import/KDoc）；`:tools:compiler` 反向依赖 `:byok`，探针行为不变；红线 F/G/H 新增并**逐条放探针验证能 FAIL**；ci-local 八线全清 PASS。`:app` 依赖**故意未加**（无消费者不预铺）。详见 `evidence/S3/slice-a-byok-module.md` |
 | B Key 面 | **已落**（09-23） | `:byok` 侧 android-free 判据四件（`BaseUrlPolicy` 九档拒因 / `KeyMasker` 四类密钥形态脱敏 + 尾 4 位 / `ByokError` 八档话术 + `httpKindOf` 状态映射 / `OpenAiCompatTransport` HttpURLConnection 假件可注入），`:app` 侧凭据存储三件（`GcmBlobCipher`+`VaultCodec`、`CredentialRepository`、`VaultWipe`）全部为**零 android 纯函数**，只有 `AndroidKeyVault.create()` 与 `connect()` 两处是设备缝。**+51 例、JVM 211→262**（app 202 / byok 41 / contracts 19，单变体 testsuite 逐模块求和）；红线 H 修正为真锁、新增红线 I、`scripts/redline-probe.sh` 逐条自证 F/G/H/I **能 FAIL 且撤探针能回 PASS**；ci-local PASS。`:app`→`:byok` 依赖**仍故意未加**（无消费者）。详见 `evidence/S3/slice-b-key-surface.md` |
 | C–E | 未开始 | **B 结束时 BYOK 端到端仍然完全不可用**（无 UI 入口、无屏上下文、app 未依赖 byok）；"执行期零网络"目前只有结构锁（F/G/H/I），行为证据（飞行模式对拍）留 E |
+| C 屏上下文 | **已落**（09-23） | 判据全住 `:byok` 纯函数（`ScreenNodeFact`→`ScreenContextBuilder`→`ScreenContext`：关闭=零条、输入框只报存在、密码类整条剔除、白名单只有"可见 text + resource-id entry"、去重、封顶 40、可见优先稳定序、五条丢弃账全上屏）；取数只有**一个设备缝**（`accessibilityFlagsOf` 读 `isEditable/isPassword/isVisibleToUser` 三布尔，不读任何文本）。`compile(intent, context)` 新增可选参、SYSTEM 只追加规则 9、**单参老链路逐字零漂移**。`:app`→`:byok` 依赖**本片加上**（本片是第一个真实消费者，B 行"故意未加"到此为止），红线 G 重跑仍**能 FAIL**。**+24 例、JVM 262→286**（app 208/byok 59/contracts 19）。详见 `evidence/S3/slice-c-screen-context.md`（§4 两条自纠：平台 API 名按 jar 量、证据同名覆盖；根集合口径待裁已登记 §4-6） |
+| D–E | 未开始 | **C 结束时 BYOK 端到端仍然完全不可用**：词表开关与条数的**屏上形态一行未接**、无编译入口，真 HTTPS 与真 Keystore 两条 JVM 覆盖仍为 0（留 D/E 设备实证）；"执行期零网络"仍只有结构锁，行为证据（飞行模式对拍）留 E |
 

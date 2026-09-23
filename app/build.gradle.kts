@@ -38,6 +38,10 @@ android {
 
 dependencies {
     implementation(project(":core:contracts"))
+    // 创建期编译模块。允许 import 它的只有 ui/ 与 compile/ 两处——
+    // 这条边界由 scripts/ci-local.sh 红线 G 机器锁住：执行路径（executor/locator/service/safety/platform/recorder）
+    // 一旦 import 就 FAIL，"编译期联网、执行期零网络"因此是结构而非注释。
+    implementation(project(":byok"))
 
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)

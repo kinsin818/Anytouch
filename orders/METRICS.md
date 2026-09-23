@@ -70,4 +70,24 @@
   `AndroidKeyVault.create()`（真 Keystore/真文件）与真 HTTPS 两条 **JVM 覆盖=0**，全留 D/E 设备实证；Kotlin `String` 形态的 Key 无法主动清零
   （要 zeroize 得改 `CharArray` 并动 `LlmTransport` 签名，属改冻结面，未擅改）；尾 4 位掩码住在 `:byok` 故 app 侧 UI 待切片 D 才有依赖。
   证据 `evidence/S3/slice-b-key-surface.md` §1–§7 + `evidence/S3/raw/ci-local-and-probe-s3b.log`（含 `CI_RC=0`/`PROBE_RC=0` 原文，
-  前一次构建日志同批留档不删）；裁决原文照录 `orders/RULINGS-20260922.md` S3-R1/R2/R3、执行账 `orders/ANYTOUCH-S3-byok-ORDER.md` §5.1。
+  前一次构建日志同批留档不删）；裁决原文照录 `orders/RULINGS-20260922.md` S3-R1/R2/R3、执行账 `orders/ANYTOUCH-S3-byok-ORDER.md` §5.1。- S3-BYOK 切片 C（屏上下文最小化，09-23 结案）：裁 2"带屏上下文、可开关"落地，**判据一条都不留在能碰 Android 的地方**。
+  `:byok` 侧 `ScreenNodeFact`→`ScreenContextBuilder`→`ScreenContext` 三段纯函数锁死六件事：关闭开关=**零条上行**（`render()` 必须是空串，
+  短路在取数层与判据层各锁一次）、输入框只上行"这里有个输入框"（其 text 一字不上行）、密码类**整条剔除连 resource-id 都不带**、
+  上行行**只有三种合法形态**（`text="…"` / `id=entry` / `input_field(…)`，正则穷举反证）、去重+封顶 40+可见优先稳定序、
+  **五条丢弃账（密码/内容遮蔽/屏外/重复/超上限）全部进 `notice()`** 且话术里的条数与 `lines.size` 同处证明——"上屏条数"必须是真数。
+  app 侧只留**一个设备缝** `accessibilityFlagsOf`（读 `isEditable`/`isPassword`/`isVisibleToUser` 三布尔，一个文本字段都不读），
+  旗标以参数注入使"取数层不读内容"本身可测。`compile(intent, context)` 加可选参、SYSTEM 只追加规则 9（只能取词表里的词、
+  `input_field` 不含内容不许猜框里是什么），**单参老链路 prompt 逐字零漂移**；并且新锁一条"加上下文不许削弱校验"——
+  模型拿到词表仍编坐标照旧 `validate` 拒（防止"给了词表就放松门禁"这种最容易被顺手做掉的事）。
+  `:app`→`:byok` 依赖**本片加上**（切片 C 是第一个真实消费者；A/B 两批"无消费者不预铺"到此为止），加完 `redline-probe.sh` 重跑
+  证明红线 G **仍然能 FAIL**（探针放 `executor/` 下）——依赖加了、锁没松。验证：**+24 例、JVM 262→286**（app 208 / byok 59 / contracts 19，
+  `--rerun-tasks` 单变体分模块 testsuite 求和，0 失败），BUILD_RC=0 / CI_RC=0（九线 A–I 全清）/ PROBE_RC=0。
+  **本批两条自纠（这条存在的主要理由）**：① **平台 API 名按 jar 量、不按记忆写**——初版取法写 `info.isTextEditable` 直接 Unresolved，
+  `javap` 查 android-36 的 `AccessibilityNodeInfo` 实为 **`isEditable()`**；写错那一版还顺手把"是不是输入框"整条推给类名判据，
+  查完 jar 才恢复成"平台旗标 ∪ 类名"两条并存的 fail-closed 判据（自绘输入框类名不像 EditText、类名像 EditText 的也可能旗标没置上）。
+  ② **同名 `>` 重定向覆盖了本批前一份证据**（18:51 那次是 44-task up-to-date 的增量跑，不能当计数基准，但它确实被我覆盖了）——
+  违反"证据只追加不覆盖"；纪律重申：**同名重定向只允许写给"正在生成的那一份"**，要留两版就换文件名。
+  诚实边界：C 结束时 BYOK 端到端**仍然完全不可用**（无编译入口、词表开关与条数的屏上形态一行未接）；
+  "密码框真被 `isPassword=true` 标出来"目前只是平台文档假设、**设备证据 0**；上行词表**扫活动窗还是全部窗未定**（雷 18 同族，
+  登记 ORDER §4-6 + STATUS 待办 11 待裁）；封顶 40 无账单/命中率支撑；词表能否提高命中率未证。
+  证据 `evidence/S3/slice-c-screen-context.md` §1–§7 + `evidence/S3/raw/ci-local-and-probe-s3c.log`（干净重跑原文与时间戳）。

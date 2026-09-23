@@ -1,0 +1,33 @@
+===== S3-C final-build verification (2026-09-23 18:53:17) =====
+--- cmd: ./gradlew --offline --rerun-tasks :core:contracts:test :byok:test :app:testDebugUnitTest ---
+InterruptedRunReportTest > 忙中丢弃回执注明会被执行中任务覆写 PASSED
+
+BUILD SUCCESSFUL in 26s
+49 actionable tasks: 49 executed
+BUILD_RC=0
+--- cmd: SKIP_GRADLE=1 bash scripts/ci-local.sh ---
+==> [1/4][2/4] gradle SKIPPED (SKIP_GRADLE=1, 只验红线)
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+  redline F clean (network code confined to byok/ and tools/)
+  redline G clean (execution path cannot see the compiler module)
+  redline H clean (no key-bearing log statements)
+  redline I clean (no plaintext credential storage channel in app)
+==> [4/4] ci-local PASS
+CI_RC=0
+--- cmd: bash scripts/redline-probe.sh ---
+PROBE-F OK: 能 FAIL（REDLINE-F HIT: byok/ 与 tools/ 之外出现网络代码）
+PROBE-G OK: 能 FAIL（REDLINE-G HIT: 执行路径 import 了编译模块（执行期零网络的结构锁失效））
+PROBE-H OK: 能 FAIL（REDLINE-H HIT: 日志语句里出现密钥形态字段）
+PROBE-I OK: 能 FAIL（REDLINE-I HIT: 出现明文落盘通道（Key 只能进 Keystore 加密 blob））
+REDLINE-PROBE PASS: F/G/H/I 四条逐条独立验证能 FAIL，且撤探针后门禁回到 PASS
+PROBE_RC=0
+--- per-module single-variant testsuite sums ---
+  app: tests=208 failures=0
+  byok: tests=59 failures=0
+  contracts: tests=19 failures=0
+  TOTAL(single variant, 3 modules) = 286

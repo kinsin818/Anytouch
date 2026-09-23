@@ -56,14 +56,27 @@ object CompilerPrompt {
         6) 严禁出现 target/x/y 等任何坐标字段——定位一律靠节点文本/id；
         7) 意图中出现的英文界面词就是屏幕上的可见文本，直接使用它们；
         8) 例：意图「进蓝牙页」→ [{"action_id":"cd","type":"click","source":"node","value":{"text":"Connected devices"},"safety":{"viewport_ok":true,"click_enabled":true}}]
+        9) 若意图后附了【当前屏幕可见词表】：click/type_text 的 text、scroll 的 resource_id 只能从该词表里取，
+           词表里没有就说明它不在屏上——改走 back/key 等不依赖文本的动作，绝不许自己编一个词；
+           input_field(...) 一行只代表"这里有个输入框"，它的内容没有上行，不许猜测框里现在是什么。
     """.trimIndent()
+
+    /** 上下文块拼在意图之后：无上下文时逐字等于意图本身（切片 A 的老链路零漂移）。 */
+    fun userMessage(intent: String, context: ScreenContext = ScreenContext.disabled()): String {
+        val block = context.render()
+        return if (block.isEmpty()) intent else "$intent\n\n$block"
+    }
 }
 
 class DslCompiler(private val transport: LlmTransport) {
 
-    fun compile(intent: String): CompileResult {
+    /**
+     * [context] 默认关闭——屏上下文必须显式构造并传入才有内容（军令 §3-5：开关关=零条上行）。
+     * 校验判据与上下文无关：模型即便拿到词表也仍可能编出坐标或凭空的词，validate 一档不松。
+     */
+    fun compile(intent: String, context: ScreenContext = ScreenContext.disabled()): CompileResult {
         val raw = try {
-            transport.complete(CompilerPrompt.SYSTEM, intent)
+            transport.complete(CompilerPrompt.SYSTEM, CompilerPrompt.userMessage(intent, context))
         } catch (e: TransportFailure) {
             // 传输层已把失败分成不可达/鉴权/限速/服务端/超时几档，这里只做搬运，不降级成一个字符串
             return CompileResult.Reject("transport", e.safeDetail, e.kind)
