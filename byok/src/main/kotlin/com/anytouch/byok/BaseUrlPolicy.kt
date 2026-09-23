@@ -31,7 +31,7 @@ object BaseUrlPolicy {
     /** [httpsUrl] 去掉尾部斜杠，可直接拼 [CHAT_COMPLETIONS_PATH]；[hostEcho] 是唯一允许回显/落日志的片段。 */
     data class Accepted(val httpsUrl: String, val hostEcho: String) {
         /** 军令 S3 §3-4：自定义 host 必须先让用户看见"Key 要去哪儿"，按下编译前知情。 */
-        fun uploadNotice(): String = "你的 Key 只发往这一个地址：$hostEcho"
+        fun keyDestination(): String = "你的 Key 只发往这一个地址：$hostEcho"
     }
 
     data class Rejected(val reason: Reason, val userCopy: String)

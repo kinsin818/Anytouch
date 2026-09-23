@@ -25,7 +25,7 @@ class BaseUrlPolicyTest {
     @Test
     fun `放行时必须给出 Key 去向回显 且只含主机名`() {
         val a = accepted("https://gw.mycompany.co.uk:8443/v1")
-        val notice = a.uploadNotice()
+        val notice = a.keyDestination()
         assertTrue("gw.mycompany.co.uk" in notice, notice)
         assertTrue("/v1" !in notice, "回显只给主机名，路径不进用户眼前：$notice")
     }

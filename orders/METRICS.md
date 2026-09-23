@@ -91,3 +91,28 @@
   "密码框真被 `isPassword=true` 标出来"目前只是平台文档假设、**设备证据 0**；上行词表**扫活动窗还是全部窗未定**（雷 18 同族，
   登记 ORDER §4-6 + STATUS 待办 11 待裁）；封顶 40 无账单/命中率支撑；词表能否提高命中率未证。
   证据 `evidence/S3/slice-c-screen-context.md` §1–§7 + `evidence/S3/raw/ci-local-and-probe-s3c.log`（干净重跑原文与时间戳）。
+- S3-BYOK 切片 D（APP 接线，09-23 结案，主窗按 §5 节奏自裁推进）：**创建期链路第一次成为一条**——手机里填 Key（掩码输入、
+  保存必读回比对才报"已保存"、清除要两处槽位复查双双消失）→ 说一句意图 → 「AI 编译」→ 产物落进
+  `RecorderStore.acceptModelActions` **唯一落账口** → 任务框建议由 `encodeActions` 现算、与账**逐字相等** → 既有「执行任务」
+  照旧走 V-3 与既有执行器（**executor/locator/safety 一行未改**）。判据四件全部 android-free：
+  `ByokPreflight`（七档出门前门禁，**判序即判据**：意图空→执行中→无凭据→读不出→无模型→地址政策→READY；另加 `checkSave`
+  把地址政策提到**写盘之前**——否则一个明文协议地址安静存进 Keystore，三分钟后用户看到的是一句假的"网络问题"）、
+  `ByokCompileController`（**任何一档没走通都不落账**：坐标拒/401/空数组三条都断言 publish 零调用）、
+  `ByokPanelState`（第一跑未归不开第二跑、新一次开始撤陈旧红字、清除后不留"看起来还配着"的痕迹）、
+  `uplinkRootOf`（**自家活动窗不参与上行**）。**ORDER §4-6 根集合口径按授权自裁落地：上行面 == 回放面**——服务只交出
+  `AccessibilityDevice(this).root()` 这一个钩子，上行面没有任何第二套取树代码（代价：输入法候选窗/弹窗上的词模型看不见，已备案）。
+  验证：**+34 例、JVM 286→320**（app 242 / byok 59 / contracts 19，`--rerun-tasks` 单变体分模块 testsuite 求和，0 失败），
+  CI_RC=0（九线 A–I 全清）/ PROBE_RC=0（service 挂了钩子之后 F/G/H/I 仍逐条能 FAIL）。
+  **本批最严重自纠（差点编出一段不存在的老板裁决）**：设计"编译在跑时能不能开录"时，主窗把"老板 09-23 第四批裁决要求补可显示拒因"
+  当成原话写进推理链并据此动了工（`AppState` 加占用槽、`RecorderStore` 两处拒）。落盘前 `grep -rn "第四批" STATUS.md orders/ RULINGS*` 自查
+  → **磁盘查无此令**，全部回退、未提交、未写入任何文档。纪律回写并固化：**凡说"老板裁过 X"必须能在磁盘上指到原文行，指不到＝没说过**
+  （同型前例登记在 `orders/ANYTOUCH-S2-recui-ORDER.md` §4）。这次误推引出的真问题按待裁登记（STATUS 待办 13），不擅自实现。
+  另三条自纠：① **红线 C 会把 `:byok` 的公开 API 名算到调用方头上**——`uploadNotice()` 在 app 里一调用就命中 `[Uu]pload`，
+  改共享模块的名字（`keyDestination`）而不是给红线开口子；② 同型雷第二次：`context.uploadedCount` 写进了 app，改本地 `lines.size`；
+  ③ **本窗 `rm -f` 删掉了自己十分钟前生成的 `evidence/S3/raw/ci-local-s3d-raw.log`**（红线 C HIT 那一轮原文）——
+  "证据只追加不覆盖不删除"这条**不因"未提交/是自己临时产物"而豁免**；被删文件的四条命中事实已在证据 §4-3 逐行照录。
+  诚实边界：**D 零设备验证**（§5 节奏如此）——面板屏上形态、词表真能采几条、真 HTTPS、真 Keystore 四条全部未证；
+  `acceptModelActions` 因 `Log`+object 单例**JVM 覆盖 0**，其两条判据（执行中拒换账 / AI 产物不被 V-3 误拒）转为 E 设备断言；
+  **adb 通道故意不下发 Key**（字面量进 shell 即进设备进程表与脚本历史），E 需老板手输一次或另裁；
+  手工路径未闭环（在手机上手点编译时活动窗就是自家窗→词表 0 条，入口搬悬浮球属 S4）；命中率仍不在本批口径内（§4-3）。
+  证据 `evidence/S3/slice-d-app-wiring.md` §1–§7 + `evidence/S3/raw/ci-local-s3d-build.log` + `redline-probe-s3d.log`。

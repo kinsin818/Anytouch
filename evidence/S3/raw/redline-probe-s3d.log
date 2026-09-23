@@ -1,0 +1,5 @@
+PROBE-F OK: 能 FAIL（REDLINE-F HIT: byok/ 与 tools/ 之外出现网络代码）
+PROBE-G OK: 能 FAIL（REDLINE-G HIT: 执行路径 import 了编译模块（执行期零网络的结构锁失效））
+PROBE-H OK: 能 FAIL（REDLINE-H HIT: 日志语句里出现密钥形态字段）
+PROBE-I OK: 能 FAIL（REDLINE-I HIT: 出现明文落盘通道（Key 只能进 Keystore 加密 blob））
+REDLINE-PROBE PASS: F/G/H/I 四条逐条独立验证能 FAIL，且撤探针后门禁回到 PASS

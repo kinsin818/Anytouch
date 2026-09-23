@@ -31,11 +31,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
+import com.anytouch.app.compile.ByokGateway
+import com.anytouch.app.compile.byokContextFlagOf
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.encodeActions
 import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.ui.ByokPanel
 import com.anytouch.app.ui.StepListEditor
 
 /**
@@ -59,6 +62,8 @@ class MainActivity : ComponentActivity() {
                     // （模拟器实测 SET_TEXT/PASTE 的 onValueChange 都触发了，值却在下一帧回到样例——排查两小时的"虚报"实为自家状态丢失）。
                     var taskJson by remember { mutableStateOf(initial) }
                     var targetPkg by remember { mutableStateOf(RecorderStore.targetPkg) }
+                    // 进程内单例：面板与 adb 注入通道必须看见同一格意图、同一个"编译中"（两套=两套真值）
+                    val byok = remember { ByokGateway.of(applicationContext) }
                     val recording by RecorderStore.activeSession.collectAsState()
                     val suggestion by RecorderStore.suggestedTaskJson.collectAsState()
                     val startRejection by RecorderStore.startRejection.collectAsState()
@@ -72,6 +77,8 @@ class MainActivity : ComponentActivity() {
                             RecorderStore.suggestedTaskJson.value = null
                         }
                     }
+                    // 首进界面把已存配置回填到屏上（只填还空着的字段，用户正在敲的字不夺）
+                    LaunchedEffect(Unit) { byok.refreshFromVault() }
                     Column(
                         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -120,6 +127,8 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.testTag("record_rejection"),
                             )
                         }
+                        // 屏上下文的账目与 AI 编译结论都在这块面板里（判据一行不在 UI，见 ui/ByokPanel 的说明）
+                        ByokPanel(gateway = byok, modifier = Modifier.fillMaxWidth())
                         StepListEditor(
                             actions = steps,
                             onEdit = RecorderStore::applyEdit,
@@ -205,6 +214,20 @@ class MainActivity : ComponentActivity() {
             RecorderStore.applyEdit(StepEdit.Move(from, to ?: -1))
             handled = true
         }
+        // AI 编译注入通道（切片 D 的测试通道，与面板同一格意图、同一入口判据）：
+        // 先落意图，再按 ctx_enabled 调开关，最后按 ai_compile 触发——三步都可单独下发，
+        // 脚本因此能"先看词表账，再决定编不编"。Key 不走这条通道（字面量进 adb 就是进 shell 历史）。
+        intent.getStringExtra(EXTRA_AI_INTENT)?.let { ByokGateway.of(applicationContext).state.intent.value = it }
+        intent.getStringExtra(EXTRA_CTX_ENABLED)?.let { raw ->
+            byokContextFlagOf(raw)?.let { on ->
+                ByokGateway.of(applicationContext).state.contextEnabled.value = on
+            }
+        }
+        if (intent.getBooleanExtra(EXTRA_AI_COMPILE, false)) {
+            val byok = ByokGateway.of(applicationContext)
+            byok.compile(byok.state.intent.value)
+            handled = true
+        }
         intent.getStringExtra(EXTRA_SESSION_JSON)?.takeIf { it.isNotBlank() }?.let { json ->
             // 预置会话注入（冒烟通道）：合法与否由 RecorderStore 留痕归因，此处不重复判
             RecorderStore.injectSerialized(json)
@@ -252,6 +275,11 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_RECORD_START = "record_start"
         const val EXTRA_RECORD_STOP = "record_stop"
         const val EXTRA_SESSION_JSON = "session_json"
+        const val EXTRA_AI_INTENT = "ai_intent"
+        const val EXTRA_AI_COMPILE = "ai_compile"
+
+        /** 只认 on/off 两个字面（判据在 [byokContextFlagOf]）：别的写法一律不改动当前开关。 */
+        const val EXTRA_CTX_ENABLED = "ctx_enabled"
         const val EXTRA_STEP_REMOVE = "step_remove"
         const val EXTRA_STEP_RENAME = "step_rename"
         const val EXTRA_STEP_RENAME_TO = "step_rename_to"

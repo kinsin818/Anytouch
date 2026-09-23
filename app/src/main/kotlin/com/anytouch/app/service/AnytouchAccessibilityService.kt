@@ -13,6 +13,7 @@ import com.anytouch.app.AppState
 import com.anytouch.app.TaskPolicy
 import com.anytouch.app.TaskRequest
 import com.anytouch.app.executor.NodeTaskRunner
+import com.anytouch.app.compile.AccessibilityRootSource
 import com.anytouch.app.platform.AccessibilityDevice
 import com.anytouch.app.recorder.capture.AndroidCaptureBridge
 import com.anytouch.app.recorder.capture.CaptureBridge
@@ -94,6 +95,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
         AppState.serviceConnected.value = true
         RecorderStore.selfPkg = packageName
         RecorderStore.onServiceReconnected()
+        // 上行词表的取树钩子：**执行面同一个 root()**（同一函数、同一线程规格），不另写一套取树口径。
+        // 军令 §4-6 的根集合口径据此钉死：上行面 == 回放面（雷 18 同族：分母必须等于真正被扫的那棵树）。
+        val rootDevice = AccessibilityDevice(this)
+        AccessibilityRootSource.provider = { rootDevice.root() }
         // 必须用服务自身 context：TYPE_ACCESSIBILITY_OVERLAY 的窗口 token 挂在 AccessibilityService
         // 的 WindowManager 上，applicationContext 加视图必失败（token null），面板/悬浮球将永远不可见。
         val ui = OverlayUi(this)
@@ -197,6 +202,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
         overlay = null
         scope.cancel()
         AppState.serviceConnected.value = false
+        // 上行词表的取树钩子同摘：服务都没了，词表必须是零条，绝不能留着旧 provider 猜一棵树
+        AccessibilityRootSource.provider = null
         // 采集半边随服务消亡：钩子已无人驱动，会话置空防"UI 显示在录但永不进事件"的假开录态
         RecorderStore.abandonRecording()
         super.onDestroy()

@@ -160,6 +160,40 @@ object RecorderStore {
     }
 
     /**
+     * AI 编译产物写入步序账的两种结论（S3-D）。判据住这里而不是住调用方：**唯一写口就是门禁本体**，
+     * UI 按钮、adb 注入、悬浮球三条通道都绕不过它（"门禁落入口不落按钮"同律）。
+     */
+    sealed interface ModelLedger {
+        data class Written(val steps: Int, val replaced: Int) : ModelLedger
+        /** 执行中整本换账 = 正在跑的那一跑与屏上的账变成两套，拒。 */
+        object RefusedRunning : ModelLedger
+    }
+
+    /**
+     * AI 编译产物的唯一落账口（与 [stopAndCompile] 同一条流水线，不留第二套真值）：
+     * 步序账 + 任务框建议必须**同写**，且建议一律由 [encodeActions] 现算——
+     * 模型原文的 JSON（键序/空格不同）若直接进任务框，V-3 准入会在下一次"执行任务"时把它判成
+     * "机器建议已作废"而拒放，等于 AI 编译出的步骤自己放不出来（JVM 用例锁这一条）。
+     */
+    fun acceptModelActions(actions: List<com.anytouch.contracts.Action>): ModelLedger {
+        if (AppState.running.value) {
+            Log.w(TAG, "S3SMOKE model ledger refused gate=RUNNING incoming=${actions.size}")
+            return ModelLedger.RefusedRunning
+        }
+        val stale = compiledActions.value
+        val json = encodeActions(actions)
+        compiledActions.value = actions
+        clearEditRejection()
+        publishSuggestion(json)
+        Log.i(TAG, "S3SMOKE model ledger written steps=${actions.size} replaced=${stale.size}")
+        actions.forEachIndexed { i, action ->
+            Log.i(TAG, "S3SMOKE-MODEL-STEP index=$i type=${action.type} value=${action.value}")
+        }
+        Log.i(TAG, "S3SMOKE-TASK $json")
+        return ModelLedger.Written(steps = actions.size, replaced = stale.size)
+    }
+
+    /**
      * 状态跃迁后复核开录拒因（V-2 的接线端，判据在纯函数 [startRejectionAfterStateChange]）：
      * 服务侧 `watchRecordBall` 在 会话态/执行态/连接态 任一变化后调用一次。
      * 只在"门禁此刻确实判 READY"时作废红字；仍判拒则原样保留——不许把还有效的话术悄悄抹掉。
