@@ -284,10 +284,14 @@ i=0; until ping_ok || [ "$i" -ge 30 ]; do sleep 1; i=$((i + 1)); done
 ping_ok && pass "S7a 复网成功（ping 恢复）" || bad "S7a :: 30s 未复网——把机器留在断网态收工不可接受"
 
 ts "===== S8 收尾：keyed byok-smoke 复跑（判据 §3-4，含其 E5/E8 共 2 次真请求） ====="
+# E9 跨进程格必须给 E9_APK：缺省退化成 am kill（常驻服务型 App 收不走，F-3 在册），复跑强度静默缩水。
+# 本机盘上 apk 与在机 md5 已三方死证同值（证据 §6-4），同字节 install -r 只起"真收走进程"一个作用。
+E9_APK="${E9_APK:-app/build/outputs/apk/debug/app-debug.apk}"
+[ -f "$E9_APK" ] || { bad "S8 :: E9_APK 文件不在（$E9_APK）——通道前置缺失，记账前先停，不烧额度跑个缩水轮"; exit 1; }
 REQ_USED=$((REQ_USED + 2))
 [ "$REQ_USED" -le "$REQ_CAP" ] || { bad "S8 :: 真请求将触顶 $REQ_CAP/$REQ_USED，按军令停"; exit 1; }
 SMOKE_TMP=$(mktemp)
-ANDROID_SERIAL="$SER" bash scripts/byok-smoke.sh >"$SMOKE_TMP" 2>&1; SMOKE_RC=$?
+ANDROID_SERIAL="$SER" E9_APK="$E9_APK" bash scripts/byok-smoke.sh >"$SMOKE_TMP" 2>&1; SMOKE_RC=$?
 tail -25 "$SMOKE_TMP"
 if [ "$SMOKE_RC" = "0" ]; then pass "S8a 复跑 RC=0（全流程跑完机器状态仍过全套回归）"; else
     bad "S8a :: byok-smoke 复跑 RC=$SMOKE_RC，S4-a 把它弄脏了或撞出新缺陷（上方尾 25 行）"
