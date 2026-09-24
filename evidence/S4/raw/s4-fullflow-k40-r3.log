@@ -1,0 +1,22 @@
+[2026-09-24 15:53:10] ===== S0 前置 =====
+      | 本轮靶 apk md5=37d2e1999a6e302413db857f15084f9b 路径=app/build/outputs/apk/debug/app-debug.apk
+[0;32mPASS[0m S0a 锁屏不在场 ::     isKeyguardShowing=false
+[2026-09-24 15:53:10] ===== S1 起应用 + 授权在位 =====
+      | pid=26136（测试通道禁 force-stop，常驻进程真冷启动做不了=设备事实 F-3，此处不冒称冷启动）
+[0;32mPASS[0m S1b 无障碍服务在位（dumpsys accessibility 含自家包名）
+[0;32mPASS[0m S1c 前置键盘已收起（mInputShown=false，注入通道干净）
+[2026-09-24 15:53:15] ===== S2 代填 Key（S3-R5 通道；脚本不读不印 Key） =====
+      | byok_model 本来就是空的
+      | byok_key 本来就是空的
+      | byok_base_url 已下发并逐字读回：[«REDACTED»]（长度 35，第 1 轮）
+      | byok_model 已下发并逐字读回：[«REDACTED»]（长度 31，第 1 轮）
+      | byok_key 是密码框（dump 读不到内容），按'聚焦+已下发'记账，真判据在屏上回读那一步
+      | 屏上凭据状态行：text="本机已保存 Key：***JgYp"
+      | 屏上配置回执：text="已加密保存到本机。"
+RESULT=SAVED（屏上回读到的尾 4 位与下发的那把一致：***JgYp）
+[0;32mPASS[0m S2a 代填保存成功（屏上回读尾4=***JgYp）
+[0;32mPASS[0m S2b 自家面板凭据行在场 :: [本机已保存 Key：***JgYp]
+[0;32mPASS[0m S2c 整页扫描无 Key 形态字面（真凭据在场）
+[2026-09-24 15:55:31] ===== S3 真 HTTPS 编译（第 1 次真请求，上限 4） =====
+[0;31mFAIL[0m S3a :: 真 HTTPS 编译被拒 :: 09-24 15:57:41.789 26136 26454 W AnytouchRun: S3SMOKE compile refused gate=null kind=TIMEOUT stage=transport rows=29 detail=等了很久没等到完整回答。模型可能正排队，或网络太慢。可以稍后重试，或换更快的模型再编一次。（归因：transport·超时 timeout）
+S4-FULLFLOW RUN r3 end: 2026-09-24 15:57:41 RC=2

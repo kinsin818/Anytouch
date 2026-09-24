@@ -173,3 +173,9 @@ S3-F 断组真机首命中（E8g/g2/h/h2、E5i `types=[click,]` 不再间歇）�
 首轮 C3/C4 队列串读未复现。据此主窗裁 **S31-B8：31-B ACCEPTED**，**#38（A1/A2/A3）清零**；K80 不在位如实记。
 两原文二进制追加 `evidence/S3/raw/byok-smoke-k40-e1pre.log`（`[K5]`+`[K5b]`，前缀哈希自证旧字节零改动、git numstat deletion=0）；
 判据与对表见 `slice-e2-k40-key.md` §6 + 新建 `evidence/S31/stage31-b-k40-reverify.md`；Key 全程不入 git/日志/raw（屏上仅 `***尾4`）。
+
+**S4-a（K40 全流程自跑，09-24 16:17 触顶停手轮）**：脚本断言 18 格（S0a/S0b/S1b/S1c/S2a~c/S3a~c/S4a/S5a~c/S6a~f/S7a/S8a）；
+真请求 5/6 上行（TIMEOUT×1、EMPTY_ACTIONS×2、成×2——含 1 次 ctx-off 受控诊断，同措辞方差在册，两读法未定不下结论）；
+raw 八份带时戳入证（r1~r7+d1），自纠五条（最重=假终止通知→双驱动互污，r4/r5 整跑作废；S0b 设备独占锁由此立）；
+设备事实增量 F-4~F-7；**产品代码零改动**；交付=半批（通道面绿读数+卡点归因钉死，全链待老板一句话）。
+S4-b=英文装机话术 DRAFT v1（每句对磁盘，两处 `[pending S4-a]` 挂账不冒领，非母语自标）。

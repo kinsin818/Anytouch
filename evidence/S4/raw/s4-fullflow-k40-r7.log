@@ -1,0 +1,16 @@
+[2026-09-24 16:12:44] ===== S0 前置 =====
+      | 本轮靶 apk md5=37d2e1999a6e302413db857f15084f9b 路径=app/build/outputs/apk/debug/app-debug.apk
+[0;32mPASS[0m S0a 锁屏不在场 ::     isKeyguardShowing=false
+[0;32mPASS[0m S0b 设备独占前置（锁已立 pid=121419）
+[2026-09-24 16:12:44] ===== S1 起应用 + 授权在位 =====
+      | pid=26136（测试通道禁 force-stop，常驻进程真冷启动做不了=设备事实 F-3，此处不冒称冷启动）
+[0;32mPASS[0m S1b 无障碍服务在位（dumpsys accessibility 含自家包名）
+[0;32mPASS[0m S1c 前置键盘已收起（mInputShown=false，注入通道干净）
+[2026-09-24 16:12:49] ===== S2 代填 Key（S3-R5 通道；脚本不读不印 Key） =====
+      | S2 决策读数：到底=1 缝=0 尾行=[本机已保存 Key：***JgYp]
+[0;32mPASS[0m S2a 凭据已在机，复用不重打 :: [本机已保存 Key：***JgYp]（来历=本流程前一轮 S3-R5 注入）
+[0;32mPASS[0m S2b 自家面板凭据行在场 :: [本机已保存 Key：***JgYp]
+[0;32mPASS[0m S2c 整页扫描无 Key 形态字面（真凭据在场）
+[2026-09-24 16:13:20] ===== S3 真 HTTPS 编译（第 1 次真请求，上限 4） =====
+[0;31mFAIL[0m S3a :: 真 HTTPS 编译被拒 :: 09-24 16:14:45.555 26136 26454 W AnytouchRun: S3SMOKE compile refused gate=null kind=EMPTY_ACTIONS stage=validate rows=29 detail=模型认为这句话编不出可执行步骤（返回了空列表）。请把目标拆成看得见的具体动作，例如先点哪个可见文字。（归因：validate·空动作数组（模型拒编或意图不可编译））
+S4-FULLFLOW RUN r7 end 2026-09-24 16:14:45 RC=2
