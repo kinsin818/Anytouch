@@ -94,7 +94,9 @@ wait_home_scrollable() {
         i=$((i + 1))
     done
     MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ready.xml >/dev/null 2>&1
-    return 0
+    # 超时=前置没立住，必须响亮地失败。原来这里 `return 0`：一条永不 FAIL 的门禁就是假门禁，
+    # 它把"环境没摆好"洗成"产品跑不动"，红项落在 C1 头上、真因埋在列表没排布完/ROM 词表不匹配里。
+    return 1
 }
 
 # ---------- C1 混合链：Settings 首页 滚动+点击 ----------
@@ -104,7 +106,11 @@ MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/n
 # 设备实证（AVD 三档矩阵收口轮）：宿主并跑 3 台模拟器时 sleep 2/5 不够——首页容器已存在但
 # 列表未排布完，scroll/click 明示拒绝出 perform_failed 假红；固定沉降 + scrollable 就绪轮询。
 sleep 8
-wait_home_scrollable
+if ! wait_home_scrollable; then
+    # 不拿这条未立住的前置去判 C1 的产品成败：真机上 RID_HOME（AOSP 口径）压根不叫这名字（K40 实证：
+    # MIUI 首页容器是 nestedheaderlayout/scroll_headers，见 evidence/S2/t3-k40-first-contact.md 真机轮归因）。
+    bad "C1 前置未立：15s 内没读到 scrollable=\"$RID_HOME\" —— 本条红归因于环境/ROM 词表，不归产品"
+fi
 run_case "C1 混合链(scroll+click Settings)" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"scroll\",\"source\":\"node\",\"value\":{\"resource_id\":\"$RID_HOME\",\"direction\":\"forward\"},$SAFE},{\"action_id\":\"c1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE}]'"
 
@@ -118,6 +124,37 @@ run_case "C2 type_text 经典EditText" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"cs\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"smoke c2 $(date +%s)\"},$SAFE}]'"
 
 # ---------- C3 type_text 自家 Compose（resource_id 裸 testTag；keep_fg 自目标） ----------
+# 设备实证（09-24 飞行模式重跑 · 模拟器 + 带 INTERNET 同源构建）：C3 出
+# `L1 NO_MATCH resource-id 'task_input' 零命中`，而把面板滚到底再 dump，task_input 就在树里。
+# 结论不是"执行器坏了"，是一条**自家窗的设备事实**：Compose 长面板折叠线以下的节点未合成就不进
+# 无障碍树——切片 D 立起 BYOK 面板之后，task_input 被推到了折叠线以下（这条要记进证据，
+# 它同时说明"对自家窗的目标可达性受滚动位置影响"）。
+# 另一半是脚本自己欠的前置：前置动作必须自复核——先带前台、滚到节点在树里，再下发这一条。
+wait_own_task_input() {
+    MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
+    sleep 2
+    local sz w h i=0
+    sz=$(MSYS_NO_PATHCONV=1 $ADB shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9]*x[0-9]*' | tail -1)
+    w=${sz%x*}; h=${sz#*x}
+    [ -n "${w:-}" ] && [ -n "${h:-}" ] || { w=500; h=1000; }
+    while [ "$i" -lt 8 ]; do
+        if MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/.smoke_ti.xml >/dev/null 2>&1 &&
+           MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ti.xml 2>/dev/null | grep -qa 'resource-id="task_input"'; then
+            MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ti.xml >/dev/null 2>&1
+            return 0
+        fi
+        MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ti.xml >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 $ADB shell input swipe "$((w / 2))" "$((h * 70 / 100))" "$((w / 2))" "$((h * 30 / 100))" 400 >/dev/null 2>&1
+        sleep 1
+        i=$((i + 1))
+    done
+    return 1
+}
+if wait_own_task_input; then
+    echo "      | C3 前置自复核：task_input 已在无障碍树里（滚到面板底部）"
+else
+    echo "      | C3 前置未成立：滚了 8 格仍读不到 task_input（下面这条按自家回执出结论，不猜）"
+fi
 run_case "C3 type_text Compose自目标" "ok=1 total=1 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"task_input\",\"input\":\"smoke c3 $(date +%s)\"},$SAFE}]' --ez keep_fg true"
 

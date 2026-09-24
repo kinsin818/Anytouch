@@ -103,10 +103,27 @@ class GcmBlobCipher(private val keyProvider: () -> SecretKey) {
         }
     }
 
+    /**
+     * 加密半边**不自己造 IV**——这是真机 K40 打出来的第一条设备事实（切片 E，09-23 深夜）：
+     * 别名密钥按 `setRandomizedEncryptionRequired(true)` 生成时，`Cipher.init` 传调用方 nonce
+     * 会被 keystore2 直接拒：`In authorize_create, NONCE is present, although CALLER_NONCE is not present`
+     * （Error -55 → 上层 `InvalidAlgorithmParameterException`）。
+     * 假密钥提供器（单测走 SunJCE）没有这道授权闸，所以这条在 JVM 全绿的状态下藏了整整一片。
+     *
+     * 改法取"更安全的那半边"而不是放开闸门：让系统生成 nonce，再从 `cipher.parameters` 取回来前置。
+     * blob 格式（IV‖密文）与解密半边一字未动 ⇒ 老文件不需要迁移；放开 `CALLER_NONCE` 能把"nonce 唯一性"
+     * 从硬件保证降级成"我们自己的 SecureRandom 大概不会重"，那是拿安全换省事，不做。
+     */
     fun encrypt(plain: ByteArray): ByteArray {
-        val iv = ByteArray(IV_LEN).also { java.security.SecureRandom().nextBytes(it) }
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, keyProvider(), GCMParameterSpec(TAG_BITS, iv))
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, keyProvider()) }
+        val iv = try {
+            cipher.parameters.getParameterSpec(GCMParameterSpec::class.java).iv
+        } catch (e: Exception) {
+            throw GeneralSecurityException("系统没把这次加密用的 IV 交回来，拒绝落盘（宁可保存失败，不写解不开的文件）", e)
+        }
+        // 解密半边按固定 IV_LEN 切 blob：ROM 给了别的长度就必须当场拒，不能写出"看着成功、其实解不开"的文件
+        if (iv.size != IV_LEN) {
+            throw GeneralSecurityException("系统给的 IV 长度是 ${iv.size}，与 blob 格式约定的 $IV_LEN 不符，拒绝落盘")
         }
         return iv + cipher.doFinal(plain)
     }

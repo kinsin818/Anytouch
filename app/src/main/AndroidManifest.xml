@@ -3,6 +3,12 @@
 
     <!-- S1 红线：无任何网络权限。BYOK 网络仅在 S3 由用户显式配置后引入。
          旧的系统弹窗悬浮权限已按军令 L1 移除：悬浮球/二次确认走 TYPE_ACCESSIBILITY_OVERLAY -->
+    <!-- S3 交接落笔：上面那句"仅在 S3 引入"一直停在注释里没人执行，真机上表现为
+         E5a transport 报 Permission denied（K40 实证见 evidence/S3/raw/byok-smoke-k40-e1pre.log [K3]）。
+         只加 INTERNET 这一条：ACCESS_NETWORK_STATE 全仓无人使用（grep 为空），多余权限一律不加。
+         执行期零网络靠"代码里根本没有网络调用"锁死，不靠缺权限锁死——
+         此前"飞行模式 device-smoke 全绿"有一部分是被这条缺失的权限兜住的，属假绿，见同证据文件自纠条。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

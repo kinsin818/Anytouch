@@ -1,0 +1,79 @@
+=== [F2] 飞行模式对拍**重跑**（模拟器 emulator-5554 · 构建带 INTERNET · 补权限后的第一条非空判零网络执行证据）===
+时间：[F2a] 输出落盘于主机 2026-09-24 01:09:41 +0800，[F2b] 落盘于 01:14:48 +0800（两次相隔 5 分 07 秒，原文都留；设备侧 logcat 时间戳是模拟器自己的 UTC 口径，逐字照录不改）
+与首跑（切片 E-pre 那轮"13/13 全绿"）的区别：首跑那枚 APK **根本没有 INTERNET 权限**——
+  "执行期没发出网络"有一部分是缺权限兜住的，属**空判**（自纠见 evidence/S3/slice-e2-k40-key.md §F-1）。
+  这一跑装的是与 K40 同一枚构建（D:/Anytouch-e1w 出包），且 dumpsys package 里
+  `android.permission.INTERNET: granted=true` 有读数；断网前置另有 `Active default network: none` 读数。
+[F2a] 首跑暴露 C3 红项 = 脚本自己欠前置（自家 Compose 折叠线以下节点不进无障碍树）；
+[F2b] 补前置后 13/13 ALL PASS。原始输出（ANSI 颜色已去，其余逐字）。
+
+---- [F2a] 首跑（C3 前置未做） ----
+
+### 0. 装的是带 INTERNET 的构建？
+      android.permission.INTERNET
+      android.permission.INTERNET: granted=true
+
+### 1. 断网前置：飞行模式 on + Wi-Fi/数据 off
+1
+Active default network: none
+
+### 2. 无障碍仍绑定？
+bound
+
+### 3. device-smoke 整轮（执行期零网络那组断言）
+PASS C1 混合链(scroll+click Settings) :: 09-23 17:06:43.897  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-23 17:06:57.095  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+FAIL C3 type_text Compose自目标 :: 期望含 [ok=1 total=1 stopped=false]，实际 [09-23 17:07:14.460  6213  6213 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"] | 明细: 09-23 17:07:14.460  6213  6213 I AnytouchRun: S1SMOKE-DETAIL code=NODE_NOT_FOUND msg=L1 NO_MATCH resource-id 'task_input' 零命中 | L2 NOT_ATTEMPTED 请求未给出 text/contentDescription | L3 NOT_ATTEMPTED 请求未给出层级路径 
+PASS C4 负例 NODE_NOT_FOUND :: 09-23 17:07:30.484  6213  6213 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-23 17:07:58.749  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 2s :: 09-23 17:08:12.812  6213  6213 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 3s :: 09-23 17:08:34.438  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-23 17:09:00.327  6213  6213 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C9 服务未连时开录被拒（注入通道同判，无空会话）
+PASS C10 执行中开录被拒（球收起态不得录制）
+
+device-smoke: 有失败项
+
+### 4. 收尾恢复网络
+0
+Active default network: 106
+FLIGHT_RERUN_RC=1
+
+---- [F2b] 复跑（C3 前置自复核补齐 → 13/13 ALL PASS） ----
+
+### 0. 装的是带 INTERNET 的构建？
+      android.permission.INTERNET
+      android.permission.INTERNET: granted=true
+
+### 1. 断网前置：飞行模式 on + Wi-Fi/数据 off
+1
+Active default network: none
+
+### 2. 无障碍仍绑定？
+bound
+
+### 3. device-smoke 整轮（执行期零网络那组断言）
+PASS C1 混合链(scroll+click Settings) :: 09-23 17:12:03.348  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-23 17:12:16.737  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+      | C3 前置自复核：task_input 已在无障碍树里（滚到面板底部）
+PASS C3 type_text Compose自目标 :: 09-23 17:12:25.255  6213  6213 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-23 17:12:41.634  6213  6213 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-23 17:13:09.838  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 0s :: 09-23 17:13:23.814  6213  6213 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 1s :: 09-23 17:13:43.510  6213  6213 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-23 17:14:07.305  6213  6213 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C9 服务未连时开录被拒（注入通道同判，无空会话）
+PASS C10 执行中开录被拒（球收起态不得录制）
+
+device-smoke: ALL PASS
+
+### 4. 收尾恢复网络
+0
+Active default network: none
+FLIGHT_RERUN_RC=0
