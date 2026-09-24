@@ -32,8 +32,8 @@
 | nvidia/nemotron-3-ultra-550b-a55b | 503（容量不足，复探仍 503） | 不选 |
 | nvidia/nemotron-4-340b-instruct、llama-3.1-nemotron 51b/70b/ultra、mixtral-8x22b、yi-large、jamba-1.5-large、gemma-3-12b、phi-3.5-moe、granite-3.0-8b、zamba2、codestral-22b、mistral-large、mistral-large-2-instruct、deepseek-coder-6.7b-instruct、codellama-70b | 404 | 在册不可调用，一律不选 |
 
-**与老板"8 个"的口径差（照实不糊）**：本窗实测 200 共 **10 款**；表用 7 行 + 备用 1 款 = 8 款——
-"8"按"表可用池"落齐，10 款全量登记在上表，谁多谁少以本表为准，不倒推口径。
+**与老板"8 个"的口径差——已收口（S5-R5 令原文："模型映射表以Qoder探针实测的10个200可用模型为准，之前错的全换了就好，不用卡8个的数"）**：
+权威可用池=本表实测 200 的 **10 款**；key.txt 表内 7 行+备用 1 款皆为池内取用，"8"不再作准数。
 
 ## 3. 新表磁盘现值（key.txt 第 18~24 行，逐字）
 
