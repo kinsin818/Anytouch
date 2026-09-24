@@ -1,8 +1,8 @@
 # Anytouch — Install & Start Guide (Gumroad edition)
 
-> Status: DRAFT v1 for S4-b (military order `orders/ANYTOUCH-S4-packaging-ORDER.md` §1/§3).
+> Status: FINAL v1 for S4-b (military order `orders/ANYTOUCH-S4-packaging-ORDER.md` §1/§3; batch closed by boss
+> ruling 2026-09-24: "把话术两处pending按现有背书转正，S4批直接结了" — see ORDER §2-4 re-nail record).
 > Every capability sentence below is back-traceable to an on-disk engineering record (Appendix B).
-> Sentences marked **[pending S4-a]** must be re-checked against the S4-a run log before publishing.
 > **Language note: written by the build agent, not proofread by a native speaker — boss review required before listing.**
 
 ---
@@ -98,8 +98,10 @@ Tap **Run task**. The floating ball appears; tap it to abort instantly.
 High-risk steps (things that could spend money or send data) demand an explicit on-screen
 **confirm** — and time out to **refuse** if you don't. No silent dangerous actions, ever.
 
-Execution uses **no network**: airplane-mode playback is a shipped acceptance check. **[pending
-S4-a: tie to the S6a/S6d/S6e/S6f green lines of a *quiescent* run under `evidence/S4/raw/` — r4's green S6 lines exist but the round was voided (dual-driver contamination, see `evidence/S4/slice-s4a-fullflow.md` §3-5)]**
+Execution uses **no network**: airplane-mode playback is a shipped acceptance check — backed on disk by a static
+red-line scan (zero network calls anywhere in the product's execution path, ci-local red lines A/C) and an
+emulator airplane-mode playback run at 13/13; see Appendix B row 4 for the exact records and the honest boundary
+(behavioral evidence, not packet capture).
 
 ## Privacy, in one paragraph
 
@@ -149,7 +151,7 @@ network, and only to the endpoint you chose.
 | Keystore 加密持久化 / 掩码尾 4 / 清除双槽 / 必回读比对 | `evidence/S3/slice-e2-k40-key.md` [K4] 段 E9a~c；E11a~d（老板亲点）见同文件 §6 + `orders/ANYTOUCH-S3-byok-ORDER.md` §5.1 "E 收口" 行 |
 | 地址政策拒本地元数据网段/重定向/userinfo | `evidence/S3/slice-b-key-surface.md`（BaseUrlPolicy 九档） |
 | 上行=可见 text/resource-id，不含输入框内容与截图，条数上屏 | `orders/ANYTOUCH-S3-byok-ORDER.md` §0 裁 2 + `evidence/S3/slice-c-screen-context.md`；E5c/E5d/E10 rows 实采（`slice-e2-k40-key.md`） |
-| 执行期零网络（行为证据） | **[pending S4-a]** K40 全链 S6 组现无有效轮：r4 绿读数在档但整轮因双驱动互污作废（`evidence/S4/slice-s4a-fullflow.md` §3-5，raw r4 逐字保留）；模拟器侧飞行模式 device-smoke 13/13 见 `evidence/S3/slice-e1-emulator-pre.md`——AVD≠真机，本行不冒顶，待独占轮补 |
+| 执行期零网络（行为证据） | 静态：产品执行路径零网络关键字，ci-local 红线 A/C 实跑 PASS（`evidence/S2/s2-ondevice-record-replay.md` §7/§123 行）；行为：模拟器飞行模式 device-smoke 13/13（`evidence/S3/slice-e1-emulator-pre.md`）；K40 离线段（S5~S7）绿读数在 raw r4 逐字保留，但该轮整体判双驱动互污作废、不作真机整链背书（`evidence/S4/slice-s4a-fullflow.md` §3-5）。边界照实不洗：行为证据≠抓包字节证明；AVD≠真机；真机整链绿轮未达成——老板 09-24 裁定以现有背书定案（原文入 ORDER §2-4 钉档），本行不再挂"待补轮" |
 | 编译互斥四入口（跑着不许串状态） | commit 72af452，`evidence/S3/slice-f-mutex-vocab.md` |
 | 词表只有 click/scroll/type_text/wait，越权整本拒并显式 | `ExecutorVocabulary` 真源 + E5i 真机命中（`slice-e2-k40-key.md` §6） |
 | 高危动作二次确认/超时默认拒 | `evidence/S2/stage-highrisk-confirm-device.md`（设备实证：超时默认拒绝+面板可见） |
