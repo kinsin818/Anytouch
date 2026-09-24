@@ -10,7 +10,7 @@
 
 | 片 | 内容 | 验收判据（可证伪） |
 |---|---|---|
-| S5-a 三预制模板 | 清单沿用 P0-4 已改判：**Gmail 清理 / 相册清理 / Discord 签到**（游戏签到不进预置库=用户自建白名单外模板）。模板=硬编码步序 JSON，**零模型调用**（R3-1 原判），走既有 `applyEdit` 唯一写口进任务框 | 每模板设备实证 100% 成功率（K40 或模拟器按模板性质选靶机，判据逐条 raw 带时戳入 `evidence/S5/`）；模板库有磁盘单一真源文件，UI 可一键装载；越权动作编译不进模板（词表仍 `ExecutorVocabulary` 单一真源） |
+| S5-a 三预制模板 | 清单沿用 P0-4 已改判：**Gmail 清理 / 相册清理 / Discord 签到**（游戏签到不进预置库=用户自建白名单外模板）。模板=硬编码步序 JSON，**零模型调用**（R3-1 原判），走既有 `applyEdit` 唯一写口进任务框。**验收靶机=老板 S5-R6 改判：AVD 原生 GMS 镜像 avd34（Android 14）+ avd35（Android 15），不占 K40 真机轮次**（摸底实证：Gmail/相册两 AVD 预装对盘、Discord 需装 APK=老板已令） | 每模板设备实证 100% 成功率（**avd34+avd35 双镜像**，判据逐条 raw 带时戳入 `evidence/S5/`；口径边界：AVD≠海外真机，实证只声称 AVD 原生镜像口径）；模板库有磁盘单一真源文件，UI 可一键装载；越权动作编译不进模板（词表仍 `ExecutorVocabulary` 单一真源） |
 | S5-b GitHub 仓库 | 建仓 + 全部代码上传 + Releases 挂 debug APK（R3-3/交付物 3）；**核心执行引擎 GPLv3、其余组件许可口径随本片钉**（LICENSE 文件入库） | `git remote -v` 非空且 push 成功记录在册；Releases 页 URL + 资产 md5 与本机 `37d2e199…` 链一致（若届时有新构建则登记新 md5）；**建仓/push=外发动作，每步执行前向老板要账号侧确认，不擅动** |
 | S5-c 英文 README + 许可证 | README 全英文：使用说明、开源声明、隐私政策三段齐（交付物 2），与 S4-b 话术 `docs/onboarding-gumroad-en.md` 同源不互相矛盾；GPLv3 全文入 `LICENSE` | 中文残留扫描=0（正文段）；三段各指到具体章节；README 承诺逐句对盘（背书口径沿 S4-b 附录 B 纪律，"行为证据≠抓包"类边界不洗） |
 
@@ -30,6 +30,6 @@
 
 | 片 | 状态 | 账 |
 |---|---|---|
-| S5-a | ⬜ 未开工（按 S5-R5 序：c 后续开，开工前先核 K40 上 Gmail/相册/Discord 装机态） | |
+| S5-a | 🟡 靶机改判已落（S5-R6：avd34+avd35 原生 GMS 镜像），模板本体开发中 | 摸底：K40 421 包三 App 零命中→老板改判 AVD；avd34 实测 `com.google.android.gm`/`com.google.android.apps.photos`/`com.android.vending` 在架，`com.discord` 不在架待装 APK |
 | S5-b | ⬜ 未开工（外发动作，每步向老板要账号侧确认） | |
 | S5-c | ✅ 本批落地 | LICENSE=gnu.org 官方 GPLv3 全文 35149B/674 行、尾部 why-not-lgpl 段核对一致；README 全英文重写（旧 6 行中文留 git 历史），使用说明/开源声明/隐私政策三段齐 + Known limitations 逐条对盘；中文残留扫描=0、nvapi/Key 字样扫描=0；承诺逐句对盘（compileSdk 36/targetSdk 34/minSdk 26 取自 `app/build.gradle.kts`，"真机整链绿未达成"按 S4 定案口径直引 evidence 原文，UI 英文表述仅陈述"本构建未随发"不做路线图承诺）；与 `docs/onboarding-gumroad-en.md` 同源不矛盾（Samsung/Moto 未实测、中文 UI、纯节点执行三处在两文一致） |
