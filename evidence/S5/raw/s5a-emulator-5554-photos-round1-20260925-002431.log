@@ -1,0 +1,70 @@
+# S5-a photos_cleanup 全链轮 1  @ 2026-09-25T00:24:31+08:00  serial=emulator-5554
+09-24 16:26:12.997 26711 26711 I AnytouchRun: S1SMOKE ok=8 total=9 stopped=true stop="NODE_NOT_FOUND"
+# 磁盘终判 .trashed 残留=6 种子残留=0
+--------- beginning of main
+09-24 16:24:37.211 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.widget.GridView/null/null id=com.google.android.apps.photos:id/recycler_view
+09-24 16:24:37.240 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:24:43.068 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:24:44.224 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:24:49.078 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:24:50.173 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:24:51.905 26711 26711 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageView/Delete/Delete src=android.widget.ImageView/null/Delete id=com.google.android.apps.photos:id/trash
+09-24 16:24:54.137 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:24:55.319 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:24:56.714 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:24:57.788 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:02.688 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:03.763 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:05.517 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.widget.GridView/null/null id=com.google.android.apps.photos:id/recycler_view
+09-24 16:25:05.559 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:25:07.596 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:08.650 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:13.325 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:14.427 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:16.363 26711 26711 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageView/Delete/Delete src=android.widget.ImageView/null/Delete id=com.google.android.apps.photos:id/trash
+09-24 16:25:18.364 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:19.440 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:20.820 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:21.922 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:25.063 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.widget.GridView/null/null id=com.google.android.apps.photos:id/recycler_view
+09-24 16:25:25.081 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:25:26.712 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:27.817 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:31.364 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:32.548 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:33.859 26711 26711 I AnytouchRun: S3SMOKE model ledger written origin=template steps=9 replaced=5
+09-24 16:25:33.860 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=0 type=click value={"content_desc":"Show Navigation Drawer"}
+09-24 16:25:33.860 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=1 type=wait value={"ms":800}
+09-24 16:25:33.860 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=2 type=click value={"text":"Trash"}
+09-24 16:25:33.860 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=3 type=wait value={"ms":1500}
+09-24 16:25:33.861 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=4 type=click value={"content_desc":"More options"}
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=5 type=wait value={"ms":800}
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=6 type=click value={"text":"Empty trash"}
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=7 type=wait value={"ms":800}
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S3SMOKE-MODEL-STEP index=8 type=click value={"text":"Delete permanently"}
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S3SMOKE-TASK [{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"text":"Delete permanently"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+09-24 16:25:33.863 26711 26711 I AnytouchRun: S5SMOKE template load ok id=photos_cleanup via=adb_inject steps=9 replaced=5 verification=STRUCTURAL_ONLY
+09-24 16:25:40.876 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.widget.GridView/null/null id=com.google.android.apps.photos:id/recycler_view
+09-24 16:25:40.896 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:25:46.241 26711 26711 W AnytouchRun: S2SMOKE record abandoned by service lifecycle, 已录事件保留可编译（不静默蒸发）
+09-24 16:25:47.341 26711 26711 W AnytouchRun: S2SMOKE record rebound: 服务重连后续采（掉线窗口内的事件已漏，见服务生命周期日志）
+09-24 16:25:50.421 26711 26711 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.ImageButton/Show Navigation Drawer/Show Navigation Drawer src=android.widget.ImageButton/null/Hide Navigation Drawer id=null
+09-24 16:25:51.406 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.support.v7.widget.RecyclerView/null/null id=com.google.android.apps.photos:id/navigation_items
+09-24 16:25:51.517 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/navigation_items delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:25:53.573 26711 26711 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.LinearLayout/Trash/null src=null/null/null id=null
+09-24 16:25:53.735 26711 26711 I AnytouchRun: S2SMOKE content no-match(严档 kids=-1/事件拷贝): want=[Trash] 同cls节点=2 roots=1 near=[0] kids=1 texts=([], []) || [0, 0, 0, 0, 0, 1, 0, 1] kids=2 texts=([Select, Trash], [More options, Navigate up])
+09-24 16:25:53.771 26711 26711 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[Trash] 同cls节点=2 roots=1 near=[0] kids=1 texts=([], []) || [0, 0, 0, 0, 0, 1, 0, 1] kids=2 texts=([Select, Trash], [More options, Navigate up])
+09-24 16:25:53.773 26711 26711 W AnytouchRun: S2SMOKE path unprovable: src=null evt=android.widget.LinearLayout/[Trash]/null walkDepth=-1 roots=android.widget.FrameLayout(7390,null)kids=2pkg=com.google.android.apps.photostext=null
+09-24 16:25:54.012 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.support.v7.widget.RecyclerView/null/null src=android.support.v7.widget.RecyclerView/null/null id=com.google.android.apps.photos:id/recycler_view
+09-24 16:25:54.078 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=com.google.android.apps.photos:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:25:55.600 26711 26711 I AnytouchRun: S2SMOKE event-meta viewClicked evt=android.widget.FrameLayout/More options/null src=android.widget.FrameLayout/null/null id=com.google.android.apps.photos:id/action_bar_overflow
+09-24 16:25:55.729 26711 26711 I AnytouchRun: S2SMOKE content no-match(严档 kids=1/句柄子树): want=[] 同cls节点=2 roots=1 near=[] kids=1 texts=([Empty trash], []) || [0] kids=1 texts=([Empty trash], [])
+09-24 16:25:55.731 26711 26711 I AnytouchRun: S2SMOKE content no-match(宽档/句柄子树): want=[] 同cls节点=2 roots=1 near=[] kids=1 texts=([Empty trash], []) || [0] kids=1 texts=([Empty trash], [])
+09-24 16:25:55.732 26711 26711 I AnytouchRun: S2SMOKE content no-match(严档 kids=1/事件拷贝): want=[More options] 同cls节点=2 roots=1 near=[] kids=1 texts=([Empty trash], []) || [0] kids=1 texts=([Empty trash], [])
+09-24 16:25:55.733 26711 26711 I AnytouchRun: S2SMOKE content no-match(宽档/事件拷贝): want=[More options] 同cls节点=2 roots=1 near=[] kids=1 texts=([Empty trash], []) || [0] kids=1 texts=([Empty trash], [])
+09-24 16:25:55.737 26711 26711 W AnytouchRun: S2SMOKE path unprovable: src=android.widget.FrameLayout(null,null)kids=1pkg=com.google.android.apps.photostext=null evt=android.widget.FrameLayout/[More options]/null walkDepth=11 roots=android.widget.FrameLayout(7391,null)kids=1pkg=com.google.android.apps.photostext=null
+09-24 16:25:55.817 26711 26711 I AnytouchRun: S2SMOKE path=chain-unanchored(仅作去抖/折叠键，回放定位走线索): [0, 0, 0, 0, 0, 1, 0, 1, 1, 2, 1] id=com.google.android.apps.photos:id/action_bar_overflow text=null desc=More options
+09-24 16:25:55.828 26711 26711 I AnytouchRun: S2SMOKE event-meta viewScrolled evt=android.widget.ListView/null/null src=android.widget.ListView/null/null id=null
+09-24 16:25:55.831 26711 26711 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.google.android.apps.photos id=null delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+09-24 16:26:12.997 26711 26711 I AnytouchRun: S1SMOKE ok=8 total=9 stopped=true stop="NODE_NOT_FOUND"
+09-24 16:26:12.999 26711 26711 I AnytouchRun: S1SMOKE-DETAIL code=NODE_NOT_FOUND msg=L1 NOT_ATTEMPTED 请求未给出 resource-id | L2 NO_MATCH text='Delete permanently'/desc='null' trim 全等零命中（非 contains） | L3 NOT_ATTEMPTED 请求未给出层级路径

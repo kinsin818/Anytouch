@@ -1,0 +1,11 @@
+[
+  {"action_id": "open_drawer", "type": "click", "source": "node", "value": {"content_desc": "Show Navigation Drawer"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_drawer", "type": "wait", "source": "node", "value": {"ms": 800}, "safety": {"viewport_ok": true}},
+  {"action_id": "open_trash", "type": "click", "source": "node", "value": {"text": "Trash"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_trash", "type": "wait", "source": "node", "value": {"ms": 1500}, "safety": {"viewport_ok": true}},
+  {"action_id": "trash_overflow", "type": "click", "source": "node", "value": {"content_desc": "More options"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_menu", "type": "wait", "source": "node", "value": {"ms": 800}, "safety": {"viewport_ok": true}},
+  {"action_id": "tap_empty_trash", "type": "click", "source": "node", "value": {"text": "Empty trash"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_confirm", "type": "wait", "source": "node", "value": {"ms": 800}, "safety": {"viewport_ok": true}},
+  {"action_id": "tap_delete_permanently", "type": "click", "source": "node", "value": {"resource_id": "com.google.android.apps.photos:id/confirmation_button"}, "safety": {"viewport_ok": true, "click_enabled": true}}
+]

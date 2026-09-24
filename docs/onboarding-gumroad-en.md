@@ -103,6 +103,26 @@ red-line scan (zero network calls anywhere in the product's execution path, ci-l
 emulator airplane-mode playback run at 13/13; see Appendix B row 4 for the exact records and the honest boundary
 (behavioral evidence, not packet capture).
 
+## Preset templates (no key needed)
+
+Three ready-made task ledgers ship inside the app — load one with a tap and it lands in the step
+ledger exactly like a compiled task (same gate, same editability, same high-risk confirm):
+
+| Template | What it does | Verified to what level |
+|---|---|---|
+| **Photos cleanup** (`相册清理`) | Empties the Google Photos trash permanently, end to end | Full chain proven on an emulator with Google mobile services (Android 14/15 class images): load → ledger → playback → trash physically emptied |
+| **Gmail cleanup** (`Gmail 清理`) | Opens Gmail and filters to unread mail via search | Loader + structure checks only (JVM); business steps not run against a live signed-in inbox |
+| **Discord check-in** (`Discord 签到`) | Types a daily check-in message into the focused channel and sends it | Loader + structure checks only (JVM); business steps not run against a live signed-in account |
+
+**The Gmail and Discord templates require you to be signed in to those apps yourself.** Anytouch
+never performs logins, never reads your credentials and never stores them — in BYOK spirit, your
+accounts are yours; the app only automates the screen after you are already in. The template
+buttons are also inert while a compile is in flight (one mutable state at a time, on purpose).
+
+Known vocabulary gap, stated honestly: the current step vocabulary (click / scroll / type_text /
+wait) cannot express *bulk* "mark as read" in Gmail (no long-press / IME-submit step type exists
+yet), so the Gmail template ships as the unread-**triage** subset above — not a bulk cleaner.
+
 ## Privacy, in one paragraph
 
 Your API key and your screen content are only ever sent to the endpoint you configured, only while
@@ -144,7 +164,9 @@ network, and only to the endpoint you chose.
 > visible, editable steps on your phone. After that, playback is 100% offline: no account,
 > no cloud, no meter running. Hardware-encrypted key storage, per-request screen-word upload you
 > can watch and switch off, floating kill-ball, and refusal-with-an-error-message instead of
-> silent failure. Android 8+. Includes: app APK + install & start guide. Bring-your-own-key:
+> silent failure. Android 8+. Includes: app APK + install & start guide + 3 preset task templates
+> (Photos trash cleanup — fully proven on device; Gmail and Discord helpers — require your own
+> sign-in, the app never touches your credentials). Bring-your-own-key:
 > the app ships with zero AI access of its own.
 
 ## Appendix B — backing table (internal, remove before publishing)

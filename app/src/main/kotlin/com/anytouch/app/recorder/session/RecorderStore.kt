@@ -208,7 +208,7 @@ object RecorderStore {
     }
 
     /**
-     * AI 编译产物的唯一落账口（与 [stopAndCompile] 同一条流水线，不留第二套真值）：
+     * AI 编译产物 / 预制模板的**同一**唯一落账口（与 [stopAndCompile] 同一条流水线，不留第二套真值）：
      * 步序账 + 任务框建议必须**同写**，且建议一律由 [encodeActions] 现算——
      * 模型原文的 JSON（键序/空格不同）若直接进任务框，V-3 准入会在下一次"执行任务"时把它判成
      * "机器建议已作废"而拒放，等于 AI 编译出的步骤自己放不出来（JVM 用例锁这一条）。
@@ -218,6 +218,10 @@ object RecorderStore {
      * 2. [ModelLedger.RefusedUnsupportedType]——词表档（S3-F 新增），支持集由调用方从 `:byok` 真源注入
      *    （`recorder/` 不许 import 编译模块＝红线 G，判据本体在纯函数 `firstUnsupportedModelAction`）。
      *
+     * [origin] 只进日志不改判据（S5-a：预制模板与 AI 编译产物共用此口，脚本按 origin 分账；
+     * 编译档门禁不看它——见下一段"不看 compileBusy"的原因，那条对模板来路同样成立：
+     * 编译互斥由**入口**把关，见 MainActivity.loadTemplate）。
+     *
      * 这一档**不看 `compileBusy`**，也不该看：本函数就是被编译那一跑**还在路上时**调的
      * （`compile/ByokGateway.compile` 里 `controller.compile` 先落账、`state.endCompile` 后翻格），
      * 在这里加编译门禁等于让编译产物永远落不了账——自锁死。
@@ -226,16 +230,21 @@ object RecorderStore {
     fun acceptModelActions(
         actions: List<com.anytouch.contracts.Action>,
         supportedTypes: Set<String>,
+        origin: String = "model",
     ): ModelLedger {
         if (AppState.running.value) {
-            Log.w(TAG, "S3SMOKE model ledger refused gate=RUNNING incoming=${actions.size}")
+            Log.w(
+                TAG,
+                "S3SMOKE model ledger refused gate=RUNNING origin=$origin incoming=${actions.size}",
+            )
             return ModelLedger.RefusedRunning
         }
         firstUnsupportedModelAction(actions, supportedTypes)?.let { unsupported ->
             // 留痕口径与既有 refused 行同构；支持集排序后进日志，脚本与人读的是同一份
             Log.w(
                 TAG,
-                "S3SMOKE model ledger refused gate=UNSUPPORTED_TYPE index=${unsupported.index} " +
+                "S3SMOKE model ledger refused gate=UNSUPPORTED_TYPE origin=$origin " +
+                    "index=${unsupported.index} " +
                     "type=${unsupported.type} supported=${modelLedgerSupportedTypesCopy(supportedTypes)} " +
                     "incoming=${actions.size}（整本不落账）",
             )
@@ -246,7 +255,10 @@ object RecorderStore {
         compiledActions.value = actions
         clearEditRejection()
         publishSuggestion(json)
-        Log.i(TAG, "S3SMOKE model ledger written steps=${actions.size} replaced=${stale.size}")
+        Log.i(
+            TAG,
+            "S3SMOKE model ledger written origin=$origin steps=${actions.size} replaced=${stale.size}",
+        )
         actions.forEachIndexed { i, action ->
             Log.i(TAG, "S3SMOKE-MODEL-STEP index=$i type=${action.type} value=${action.value}")
         }

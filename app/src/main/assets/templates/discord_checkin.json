@@ -1,0 +1,7 @@
+[
+  {"action_id": "open_input", "type": "click", "source": "node", "value": {"content_desc": "Message"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_input", "type": "wait", "source": "node", "value": {"ms": 1000}, "safety": {"viewport_ok": true}},
+  {"action_id": "type_checkin", "type": "type_text", "source": "node", "value": {"content_desc": "Message", "input": "Daily check-in ✅"}, "safety": {"viewport_ok": true}},
+  {"action_id": "pause_typed", "type": "wait", "source": "node", "value": {"ms": 800}, "safety": {"viewport_ok": true}},
+  {"action_id": "tap_send", "type": "click", "source": "node", "value": {"content_desc": "Send"}, "safety": {"viewport_ok": true, "click_enabled": true}}
+]

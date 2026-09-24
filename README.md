@@ -143,6 +143,12 @@ as required by the project's delivery terms.
   `evidence/` ledger; a single uninterrupted full-chain green run on a real device is recorded as
   "not achieved, accepted by project decision" — see `evidence/S4/slice-s4a-fullflow.md`.
 - The in-app UI is Chinese in this build; an English UI is not shipped in this build.
+- **Preset templates ship at two verification tiers.** *Photos trash cleanup* is proven end-to-end
+  on emulator images carrying Google mobile services. *Gmail cleanup* and *Discord check-in* are
+  loader- and structure-verified only (JVM locks): their business steps have never been run against
+  a live signed-in account (no test accounts are provided, by decision), and the Discord app has
+  never been installed on any of our target emulators — its locators are best-effort. Both require
+  you to be signed in yourself; the app never performs or reads logins.
 
 ## Support
 

@@ -1,0 +1,6 @@
+[
+  {"action_id": "open_search", "type": "click", "source": "node", "value": {"content_desc": "Search"}, "safety": {"viewport_ok": true, "click_enabled": true}},
+  {"action_id": "pause_search", "type": "wait", "source": "node", "value": {"ms": 1200}, "safety": {"viewport_ok": true}},
+  {"action_id": "type_unread_query", "type": "type_text", "source": "node", "value": {"content_desc": "Search mail", "input": "is:unread"}, "safety": {"viewport_ok": true}},
+  {"action_id": "pause_results", "type": "wait", "source": "node", "value": {"ms": 1500}, "safety": {"viewport_ok": true}}
+]

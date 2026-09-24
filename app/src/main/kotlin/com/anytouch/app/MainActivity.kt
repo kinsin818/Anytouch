@@ -40,8 +40,12 @@ import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.encodeActions
 import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.template.PresetTemplateLibrary
+import com.anytouch.app.template.TemplateLoad
+import com.anytouch.app.template.TemplateLoader
 import com.anytouch.app.ui.ByokPanel
 import com.anytouch.app.ui.StepListEditor
+import com.anytouch.byok.executorSupportedActionTypes
 
 /**
  * 任务注入窗 + 录制控制窗（S2-ONDEVICE 主窗窄口）：
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     val stopRejection by RecorderStore.stopRejection.collectAsState()
                     val compileBusy by AppState.compileBusy.collectAsState()
                     val taskRejection by AppState.taskRejection.collectAsState()
+                    val templateRejection by AppState.templateRejection.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
                         suggestion?.let {
@@ -169,6 +174,39 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.testTag("step_edit_rejection"),
                             )
                         }
+                        // 预制模板装载（S5-a，军令 R3-1 三模板）：与 AI 编译同一落账口、同一拒因上屏律。
+                        // 灰只是提示——真门禁在 loadTemplate 入口与 acceptModelActions，adb 注入绕按钮同样被拒。
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { loadTemplate("photos_cleanup", "ui_button") },
+                                enabled = !compileBusy,
+                                modifier = Modifier.testTag("template_photos"),
+                            ) { Text("相册模板") }
+                            Button(
+                                onClick = { loadTemplate("gmail_cleanup", "ui_button") },
+                                enabled = !compileBusy,
+                                modifier = Modifier.testTag("template_gmail"),
+                            ) { Text("Gmail 模板") }
+                            Button(
+                                onClick = { loadTemplate("discord_checkin", "ui_button") },
+                                enabled = !compileBusy,
+                                modifier = Modifier.testTag("template_discord"),
+                            ) { Text("Discord 模板") }
+                        }
+                        // S5-R7 上架口径同源：这两个模板需用户先在对应 App 内自行登录；本工具不做登录、不碰凭证
+                        Text(
+                            PresetTemplateLibrary.signInHint(),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        // 装载被拒必须显形（与开录/编辑/派发同律：静默"点了没反应"=黑洞）
+                        templateRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("template_rejection"),
+                            )
+                        }
                         OutlinedTextField(
                             value = taskJson,
                             onValueChange = { taskJson = it },
@@ -260,6 +298,11 @@ class MainActivity : ComponentActivity() {
             RecorderStore.injectSerialized(json)
             handled = true
         }
+        intent.getStringExtra(EXTRA_TEMPLATE_LOAD)?.takeIf { it.isNotBlank() }?.let { id ->
+            // 模板装载注入通道（S5-a 冒烟用）：与 UI 按钮同一入口同一门禁，被拒同样出 refused 日志
+            loadTemplate(id, "adb_inject")
+            handled = true
+        }
         intent.getStringExtra(EXTRA_TASK_JSON)?.let { json ->
             submitTask(json, "adb_inject")
             handled = true
@@ -277,6 +320,67 @@ class MainActivity : ComponentActivity() {
      * （`platform/AccessibilityGate.kt`）。编译那一跑回来会整本换账，此刻放行执行就是把"正在跑的那一跑"
      * 和"屏上的账"变成两套（旧形态：run_task 在编译中途溜进去，随后 `acceptModelActions` 收 RefusedRunning）。
      */
+    /**
+     * 预制模板装载入口（S5-a）：编译互斥在**入口**把关（`acceptModelActions` 那唯一落账口刻意不看
+     * compileBusy——它要接编译产物，看了就自锁死；RUNNING 档与词表档仍在落账口，本函数不复制判据）。
+     * 成功路径不改任务框一个字：产物经 `publishSuggestion` 走既有建议流进框（与 AI 编译同一通道，
+     * V-3 准入因此对"装载后直接执行"逐字放行）。三条来路（UI 按钮/adb 注入）任一被拒都红字上屏+留痕。
+     */
+    private fun loadTemplate(id: String, via: String) {
+        if (AppState.compileBusy.value) {
+            val copy = runGateOf(
+                running = AppState.running.value,
+                compileBusy = true,
+            ).runUserCopy().orEmpty()
+            AppState.templateRejection.value = copy
+            Log.w(TAG, "S5SMOKE template load refused gate=COMPILING id=$id via=$via detail=$copy")
+            return
+        }
+        when (val load = TemplateLoader.load(applicationContext, id)) {
+            is TemplateLoad.Failed -> {
+                AppState.templateRejection.value = load.reason
+                Log.w(TAG, "S5SMOKE template load refused gate=LOADER id=${load.id} via=$via detail=${load.reason}")
+            }
+            is TemplateLoad.Ok -> {
+                val verdict = RecorderStore.acceptModelActions(
+                    load.actions,
+                    executorSupportedActionTypes,
+                    origin = "template",
+                )
+                when (verdict) {
+                    is RecorderStore.ModelLedger.Written -> {
+                        AppState.templateRejection.value = null
+                        Log.i(
+                            TAG,
+                            "S5SMOKE template load ok id=${load.template.id} via=$via " +
+                                "steps=${verdict.steps} replaced=${verdict.replaced} " +
+                                "verification=${load.template.verification}",
+                        )
+                    }
+                    is RecorderStore.ModelLedger.RefusedRunning -> {
+                        val copy = "任务执行中，模板整本拒落账（在跑的这一跑与屏上的账不许变两套）。" +
+                            "等这一跑结束或点悬浮球停止后再装载。"
+                        AppState.templateRejection.value = copy
+                        Log.w(TAG, "S5SMOKE template load refused gate=RUNNING id=${load.template.id} via=$via")
+                    }
+                    is RecorderStore.ModelLedger.RefusedUnsupportedType -> {
+                        // 词表档判据在落账口；此处只把"预制资产带病"说清楚（话术与编译来路分格：
+                        // 编译来路该重编，模板来路是库与资产脱钩——两件事不许共用一句"再点一次 AI 编译"）
+                        val copy = "模板「${load.template.label}」第 ${verdict.index + 1} 步是 " +
+                            "type=${verdict.type}，执行器跑不动它，整本一步都没落账。" +
+                            "预制资产带病（JVM 锁 PresetTemplatesTest 应同步红），请勿使用，等修复版。"
+                        AppState.templateRejection.value = copy
+                        Log.w(
+                            TAG,
+                            "S5SMOKE template load refused gate=UNSUPPORTED_TYPE id=${load.template.id} " +
+                                "via=$via index=${verdict.index} type=${verdict.type}",
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun submitTask(json: String, via: String) {
         val ledger = RecorderStore.compiledActions.value
         // 编译档排在 V-3 之前：编译在跑时"框里的文本与账是否一致"根本没有意义——那一跑回来整本都要换。
@@ -323,6 +427,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_RECORD_START = "record_start"
         const val EXTRA_RECORD_STOP = "record_stop"
         const val EXTRA_SESSION_JSON = "session_json"
+        /** 预制模板装载（S5-a）：只认注册表 id，脏 id 由装载器拒并上屏，不在注入通道猜意图。 */
+        const val EXTRA_TEMPLATE_LOAD = "template_load"
         const val EXTRA_AI_INTENT = "ai_intent"
         const val EXTRA_AI_COMPILE = "ai_compile"
 

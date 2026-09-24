@@ -46,6 +46,13 @@ object AppState {
     val taskRejection = MutableStateFlow<String?>(null)
 
     /**
+     * 预制模板装载被拒的话术（S5-a）：与派发/开录/编辑拒因同律——**必须显示**，
+     * "点了模板没反应"不许成黑洞。新一次装载（成功或失败）即覆盖。
+     * 单独一格不复用 [taskRejection]：两件事同时红时不许互相盖（同 record/record_stop 分格先例）。
+     */
+    val templateRejection = MutableStateFlow<String?>(null)
+
+    /**
      * 那次派发被拒时门禁判的是哪一档（S3-F/F1-2、F1-3）。与 [taskRejection] **必须同写**：
      * 过期边要认"这条红字是不是纯状态档"（RUNNING/COMPILING 都是），拿文本比对就是字符串当身份
      * （同 `RecorderStore.editRejectionGate` / `stopRejectionGate` 那条纪律）。
