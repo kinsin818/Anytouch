@@ -126,7 +126,7 @@ class AndroidCaptureBridge(
                 // 句柄是**残缺拷贝**（设备实证：kids=2 而子树一个字都取不到、父链当场断裂 walkDepth=0），
                 // 而事件派发当场拷走的文字仍完整（evt=[Bluetooth]）——退到事件这份证词，仍不算编造。
                 val copy = pinEventClue(
-                    eventCopyWords(hint, meta),
+                    eventCopyWord(hint, meta),
                     source.packageName?.toString() ?: pkg,
                     roots,
                     meta.desc,
@@ -146,7 +146,7 @@ class AndroidCaptureBridge(
             // 事件当场拷贝的词若在当前窗口内唯一可解析，它是比 path 更强的定位词汇，换掉 path；
             // 钉不住（歧义/字段错位）则维持 path（宁保精确的脆词汇，不用可能指错行的文字）。
             val copy = pinEventClue(
-                eventCopyWords(hint, meta),
+                eventCopyWord(hint, meta),
                 source.packageName?.toString() ?: pkg,
                 roots,
                 meta.desc,
@@ -179,81 +179,71 @@ class AndroidCaptureBridge(
     /**
      * 事件"当场拷贝"里的候选词（句柄残缺/失联时的第二证词）。
      * 语义根据：框架派发点击事件时把**被操作节点的可读文本**按文档序拷进事件（实测偏好设置行
-     * = [标题, 摘要]），所以列表里的词都出自被点那一行；取首项=文档序最前=偏好行的 `android:id/title`。
+     * = 标题、摘要两行），所以列表里的词都出自被点那一行；取首项=文档序最前=偏好行的 `android:id/title`。
      * 只认点击类：打字类的 text 是**输入值**，不是定位线索，绝不可拿拷贝文字顶替。
+     *
+     * 口径收窄照实登记（STAGE-31）：搬移前签名是 `List<String>`，但两条分支都只可能交出
+     * 0 或 1 个词（`listOf(唯一首项)`），原判据里那个"逐词试"的循环**永不进入第二轮**。
+     * 收成 `String?` 才能与 [pinEventClueOf] 的单词签名一一对应；多词候选从未存在过，故无语义变化。
      */
-    private fun eventCopyWords(hint: CaptureHint, meta: EventMeta): List<String> = when {
-        hint != CaptureHint.CLICK && hint != CaptureHint.LONG_CLICK -> emptyList()
-        meta.texts.isNotEmpty() -> listOf(meta.texts.first())
-        meta.desc != null -> listOf(meta.desc)
-        else -> emptyList()
+    private fun eventCopyWord(hint: CaptureHint, meta: EventMeta): String? = when {
+        hint != CaptureHint.CLICK && hint != CaptureHint.LONG_CLICK -> null
+        meta.texts.isNotEmpty() -> meta.texts.first()
+        meta.desc != null -> meta.desc
+        else -> null
     }
 
     /**
-     * 把事件拷贝的**词**钉成回放真能用的**定位词汇**——不是所有证词都长得像它所在字段：
-     * 设备实证 工具栏返回键的点击事件 text 里带着 "Navigate up"，而活树中该串只存在于
-     * `contentDescription` 字段（`text` 为空）。照抄成 text 词汇 → 回放 L2 零命中（NODE_NOT_FOUND，
-     * 曾把 8 步链第 4 步打死）。
-     *
-     * 钉法与回放同口径（[com.anytouch.app.locator.NodeTreeLocator] 二阶只拿 text 比 `node.text`、
-     * 拿 desc 比 `node.contentDescription`，不交叉）：当前窗口内按 text 全等恰一命中 → 记 text；
-     * 否则按 desc 全等恰一命中 → 记 desc；两边都不唯一 → 弃用（宁缺不错点）。
-     *
-     * **0 命中单独待**：点击落下时页面已被自己换掉，此刻扫到的常是"新页树还没长全"的那一帧，
-     * 0/0 不是"词歧义"的证据（设备实证：18 轮里 3 轮首步的 "Connected devices" 扫到 0/0，
-     * 而同轮稍后再扫，句柄已在新的根里被 search 到）。这类帧重扫封顶 [PIN_SETTLE_RETRIES] 次
-     * ×[PIN_SETTLE_MS]（与 [com.anytouch.app.service.AnytouchAccessibilityService] 的 roots 空帧重试同口径，
-     * 主线阻塞上界 240ms，不出 ANR 预算）。命中>1 是真歧义，重扫不改结论，直接弃。
+     * 钉法的**判据**（text/desc 各比各的字段、0 命中与 >1 命中分道、雷 17 的 desc 侧豁免边）
+     * 已整体搬进 [pinEventClueOf] 与 [fieldPinHits]（含设备实证与判序理由）。
+     * 本处只剩三件平台侧的事：扫活树取命中数、"这帧树还没长全"时的**转场重扫**
+     * （封顶 [PIN_SETTLE_RETRIES]×[PIN_SETTLE_MS]，与
+     * [com.anytouch.app.service.AnytouchAccessibilityService] 的 roots 空帧重试同口径，
+     * 主线阻塞上界 240ms 不出 ANR 预算）、以及把结论落成日志痕。
      */
     private fun pinEventClue(
-        words: List<String>,
+        word: String?,
         wantPkg: String,
         roots: List<AccessibilityNodeInfo>,
         eventDesc: String?,
     ): Pair<String?, String?>? {
-        if (words.isEmpty()) return null
         var current = roots
-        var lastWord: String? = null
-        var lastText = 0
-        var lastDesc = 0
         var attempt = 0
-        while (attempt <= PIN_SETTLE_RETRIES) {
+        while (true) {
             if (attempt > 0) {
                 runCatching { Thread.sleep(PIN_SETTLE_MS) }
                 current = runCatching { rootProvider() }.getOrNull().orEmpty()
             }
-            var ambiguous = false
-            for (word in words) {
-                val (textHits, descHits) = countFieldPins(word, wantPkg, current)
-                lastWord = word
-                lastText = textHits
-                lastDesc = descHits
-                when {
-                    textHits == 1 -> return pinDone(attempt, word, text = true)
-                    descHits == 1 -> return pinDone(attempt, word, text = false)
-                    textHits > 1 || descHits > 1 -> ambiguous = true
+            val (textHits, descHits) = if (word == null) 0 to 0 else countFieldPins(word, wantPkg, current)
+            when (val pin = pinEventClueOf(word, eventDesc, textHits, descHits, attempt >= PIN_SETTLE_RETRIES)) {
+                is CluePin.ByText -> return pinDone(attempt, pin.word, text = true)
+                is CluePin.ByDesc -> return if (pin.viaEventFieldExemption) {
+                    Log.i(TAG, "S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=${pin.word}")
+                    null to pin.word
+                } else {
+                    pinDone(attempt, pin.word, text = false)
+                }
+                is CluePin.Ambiguous -> return clueDropped(pin.word, pin.textHits, pin.descHits, attempt)
+                is CluePin.Dropped -> {
+                    if (pin.cause == CluePin.Cause.NoWord) return null
+                    if (pin.cause == CluePin.Cause.AwaitingTree && attempt < PIN_SETTLE_RETRIES) {
+                        attempt++
+                        continue
+                    }
+                    return clueDropped(pin.word, pin.textHits, pin.descHits, attempt)
                 }
             }
-            if (!ambiguous && attempt < PIN_SETTLE_RETRIES) {
-                attempt++
-                continue
-            }
-            if (ambiguous || eventDesc == null || words.isEmpty()) {
-                // 歧义（或事件压根没 desc）：没有任何一手证据能断定这词指哪一行，弃。
-                Log.i(
-                    TAG,
-                    "S2SMOKE clue=event-copy 弃用(窗口内 text 命中=$lastText desc 命中=$lastDesc，" +
-                        "皆需唯一${if (attempt > 0) "，含转场重扫 $attempt 次" else ""}): word=$lastWord",
-                )
-                return null
-            }
-            // 重扫后仍 0/0 且事件自带 desc：把 desc 原样记成 desc 词汇。**只有这一级是免窗口验证的**——
-            // event.contentDescription 由框架从被点节点该字段直拷（不像 event.text 会把 desc 串抄进
-            // text、也不像它会被整列表的子树文字聚合），所以字段归属不必靠活树裁断。
-            // 设备实证：src=null 的返回键点击走这条路前整步被弃（录 8 步只出 7 步）。
-            Log.i(TAG, "S2SMOKE clue=event-desc(转场后活树无证据，事件 desc 字段直读): word=$eventDesc")
-            return null to eventDesc
         }
+    }
+
+    /** 弃用不许静默：这步不进会话（上层据 null 写 skip 痕），但"为什么不进"必须当场可见。 */
+    private fun clueDropped(word: String?, textHits: Int, descHits: Int, attempt: Int): Pair<String?, String?>? {
+        // 歧义（或事件压根没 desc）：没有任何一手证据能断定这词指哪一行，弃。
+        Log.i(
+            TAG,
+            "S2SMOKE clue=event-copy 弃用(窗口内 text 命中=$textHits desc 命中=$descHits，" +
+                "皆需唯一${if (attempt > 0) "，含转场重扫 $attempt 次" else ""}): word=$word",
+        )
         return null
     }
 
@@ -264,7 +254,11 @@ class AndroidCaptureBridge(
         return if (text) word to null else null to word
     }
 
-    /** 一词在两字段上各命中几个（与回放 L2 的 trim 全等、不交叉字段口径逐字对齐）。 */
+    /**
+     * 一词在**当前窗口活树**的两个字段上各命中几个（纯取数：同包窗根内广度遍历，
+     * 每根触顶 [SEARCH_BUDGET] 或两侧都已见满 2 个即停手——多扫不改"唯不唯一"的结论，只多要句柄）。
+     * "比哪个字段、怎么算相等"是判据，住 [fieldPinHits]。
+     */
     private fun countFieldPins(
         word: String,
         wantPkg: String,
@@ -279,8 +273,12 @@ class AndroidCaptureBridge(
             while (queue.isNotEmpty() && visited < SEARCH_BUDGET && textHits < 2 && descHits < 2) {
                 val node = queue.removeFirst()
                 visited++
-                if (node.text?.toString().orNull() == word) textHits++
-                if (node.contentDescription?.toString().orNull() == word) descHits++
+                val (hitText, hitDesc) = fieldPinHits(
+                    word,
+                    PinFieldFact(node.text?.toString(), node.contentDescription?.toString()),
+                )
+                if (hitText) textHits++
+                if (hitDesc) descHits++
                 for (i in 0 until node.childCount) {
                     val c = node.getChild(i) ?: continue
                     queue.addLast(c)
@@ -308,7 +306,7 @@ class AndroidCaptureBridge(
         val clue = if (hint == CaptureHint.TEXT_CHANGED) {
             meta.texts.firstOrNull()?.let { it to null }
         } else {
-            pinEventClue(eventCopyWords(hint, meta), pkg, roots, meta.desc)
+            pinEventClue(eventCopyWord(hint, meta), pkg, roots, meta.desc)
         } ?: return null
         return RawNodeSnapshot(
             resourceId = null,
@@ -536,61 +534,58 @@ class AndroidCaptureBridge(
     }
 
     /**
-     * 被点节点自身无线索时，向其**子树**求唯一线索（防滑轨=绝不编造）：
-     * ① 子树内恰好一个 `android:id/title` 文本 → 取它（偏好设置行的标准构型：双行行的
-     *    summary 文本不构成歧义，title 就是用户读到的那一行）；
-     * ② 否则子树文本集**唯一**才取；③ 无文本时子树 contentDescription 唯一才取；
-     * ④ 遍历触顶或结果不唯一 → 弃用并留痕，退回 path（宁要脆的 path，不要可能指向别行的 text）。
+     * 判据（四档判序、绝不编造线索）已整体搬进 [descendantClueOf]，本处只剩**摊平 + 转调 + 留痕**：
      * 回放命中文字后 nearestClickableSelfOrAncestor 走回同一可点行，语义等价（L2-5：text 优于 path）。
      */
-    private fun descendantClue(source: AccessibilityNodeInfo): Pair<String?, String?>? {
-        val queue = ArrayDeque<Pair<AccessibilityNodeInfo, Int>>()
-        queue.add(source to 0)
-        val texts = LinkedHashSet<String>()
-        val descs = LinkedHashSet<String>()
-        var titleCount = 0
-        var titleText: String? = null
+    private fun descendantClue(source: AccessibilityNodeInfo): Pair<String?, String?>? =
+        when (val pick = descendantClueOf(clueTreeOf(source), DESCENDANT_BUDGET, DESCENDANT_DEPTH)) {
+            is CluePick.Text -> pick.text to null
+            is CluePick.Desc -> null to pick.desc
+            is CluePick.Rejected -> {
+                Log.i(
+                    TAG,
+                    "S2SMOKE clue=path source=${source.className} id=${source.viewIdResourceName} " +
+                        "titles=${pick.titleCount} texts=${pick.textCount} descs=${pick.descCount}" +
+                        if (pick.truncated) " truncated(预算内未遍历完)" else "",
+                )
+                null
+            }
+        }
+
+    /**
+     * 把被点节点的子树摊成 [ClueNode]（纯取数，一条判据都不在这里下）：广度优先、文档序兄弟、
+     * 最多读 [DESCENDANT_BUDGET] 个节点、只在 [DESCENDANT_DEPTH] 层内要子句柄——遍历形状与搬移前逐字相同，
+     * 所以"预算内没轮到读的节点"依旧不进线索集。触顶/超深**意味着什么**由 [descendantClueOf] 判定；
+     * 这里的上限只是"不向框架无限要句柄"（无界遍历=拿用户的机器赌我们的判据）。
+     */
+    private fun clueTreeOf(source: AccessibilityNodeInfo): ClueNode {
+        val root = ClueSlot(
+            text = source.text?.toString(),
+            desc = source.contentDescription?.toString(),
+            isTitleId = source.viewIdResourceName?.endsWith(TITLE_ID_SUFFIX) == true,
+            depth = 0,
+        )
+        val queue = ArrayDeque(listOf(root to source))
         var visited = 0
-        var truncated = false
-        while (queue.isNotEmpty()) {
-            if (visited >= DESCENDANT_BUDGET) {
-                truncated = true
-                break
-            }
-            val (node, depth) = queue.removeFirst()
+        while (queue.isNotEmpty() && visited < DESCENDANT_BUDGET) {
+            val (slot, handle) = queue.removeFirst()
             visited++
-            node.text?.toString().orNull()?.let { t ->
-                texts.add(t)
-                if (node.viewIdResourceName?.endsWith(TITLE_ID_SUFFIX) == true) {
-                    titleCount++
-                    if (titleText == null) titleText = t
+            if (slot.depth < DESCENDANT_DEPTH) {
+                for (i in 0 until handle.childCount) {
+                    val child = handle.getChild(i) ?: continue
+                    val childSlot = ClueSlot(
+                        text = child.text?.toString(),
+                        desc = child.contentDescription?.toString(),
+                        isTitleId = child.viewIdResourceName?.endsWith(TITLE_ID_SUFFIX) == true,
+                        depth = slot.depth + 1,
+                    )
+                    slot.children.add(childSlot)
+                    queue.addLast(childSlot to child)
                 }
             }
-            node.contentDescription?.toString().orNull()?.let { descs.add(it) }
-            if (depth < DESCENDANT_DEPTH) {
-                for (i in 0 until node.childCount) {
-                    val child = node.getChild(i) ?: continue
-                    queue.addLast(child to depth + 1)
-                }
-            }
-            if (node !== source) node.recycleQuietly()
+            if (handle !== source) handle.recycleQuietly()
         }
-        val picked = when {
-            truncated -> null
-            titleCount == 1 -> titleText?.let { it to null }
-            texts.size == 1 -> texts.first()?.let { it to null }
-            texts.isEmpty() && descs.size == 1 -> descs.first()?.let { null to it }
-            else -> null
-        }
-        if (picked == null) {
-            Log.i(
-                TAG,
-                "S2SMOKE clue=path source=${source.className} id=${source.viewIdResourceName} " +
-                    "titles=$titleCount texts=${texts.size} descs=${descs.size}" +
-                    if (truncated) " truncated(预算内未遍历完)" else "",
-            )
-        }
-        return picked
+        return root.freeze()
     }
 
     /** 父链能走多深（只观测，不参与判定）：区分"父链断裂"与"身份判据失灵"两种失效形态。 */
@@ -674,7 +669,8 @@ class AndroidCaptureBridge(
         return null
     }
 
-    private fun String?.orNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+    /** 空白即缺失的口径只有一份（STAGE-31：判据住 [blankToNull]，本处转调）。 */
+    private fun String?.orNull(): String? = blankToNull(this)
 
     @Suppress("DEPRECATION")
     private fun AccessibilityNodeInfo.recycleQuietly() = runCatching { recycle() }
@@ -707,4 +703,19 @@ class AndroidCaptureBridge(
             else -> "type$eventType"
         }
     }
+}
+
+/**
+ * 摊平期的可变槽（只服务 [AndroidCaptureBridge.clueTreeOf] 的广度遍历：先占位、后挂子节点）。
+ * 离手前 [freeze] 成不可变的 [ClueNode]——判据侧拿到的永远是冻结形状，不存在"边判边长"的树。
+ */
+private class ClueSlot(
+    val text: String?,
+    val desc: String?,
+    val isTitleId: Boolean,
+    val depth: Int,
+) {
+    val children = ArrayList<ClueSlot>()
+
+    fun freeze(): ClueNode = ClueNode(text, desc, isTitleId, children.map { it.freeze() })
 }

@@ -133,3 +133,18 @@
   治理口径新增一条设备事实（第 5 次兑现"前置必须自复核"）：**自家 Compose 折叠线以下节点不进无障碍树**，`uiautomator dump` 只含当前视口 ⇒ 任何"单次 dump 判存在/缺席"的脚本都在量滚动位置而非产品（今日据此重造 `ui-smoke.sh` 页读层）。
   诚实边界：**E11 清除双槽仍待老板手指**（产品自己的二次确认，测试通道不代人点，`E_WIPE=1` 默认不动）；`AndroidKeyVault.create()` 与 `connect()` 两处设备缝 JVM 覆盖仍为 0（真 Keystore 与真 HTTPS 只能设备上判，本批已判到）；
   模拟器与真机互为不等价物（MIUI 首页无 `Connected devices`、容器 id 不同名 ⇒ C 系列脚本口径只适用于 AOSP 档，`evidence/S2/t3-k40-first-contact.md` 真机轮早已归档此口径）。
+- STAGE-31-A 主窗独立验收（A4/A5 采集层判据下沉，09-24 结案）：**ACCEPTED 一次通过**（判据搬移本身零返工、零虚报）。
+  **worker 自检与主窗独立重跑逐字对得上**：`--rerun-tasks` 单变体分模块 XML 求和 **app 285 / byok 59 / contracts 19 = 363，failures=0**（332→363 的 +31 例全在新增 `CaptureCluesTest`），
+  `ci-local` 九线 A–I **CI_RC=0**、`redline-probe.sh` F/G/H/I **PROBE_RC=0**（本批未改红线，重跑为确认搬移没把任何一条变成假锁）。
+  关 1 读码四条结论：判序逐字照搬（`truncated→titleCount==1→texts.size==1→texts 空且 descs 唯一→弃`）、留痕话术一字未动（既有 47 条归档 `clue=path` 行仍按同一 grep 读到）、
+  §5-D6（`List<String>`→`String?`：原分支只可能交出 0/1 个词，"逐词试"循环永不进第二轮）、§5-D7（`clueTreeOf` 的预算**没有**把"触顶否决"洗成"看全了"——未消费的槽位仍挂在父 `children` 上且 `freeze()` 递归冻结全部子槽，
+  故摊出来的节点数=32+p，纯判据走到第 32 个时队列非空 → `truncated=true` 照旧）。**这条等价性只靠逐行读＋同构论证，JVM 覆盖 0**（平台缝要句柄），且本轮 10 轮真采 `clue=path` 0 条 ⇒ "没触发"不是"不会触发"的证据；
+  已登记"将来谁把未消费 children 清空或把预算传成 `budget-p`，就静默洗掉这票否决"。
+  **本批唯一返工记在主窗头上**（不是 worker）：§4-4 设备关首轮 `ui-smoke` **36 PASS/5 FAIL**（U1b/U6b/U8c/U10d/U11b 全读 0）而同一轮后面 U12d/U15c 绿，产品代码一行未改重跑即 **41 PASS/0/0** ⇒ 那 5 条是**未归因的读数**，不许判产品的罪。
+  揪出读数层两处纪律错误：① `SWEEP_OK`（"扫到底"）此前**不检查读的是谁家的窗**（别人家两屏签名相同一样算到底）；② U11b/U12d/U15c 拿被测项 `run_task` 当"自家窗"代理=**被测项与读数器健康判据同一个数**（真消失时会把红洗成 SKIP，假门禁）。
+  修法：读数器健康改用独立判据 `package="com.anytouch.app"`（自家每节点都带），缓冲里 0 条即压回 `SWEEP_OK=0` 并打日志；新增 `ui_expect` 三档（`hit`/`miss`/`skip`）改六处存在性断言。
+  **新门禁当场验它能响**：`OWN_PKG=com.nonexistent.probe` 跑 → "本扫视 4 屏里 0 屏含 package=…" + `SKIP U1b`（既不记绿也不记红；该轮由 `timeout 150` 掐断，RC=124=超时，非脚本判红）。
+  mutation 独立抽验两针（不信附录）：M13 字段交叉 → **3 failed**、M1 触顶 `>=`→`>` → **1 failed**，与自述逐字相同；`CaptureClues.kt` 是新增件（git 里还没有），故还原凭据用 `md5=6558bb16…` 两针各自回到同一哈希。
+  靶选择照实钉：设备关打在 emulator-5554 而非 K40——已归档口径 `evidence/S2/t3-k40-first-contact.md:47`「真机不适配模拟器脚本口径」，且 §4-4 括注"必须重跑录→编→放链"按**字面两支 + 括注一支（`s2-smoke` ROUNDS=10 → 10/10 ratio=1.00 + SC 一次慢拖只成一步）三支同构建全绿**一起跑，不静默收窄。
+  §6 逐条处置：设备关已补、31-B 维持"另等一句话"（目标模式不覆盖那道门）、平台缝 JVM 覆盖 0 接受为边界（不为跑通测试开 `returnDefaultValues`）、残留 `getChild` 副本按 **S31-A1 裁：不改**（三条磁盘根据见 `orders/RULINGS-20260922.md`，老板可覆）。
+  **#38 缺口账按 S3-R1 口径核减**：A4/A5 记为已落，剩 A1/A2/A3 随 31-B（不重复计、不设阈值）。证据 `evidence/S31/stage31-a-accepted.md` §1–§7 + `evidence/S31/raw/` 五份带时间戳 raw（含那份 5 假红首轮原文）。

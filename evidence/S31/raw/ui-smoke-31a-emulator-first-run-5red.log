@@ -1,0 +1,44 @@
+[0;32mPASS[0m U1a 预置档编译 3 步 :: 09-24 01:53:38.379 30740 30740 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=4 target=com.android.settings
+[0;31mFAIL[0m U1b 步序账上屏 :: 末行按钮=0 计数文案=0（期望 1/1）
+[0;32mPASS[0m U2a 移序 0→2 生效 :: 09-24 01:53:55.364 30740 30740 I AnytouchRun: S2SMOKE step edit ok=move index=0 before=3 after=3
+[0;32mPASS[0m U2b 移序后步序账顺序=[rec-0002 rec-0003 rec-0001 ]
+[0;32mPASS[0m U2c 移回 2→0 生效 :: 09-24 01:53:57.823 30740 30740 I AnytouchRun: S2SMOKE step edit ok=move index=2 before=3 after=3
+[0;32mPASS[0m U2d 还原后顺序=[rec-0001 rec-0002 rec-0003 ]
+[0;32mPASS[0m U3a 改名生效 :: 09-24 01:54:00.343 30740 30740 I AnytouchRun: S2SMOKE step edit ok=rename index=0 before=3 after=3
+[0;32mPASS[0m U3b 改名只改 actionId，三条线索原样在账（回放依据没被动）
+[0;32mPASS[0m U4a 空步骤名被拒 gate=BLANK_NAME :: 09-24 01:54:02.972 30740 30740 W AnytouchRun: S2SMOKE step edit refused gate=BLANK_NAME op=rename index=0 ledger=3 detail=步骤名不能为空：留空会让这一步在回放报告里无法归因。
+[0;32mPASS[0m U4b ok=rename 计数仍为 1（空名未放行）
+[0;32mPASS[0m U5a 越界删除被拒 gate=OUT_OF_RANGE :: 09-24 01:54:05.402 30740 30740 W AnytouchRun: S2SMOKE step edit refused gate=OUT_OF_RANGE op=remove index=99 ledger=3 detail=该步骤已不存在（列表刚刚变动过）：请刷新查看当前步骤，不要按旧序号操作。
+[0;32mPASS[0m U5b 移序目标位越界被拒 gate=OUT_OF_RANGE :: 09-24 01:54:07.714 30740 30740 W AnytouchRun: S2SMOKE step edit refused gate=OUT_OF_RANGE op=move index=0 ledger=3 detail=该步骤已不存在（列表刚刚变动过）：请刷新查看当前步骤，不要按旧序号操作。
+[0;32mPASS[0m U5c 被拒不崩：进程仍在（pid=30740）
+[0;32mPASS[0m U5d 越界两步均未放行（[step edit ok=remove] 计数=0）
+[0;32mPASS[0m U6a 删步生效 3→2 :: 09-24 01:54:10.395 30740 30740 I AnytouchRun: S2SMOKE step edit ok=remove index=2 before=3 after=2
+[0;31mFAIL[0m U6b UI 与账目不同步 :: 旧末行残留=0 现有行=0 计数=0（期望 0/1/1）
+[0;32mPASS[0m U7a 取到编辑后任务 JSON 恰 2 步
+[0;32mPASS[0m U7b 编辑后回放按新步数执行（删掉的那步没跑） :: 09-24 01:54:33.872 30740 30740 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+[0;32mPASS[0m U8a 删到清零留痕 :: 09-24 01:54:37.281 30740 30740 W AnytouchRun: S2SMOKE step edit ok=remove 步序账清零，不写回放建议（无步骤可放）
+[0;32mPASS[0m U8b 空账未伪装成品：本轮零条 'S2SMOKE-TASK []'（[S2SMOKE-TASK \[\]] 计数=0）
+[0;31mFAIL[0m U8c 屏上仍挂旧步骤（账已清、屏未清=第二套账）
+[0;32mPASS[0m U9a 空账编辑被拒 gate=EMPTY_LEDGER :: 09-24 01:54:49.967 30740 30740 W AnytouchRun: S2SMOKE step edit refused gate=EMPTY_LEDGER op=remove index=0 ledger=0 detail=当前没有可编辑的步骤：请先录制并点「停止并编译」，有步骤后才能增删改。
+[0;32mPASS[0m U9b 拒因计数 0→1（本轮新造，非旧痕复用）
+[0;32mPASS[0m U10a 前置：机器最后一条建议恰 1 步（账已 0 步=孤儿形态）
+[0;32mPASS[0m U10b 孤儿建议被拒留痕 :: 09-24 01:54:52.880 30740 30740 W AnytouchRun: S1SMOKE submit refused gate=STALE_SUGGESTION via=adb_inject ledger=0 machineSuggestion=192 detail=任务框里是上一次编辑留下的旧建议，和当前步序账已经不一致：直接执行会放出账上早已删掉的步骤。请重新录制并点「停止并编译」，或在步骤列表里编辑后再执行（你手敲的内容不会被改动）。
+[0;32mPASS[0m U10c 拒而未放：refused=1 且本轮零执行回执（账外步骤没被跑）
+[0;31mFAIL[0m U10d 拒因未上屏 :: task_rejection 读数=0
+[0;32mPASS[0m U11a 账外手敲任务仍放行并跑成 :: 09-24 01:55:15.150 30740 30740 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;31mFAIL[0m U11b :: 自家窗=0（期望 1：全页扫过仍读不到 run_task=没在读自家窗或窗已换）
+[0;32mPASS[0m U12a 执行中开录被拒（话术入 startRejection） :: 09-24 01:55:32.482 30740 30740 W AnytouchRun: S2SMOKE record start refused gate=RUNNING detail=任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。
+[0;32mPASS[0m U12b 本轮执行结束（running 转假） :: 09-24 01:55:44.496 30740 30740 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m U12c 陈旧拒因自动作废 :: 09-24 01:55:44.510 30740 30740 I AnytouchRun: S2SMOKE record rejection expired gate_now=READY detail=状态已变，陈旧拒因作废（任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。）
+[0;32mPASS[0m U12d 屏上红字确已消失（自家窗=1 读数器可用，红字=0，全页扫到底）
+[0;32mPASS[0m U13 录制球在右缘（录制态深红球，前置已坐实） :: BALL_STATE=recording BALL_X_RATIO=0.907 matched=3936 green=0 red=3936 size=1080x2400 min=892 max=1066
+[0;32mPASS[0m U14a 执行中删步被拒 gate=RUNNING :: 09-24 01:56:19.607 30740 30740 W AnytouchRun: S2SMOKE step edit refused gate=RUNNING op=remove index=0 ledger=3 detail=任务执行中不能改步骤：账本一边跑一边改，回放依据就对不上执行现场了。请等本轮结束（或点悬浮球停止）后再删改。
+[0;32mPASS[0m U14b 执行期零条编辑放行（置灰不是门禁，注入通道同判）
+[0;32mPASS[0m U14c 门禁读到的是真账：拒因行 ledger=3（步骤没被删掉）
+[0;32mPASS[0m U15a 本轮执行结束 :: 09-24 01:56:31.336 30740 30740 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m U15b 陈旧禁编辑话术自动作废 :: 09-24 01:56:31.348 30740 30740 I AnytouchRun: S2SMOKE edit rejection expired gate_was=RUNNING detail=状态已变，陈旧拒因作废
+[0;32mPASS[0m U15c 屏上红字与置灰提示均已撤（自家窗=1 读数器可用，红字=0 提示=0，全页扫到底）
+[0;32mPASS[0m U15d 跑完立刻可编：同一请求转放行 :: 09-24 01:56:58.447 30740 30740 I AnytouchRun: S2SMOKE step edit ok=remove index=0 before=3 after=2
+
+汇总：通过 36 / 失败计数见下 / 跳过 0（跳过=前置未立，不记绿也不记红）
+ui-smoke: 有失败项
