@@ -77,4 +77,20 @@
 
 ## §4 基线（派单时由主窗填）
 
-待 STAGE-31-B 集成后填：JVM 分模块真数、main commit、以及 31-B 抽出的"执行器支持集"真源的确切名字与路径。
+**JVM 分模块真数与 main commit 待 STAGE-31-B 集成后填**（31-B 落完是新基线，不许拿 363 冒领"当时 main 的实测数"）。
+
+以下三条是**今天已在磁盘上核过、且不随 31-B 移动**的事实，worker 不必重新摸（31-B 的靶表只动 `runNodeStep` 里的派发边 A1/A2 与复核边 A3，`when (action.type)` 这个支持集本身一行不碰）：
+
+1. **执行器支持集真源 = `app/src/main/kotlin/com/anytouch/app/executor/NodeTaskRunner.kt:98-121`**：
+   `when (action.type)` 三档——`:99` `ActionType.WAIT`（走 `delay`，从不派发）、`:109`
+   `ActionType.CLICK, ActionType.SCROLL, ActionType.TYPE_TEXT -> runNodeStep(...)`、`:111-121` `else ->`
+   收 `StopCode.EXECUTOR_ERROR` + `message = "unsupported action type: ${action.type}"`（`:117`）
+   + `gateReceipt(..., "unsupported_type:${action.type}", ...)`。
+   **F2 的"真源"必须是这一处的单一集合**，编译侧与 prompt 从它派生，不许另抄一份字面量。
+2. **模型落账口今天只有一档门禁** = `app/src/main/kotlin/com/anytouch/app/recorder/session/RecorderStore.kt:200-204`
+   （只判 `AppState.running.value` → `ModelLedger.RefusedRunning`）：**既不看 `compileBusy`，也不看动作词表**。
+   这正是 F1（补 `compileBusy` 一档）与 F2（补不支持类型整本拒一档）的两个插入点，各自一条、不并档。
+3. **契约侧 `ActionType` 是 `object` + `const val String`**（`core/contracts/src/main/kotlin/com/anytouch/contracts/Constants.kt:21-30`，
+   常量在 `:22-29`，自陈"非严格枚举，留扩展位"）→ 真源若做成集合，元素类型是 `String`；
+   比较一律引 `ActionType.X` 常量而不写字面量（S31-B5 同一理由，worker 不要再想改成枚举——那要另一次放行动 `core/`）。
+
