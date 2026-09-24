@@ -129,8 +129,11 @@ network, and only to the endpoint you chose.
 - Compilation quality depends on the model you bring. Simple navigation intents are strong;
   long multi-app workflows are the frontier. The step ledger is always editable, so a wrong step
   is a fix, not a trap.
-- One device family is hands-on verified (Xiaomi/MIUI). Android-fragmentation honesty: other ROMs
-  may add permission prompts we haven't scripted for. The app fails **openly** there.
+- Hands-on verified: one device family (Xiaomi/MIUI). **Samsung and Motorola devices — the largest
+  Android brands overseas — have never been hands-on tested by us**; coverage there is an emulator
+  matrix (Android 12/14/15 class images) only, and emulators cannot catch vendor-ROM quirks.
+  Other ROMs may add permission prompts we have not scripted for; the app fails **openly** there
+  instead of tapping something random.
 
 ---
 
@@ -157,4 +160,4 @@ network, and only to the endpoint you chose.
 | 高危动作二次确认/超时默认拒 | `evidence/S2/stage-highrisk-confirm-device.md`（设备实证：超时默认拒绝+面板可见） |
 | 无障碍/悬浮球缺席=拒开录拒执行并指名缺哪个 | 开录边：`evidence/S2/s2-ondevice-record-replay.md` §8.2（红线 E `AccessibilityGate.kt`，设备实证 C9/C10 于 `scripts/device-smoke.sh`）；执行边：`evidence/S2/safety-ball-failclosed.md`（第 10 项：球挂不上=拒绝执行）。诚实注：§8.2 尾部"待裁"记的是派单**原文**未落盘，代码+设备证据在盘不受影响 |
 | MIUI 持久拒 SET_TEXT 大声报不冒成功 | 雷 12（`evidence/S2/t3-k40-first-contact.md`）+ S31-B8 真机复验 `evidence/S31/stage31-b-k40-reverify.md` |
-| minSdk 26 / 实测机型 K40 | `app/build.gradle.kts`；T3 档案 |
+| minSdk 26 / 实测机型 K40 / Samsung·Moto 未实测（风险段点名） | `app/build.gradle.kts`；T3 档案；风险段口径=老板 S5-R2 裁"缺口写进上线风险段，不虚标"（`orders/RULINGS-20260922.md`，沿用 T3-R4 最新真机口径） |
