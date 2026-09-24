@@ -1,5 +1,6 @@
 package com.anytouch.app
 
+import com.anytouch.app.platform.RecordGate
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** 一次任务注入请求：id 用纳秒保证同内容重复提交也是新请求。 */
@@ -43,6 +44,25 @@ object AppState {
      * 静默吞掉一次"点了没反应"就是黑洞。新一次派发（成功或失败）即覆盖。
      */
     val taskRejection = MutableStateFlow<String?>(null)
+
+    /**
+     * 那次派发被拒时门禁判的是哪一档（S3-F/F1-2、F1-3）。与 [taskRejection] **必须同写**：
+     * 过期边要认"这条红字是不是纯状态档"（RUNNING/COMPILING 都是），拿文本比对就是字符串当身份
+     * （同 `RecorderStore.editRejectionGate` / `stopRejectionGate` 那条纪律）。
+     *
+     * 两种情形存 null，各自都有理由：
+     * - 派发成功（撤红字）；
+     * - V-3 那类**请求绑定**的拒（框内是作废的机器建议）：它绑用户那一次点击，由下一次派发覆盖，
+     *   不许被状态跃迁悄悄抹掉。
+     */
+    @Volatile
+    var taskRejectionGate: RecordGate? = null
+
+    /** 派发拒因成对上写：档位与话术同生同灭（漏一处=过期边认不出该作废哪条）。 */
+    fun setTaskRejection(gate: RecordGate?, copy: String?) {
+        taskRejectionGate = gate
+        taskRejection.value = copy
+    }
 
     fun submit(json: String) {
         taskRequests.value = TaskRequest(System.nanoTime(), json)

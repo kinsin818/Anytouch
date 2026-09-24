@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.anytouch.app.compile.ByokGateway
 import com.anytouch.app.compile.byokContextFlagOf
 import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.platform.runGateOf
+import com.anytouch.app.platform.runUserCopy
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.encodeActions
@@ -100,7 +102,9 @@ class MainActivity : ComponentActivity() {
                             when {
                                 running -> "任务执行中…（可点悬浮球停止）"
                                 // 编译持有的那一段时间必须看得见（裁决 S3-R4-1：屏上不说，用户只会觉得按钮自己坏了）
-                                compileBusy -> "AI 编译中…（一问一答在路上，录制与改账此刻不动）"
+                                // 编译持有的那一段时间必须看得见（裁决 S3-R4-1：屏上不说，用户只会觉得按钮自己坏了；
+                                // S31-B2 扩面后这一句要把四个入口都点到：录制、改账、执行）
+                                compileBusy -> "AI 编译中…（一问一答在路上，录制、改账与执行此刻都不动）"
                                 else -> "空闲"
                             },
                         )
@@ -152,8 +156,8 @@ class MainActivity : ComponentActivity() {
                             actions = steps,
                             onEdit = RecorderStore::applyEdit,
                             // 执行中置灰（老板 09-23 裁决：禁编辑门禁，停止球位置因此不动）。
-                            // 灰只是提示——门禁在 applyEdit，adb 注入绕过按钮同样被拒。
-                            editable = !running,
+                            // 编译在跑同样置灰（裁 S31-B2）——灰只是提示，门禁在 applyEdit，注入绕过按钮照样被拒。
+                            editable = !running && !compileBusy,
                             modifier = Modifier.fillMaxWidth().testTag("step_list"),
                         )
                         // 编辑被拒同样必现（与开录拒绝同律：置灰/无回执=黑洞，用户要知道"没删掉"为什么）
@@ -173,10 +177,14 @@ class MainActivity : ComponentActivity() {
                         )
                         Button(
                             onClick = { submitTask(taskJson, "ui_button") },
-                            enabled = connected,
+                            // 编译在跑即置灰（裁 S31-B2，与上面两个录制按钮同一形态）。灰只是提示：
+                            // 真门禁在 submitTask 入口，adb 注入绕过按钮同样被拒（下面 task_rejection 那格就是它的红字）。
+                            enabled = connected && !compileBusy,
                             modifier = Modifier.testTag("run_task"),
                         ) { Text("执行任务") }
-                        // V-3：被拦下的派发必须显形（与开录/编辑拒因同律：静默"点了没反应"=黑洞）
+                        // 被拦下的派发必须显形（与开录/编辑拒因同律：静默"点了没反应"=黑洞）。
+                        // 这一格现在装两种拒因，同源不同档：V-3 的"框账不符"（请求绑定，下一次派发覆盖）
+                        // 与 S3-F 的"编译在跑"（纯状态档，编译归位即由 revalidateRunRejection 作废）。
                         taskRejection?.let {
                             Text(
                                 it,
@@ -263,9 +271,29 @@ class MainActivity : ComponentActivity() {
      * 派发唯一入口（"执行任务"按钮与 adb 注入共用，与录制/编辑面同一条纪律：**门禁落入口不落按钮**）。
      * 判据住在纯函数 [taskAdmission]（JVM 锁得住），此处只按结果分流；拒放既上屏（`task_rejection`）
      * 又留痕（`S1SMOKE submit refused`）——静默 return 等于把一次"点了没反应"藏进黑洞。
+     *
+     * S3-F/F1 在这一格前面再加一条**编译互斥**（裁决 S31-B2）：判据不在此处写 `if (compileBusy)`，
+     * 而是转调 `runGateOf`——与「停止并编译」/「开录」/「步骤编辑」共用同一格编译真值
+     * （`platform/AccessibilityGate.kt`）。编译那一跑回来会整本换账，此刻放行执行就是把"正在跑的那一跑"
+     * 和"屏上的账"变成两套（旧形态：run_task 在编译中途溜进去，随后 `acceptModelActions` 收 RefusedRunning）。
      */
     private fun submitTask(json: String, via: String) {
         val ledger = RecorderStore.compiledActions.value
+        // 编译档排在 V-3 之前：编译在跑时"框里的文本与账是否一致"根本没有意义——那一跑回来整本都要换。
+        val runGate = runGateOf(running = AppState.running.value, compileBusy = AppState.compileBusy.value)
+        if (runGate == RecordGate.COMPILING) {
+            val copy = runGate.runUserCopy().orEmpty()
+            AppState.setTaskRejection(RecordGate.COMPILING, copy)
+            Log.w(
+                TAG,
+                "S1SMOKE submit refused gate=$runGate via=$via ledger=${ledger.size} " +
+                    "machineSuggestion=${RecorderStore.lastSuggestedJson?.length} detail=$copy",
+            )
+            return
+        }
+        // RUNNING 不在派发口拒：既有语义是"执行中新注入排在当前这一跑之后串行执行"
+        // （见 `AnytouchAccessibilityService` 总线那头的 busy 防线注释）。本批只扩编译面，不动这条；
+        // 真要在派发口拒 RUNNING 得另裁一刀——那时改的是上面那一个 when，不是再加一份判据。
         val verdict = taskAdmission(
             boxJson = json,
             ledgerJson = encodeActions(ledger),
@@ -273,7 +301,8 @@ class MainActivity : ComponentActivity() {
         )
         if (verdict != TaskAdmission.ACCEPT) {
             val copy = verdict.userCopy()
-            AppState.taskRejection.value = copy
+            // 档位存 null：V-3 这一类是**请求绑定**的拒因，绑用户那一次点击，不许被状态跃迁悄悄抹掉
+            AppState.setTaskRejection(null, copy)
             Log.w(
                 TAG,
                 "S1SMOKE submit refused gate=$verdict via=$via ledger=${ledger.size} " +
@@ -281,7 +310,7 @@ class MainActivity : ComponentActivity() {
             )
             return
         }
-        AppState.taskRejection.value = null
+        AppState.setTaskRejection(null, null)
         AppState.submit(json)
     }
 

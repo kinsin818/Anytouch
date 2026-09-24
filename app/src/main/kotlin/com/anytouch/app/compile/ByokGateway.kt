@@ -11,6 +11,7 @@ import com.anytouch.byok.DslCompiler
 import com.anytouch.byok.KeyMasker
 import com.anytouch.byok.OpenAiCompatTransport
 import com.anytouch.byok.ScreenContext
+import com.anytouch.byok.executorSupportedActionTypes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,7 +57,10 @@ class ByokGateway private constructor(private val appContext: Context) {
                 ),
             )
         },
-        publish = { actions -> RecorderStore.acceptModelActions(actions) },
+        // 落账口的支持集由**这里**注入：真源住 `:byok`（S3-F/F2、派单书 §5），而 `recorder/` 住执行路径、
+        // 红线 G 禁它 import 编译模块——所以由被允许看见编译器的 compile/ 面把同一份集合递给唯一写口。
+        // 递的是真源本身，不是这里再抄一遍名单（抄一份就是第四份词表，E5i 那颗雷的同族）。
+        publish = { actions -> RecorderStore.acceptModelActions(actions, executorSupportedActionTypes) },
     )
 
     /**

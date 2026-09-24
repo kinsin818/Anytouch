@@ -2,7 +2,9 @@ package com.anytouch.app.compile
 
 import com.anytouch.app.compile.ByokPreflight.ByokPlan
 import com.anytouch.app.compile.ByokPreflight.Verdict
+import com.anytouch.app.recorder.UnsupportedModelAction
 import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.recorder.unsupportedModelLedgerCopy
 import com.anytouch.byok.ByokErrorKind
 import com.anytouch.byok.CompileResult
 import com.anytouch.byok.DslCompiler
@@ -112,6 +114,20 @@ class ByokCompileController(
                 userCopy = "模型编排出 " + actions.size + " 步，但步序账拒绝在执行中换账——" +
                     "这一步**没有写进去**，屏上的步序列表还是原来的账。请停止或等这一跑结束后重编。",
                 gate = ByokPreflight.Gate.RUNNING,
+                context = context,
+            )
+            // 词表档（S3-F/F2-3、裁 S31-B3）：整本一步都没落账，屏上必须点名"哪一条、支持的是哪几个"。
+            // 与上面那条 RUNNING 分开一档、各说各话（派单书 §4-2"各自一条、不并档"）。
+            // gate 留 null：这不是预检档（预检已经过了才走到这里），档位身份在 ModelLedger 自己身上；
+            // errorKind 仍归 COMPILE_REJECT——用户要做的动作是同一条：改句话说得动的意图再重编（这一跑的钱已烧掉）。
+            is RecorderStore.ModelLedger.RefusedUnsupportedType -> ByokReport(
+                published = false,
+                userCopy = unsupportedModelLedgerCopy(
+                    UnsupportedModelAction(ledger.index, ledger.type),
+                    ledger.supportedTypes,
+                ),
+                errorKind = ByokErrorKind.COMPILE_REJECT,
+                stage = "ledger",
                 context = context,
             )
         }

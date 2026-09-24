@@ -58,10 +58,16 @@ class DslCompilerTest {
     }
 
     @Test
-    fun `白名单外 type 必须拒`() {
+    fun `白名单外 type 必须拒并点名授权词表`() {
+        // 断言由"含白名单"改为"含真源词表 + 逐条列出支持类型"：S3-F/F2-2 把 reject 话术接到真源上，
+        // 原来那句只锁"有一句话"，锁不到"说的是哪几个跑得动"（用户拿到它就不知道该改成什么）。
         val r = compile("""[{"action_id":"a","type":"swipe","source":"node","value":{"text":"x"},"safety":{"viewport_ok":true,"click_enabled":true}}]""")
         assertIs<CompileResult.Reject>(r)
-        assertTrue(r.detail.contains("白名单"))
+        assertTrue(r.detail.contains("swipe"), "没点名被拒的那一条 type：${r.detail}")
+        for (type in executorSupportedActionTypes) {
+            assertTrue(r.detail.contains(type), "拒因没列出跑得动的 type=$type：${r.detail}")
+        }
+        assertTrue(r.detail.contains("ExecutorVocabulary"), "拒因没指向真源：${r.detail}")
     }
 
     @Test

@@ -1,5 +1,8 @@
 package com.anytouch.app.recorder
 
+import com.anytouch.app.platform.COMPILE_HOLD_HEADLINE
+import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.platform.userCopy
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionSafety
 import com.anytouch.contracts.ActionSource
@@ -7,6 +10,7 @@ import com.anytouch.contracts.ActionType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -98,12 +102,16 @@ class StepEditingTest {
             s to StepEdit.Remove(99),
             s to StepEdit.Rename(0, ""),
         ).forEach { (actions, edit) ->
-            assertEquals(StepEditGate.RUNNING, stepEditGateOf(actions, edit, running = true), "$edit 执行中不得放行")
+            assertEquals(
+                StepEditGate.RUNNING,
+                stepEditGateOf(actions, edit, running = true, compileBusy = false),
+                "$edit 执行中不得放行",
+            )
         }
     }
 
     @Test
-    fun `非执行中三参判定与两参逐档同果（禁编辑不得顺手改坏旧判据）`() {
+    fun `非执行中四参判定与两参逐档同果（禁编辑不得顺手改坏旧判据）`() {
         val s = steps(2)
         listOf(
             s to StepEdit.Remove(0),
@@ -113,8 +121,8 @@ class StepEditingTest {
         ).forEach { (actions, edit) ->
             assertEquals(
                 stepEditGateOf(actions, edit),
-                stepEditGateOf(actions, edit, running = false),
-                "running=false 必须与两参判定一字不差（同一判据，不许两份账）",
+                stepEditGateOf(actions, edit, running = false, compileBusy = false),
+                "两条状态都为假时必须与两参判定一字不差（同一判据，不许两份账）",
             )
         }
     }
@@ -123,18 +131,104 @@ class StepEditingTest {
     fun `跑完即可编 同一请求由 RUNNING 转 READY`() {
         val s = steps()
         val edit = StepEdit.Remove(0)
-        assertEquals(StepEditGate.RUNNING, stepEditGateOf(s, edit, running = true))
-        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false))
+        assertEquals(StepEditGate.RUNNING, stepEditGateOf(s, edit, running = true, compileBusy = false))
+        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false))
+    }
+
+    // ---------- 编译中禁编辑（S3-F/F1，裁决 S31-B2：编译互斥从录制两面扩到改账面） ----------
+
+    @Test
+    fun `编译在跑一律拒为 COMPILING 且排在内容三档之前`() {
+        val s = steps()
+        // 与 RUNNING 那一档同形：四份本来会放行/会各自归因的请求，编译在跑时统统只得到一个答案。
+        // 这条锁的就是"账不动"——放行任何一份都是在一份即将被整本覆写的账上动笔。
+        listOf(
+            s to StepEdit.Remove(0),
+            emptyList<Action>() to StepEdit.Remove(0),
+            s to StepEdit.Remove(99),
+            s to StepEdit.Rename(0, ""),
+        ).forEach { (actions, edit) ->
+            assertEquals(
+                StepEditGate.COMPILING,
+                stepEditGateOf(actions, edit, running = false, compileBusy = true),
+                "$edit 编译中不得放行",
+            )
+        }
+    }
+
+    @Test
+    fun `两条状态同时为真时先说执行 不说编译`() {
+        // 排序即判据：RUNNING 在前是既有语义（执行中禁编辑，老板 09-23 裁决 2）不被动过；
+        // 反过来若先说编译，执行结束后那条话术失去依据却仍挂着一半理由（过期边会晚一个状态）。
+        val s = steps()
+        assertEquals(
+            StepEditGate.RUNNING,
+            stepEditGateOf(s, StepEdit.Remove(0), running = true, compileBusy = true),
+        )
+    }
+
+    @Test
+    fun `编译归位即可编 同一请求由 COMPILING 转 READY`() {
+        val s = steps()
+        val edit = StepEdit.Remove(0)
+        assertEquals(StepEditGate.COMPILING, stepEditGateOf(s, edit, running = false, compileBusy = true))
+        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false))
+    }
+
+    @Test
+    fun `编辑两档话术各说自己的事 编译面头一句与录制面同一格`() {
+        val compiling = StepEditGate.COMPILING.userCopy().orEmpty()
+        val running = StepEditGate.RUNNING.userCopy().orEmpty()
+        assertTrue(compiling.isNotBlank() && running.isNotBlank())
+        assertNotEquals(compiling, running, "两档共用一句=用户分不清是不许改还是改完了")
+        // 头一句必须是派单书 §1-F1-2 点名的那句"AI 编译中，改账与执行此刻不动"，且与录制/执行面同一格常量
+        assertTrue(
+            compiling.startsWith(COMPILE_HOLD_HEADLINE),
+            "编辑面的编译话术没引用共用头一句＝话术又分叉一份：$compiling",
+        )
+        assertTrue(
+            RecordGate.COMPILING.userCopy()!!.contains(COMPILE_HOLD_HEADLINE),
+            "录制/执行面那一句必须与编辑面共用同一个头一句常量",
+        )
     }
 
     @Test
     fun `过期边只作废纯状态档 请求档不得被状态跃迁顺手抹掉`() {
-        assertNull(editRejectionAfterStateChange(StepEditGate.RUNNING, running = false), "执行结束还挂着 RUNNING=假红")
-        assertEquals(StepEditGate.RUNNING, editRejectionAfterStateChange(StepEditGate.RUNNING, running = true))
+        assertNull(
+            editRejectionAfterStateChange(StepEditGate.RUNNING, running = false, compileBusy = false),
+            "执行结束还挂着 RUNNING=假红",
+        )
+        assertEquals(
+            StepEditGate.RUNNING,
+            editRejectionAfterStateChange(StepEditGate.RUNNING, running = true, compileBusy = false),
+        )
+        // S3-F/F1-3：COMPILING 同为纯状态档，编译归位即撤（不撤就是假红），且必须按**各自那一路**状态撤
+        assertNull(
+            editRejectionAfterStateChange(StepEditGate.COMPILING, running = false, compileBusy = false),
+            "编译都回来了还挂着 COMPILING=假红（S31-B2 扩面的另一半）",
+        )
+        assertEquals(
+            StepEditGate.COMPILING,
+            editRejectionAfterStateChange(StepEditGate.COMPILING, running = false, compileBusy = true),
+        )
+        assertEquals(
+            StepEditGate.COMPILING,
+            editRejectionAfterStateChange(StepEditGate.COMPILING, running = true, compileBusy = true),
+            "执行归位不影响编译档：两条状态各管各的撤字边",
+        )
+        assertEquals(
+            StepEditGate.RUNNING,
+            editRejectionAfterStateChange(StepEditGate.RUNNING, running = true, compileBusy = true),
+            "编译归位不影响执行档：同上",
+        )
         listOf(StepEditGate.EMPTY_LEDGER, StepEditGate.OUT_OF_RANGE, StepEditGate.BLANK_NAME).forEach {
-            assertEquals(it, editRejectionAfterStateChange(it, running = false), "$it 绑在那次请求上，不该随状态消失")
+            assertEquals(
+                it,
+                editRejectionAfterStateChange(it, running = false, compileBusy = false),
+                "$it 绑在那次请求上，不该随状态消失",
+            )
         }
-        assertNull(editRejectionAfterStateChange(null, running = false), "无拒因时不得凭空造一条")
+        assertNull(editRejectionAfterStateChange(null, running = false, compileBusy = false), "无拒因时不得凭空造一条")
     }
 
     // ---------- 门禁与原语严格对齐 ----------

@@ -15,6 +15,9 @@ import com.anytouch.app.TaskRequest
 import com.anytouch.app.executor.NodeTaskRunner
 import com.anytouch.app.compile.AccessibilityRootSource
 import com.anytouch.app.platform.AccessibilityDevice
+import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.platform.runGateOf
+import com.anytouch.app.platform.runUserCopy
 import com.anytouch.app.recorder.capture.AndroidCaptureBridge
 import com.anytouch.app.recorder.capture.CaptureBridge
 import com.anytouch.app.recorder.session.RecorderStore
@@ -118,15 +121,25 @@ class AnytouchAccessibilityService : AccessibilityService() {
                     AppState.consume(request)
                     return@collect
                 }
-                if (AppState.running.value) {
-                    // 设备实测：正常架构下此分支不可达——执行中新注入被 StateFlow conflation 并队，
-                    // 首任务完成后串行执行；能走到这里说明 running 已泄漏（第 7 颗雷形态），防线即弃+留痕。
-                    val receipt = droppedRunReport(
-                        PipelineStopCode.REQUEST_BUSY,
-                        "已有任务在执行，新注入即弃（单执行器语义；执行中任务稍后会覆写本报告）",
-                    )
+                // 总线这一头是"执行不开始"的最后一道入口（UI 与 adb 注入都得过它）。
+                // 判据转调 runGateOf（与派发按钮面同一格，S3-F/F1）：这里不写第二份 `if (compileBusy)`。
+                // 设备实测：RUNNING 那一档正常架构下不可达——执行中新注入被 StateFlow conflation 并队，
+                // 首任务完成后串行执行；能走到这里说明 running 已泄漏（第 7 颗雷形态），防线即弃+留痕。
+                // COMPILING 这一档是新加的、且**可达**：任务先躺在总线上、随后用户点了「AI 编译」，
+                // 服务下一次 collect 若照放，账就在那一跑底下被编译产物换掉（串状态正身）。
+                val runGate = runGateOf(
+                    running = AppState.running.value,
+                    compileBusy = AppState.compileBusy.value,
+                )
+                if (runGate != RecordGate.READY) {
+                    val reason = runGate.runUserCopy().orEmpty()
+                    val receipt = droppedRunReport(PipelineStopCode.REQUEST_BUSY, reason)
                     AppState.lastRunReport.value = receipt
-                    Log.w(TAG, "S1SMOKE busy, request ${request.id} dropped receipt=$receipt")
+                    // 错误必显示（F1-2）：报告格之外再进派发拒因格同一槽位，档位身份存枚举供过期边认它
+                    AppState.setTaskRejection(runGate, reason)
+                    // stop_code 复用 REQUEST_BUSY：PipelineStopCode 住 core/（本批禁动契约），
+                    // 归因分档走日志的 gate= 字段与 report 的 stop_reason 原文。
+                    Log.w(TAG, "S1SMOKE busy, request ${request.id} dropped gate=$runGate receipt=$receipt")
                     AppState.consume(request) // 忙中丢弃也要作废，否则滞留队列头会在重绑时重放
                     return@collect
                 }
@@ -164,6 +177,9 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 RecorderStore.revalidateStartRejection()
                 // 编辑面同律：执行中禁编辑的 RUNNING 话术也是纯状态档，跑完必须一起作废。
                 RecorderStore.revalidateEditRejection()
+                // 派发面同律（S3-F/F1-3）：这一格的 RUNNING/COMPILING 拒因都是纯状态档，
+                // 状态一归位还挂着"不许派发"就是假红。编译归位那条来路在 RecorderStore.revalidateAfterCompile。
+                RecorderStore.revalidateRunRejection()
             }
         }
     }

@@ -7,6 +7,7 @@ import com.anytouch.app.platform.recordGateOf
 import com.anytouch.app.platform.startRejectionAfterStateChange
 import com.anytouch.app.platform.stopCompileGateOf
 import com.anytouch.app.platform.stopRejectionAfterStateChange
+import com.anytouch.app.platform.taskRejectionAfterStateChange
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.RecEvent
 import com.anytouch.app.recorder.RecorderCompiler
@@ -15,6 +16,8 @@ import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.StepEditGate
 import com.anytouch.app.recorder.applyStepEdit
 import com.anytouch.app.recorder.editRejectionAfterStateChange
+import com.anytouch.app.recorder.firstUnsupportedModelAction
+import com.anytouch.app.recorder.modelLedgerSupportedTypesCopy
 import com.anytouch.app.recorder.opName
 import com.anytouch.app.recorder.stepEditGateOf
 import com.anytouch.app.recorder.suggestionAfterEdit
@@ -146,7 +149,9 @@ object RecorderStore {
      */
     fun applyEdit(edit: StepEdit): Boolean {
         val actions = compiledActions.value
-        val gate = stepEditGateOf(actions, edit, AppState.running.value)
+        // 四参真值表：RUNNING 与 COMPILING 两档都在同一张表里（编译档转调 AccessibilityGate 那一格，
+        // 本处不写 `if (compileBusy)`——两个入口各写一份就是串状态，见 `runGateOf` 的注释）。
+        val gate = stepEditGateOf(actions, edit, AppState.running.value, AppState.compileBusy.value)
         if (gate != StepEditGate.READY) {
             val copy = gate.userCopy()
             rejectEdit(gate)
@@ -189,6 +194,17 @@ object RecorderStore {
         data class Written(val steps: Int, val replaced: Int) : ModelLedger
         /** 执行中整本换账 = 正在跑的那一跑与屏上的账变成两套，拒。 */
         object RefusedRunning : ModelLedger
+
+        /**
+         * 词表档（S3-F/F2-3，裁 S31-B3）：来的账里有一条执行器跑不动的 `type`，**整本拒**。
+         * 不逐步落账的理由（派单书 §1-F2-2 原文）：半本账=屏上步骤与用户意图不一致而不报错，
+         * 比整本拒更难发现。[index] 与 [type] 点名那一条，[supportedTypes] 是当时的支持集（上屏要用）。
+         */
+        data class RefusedUnsupportedType(
+            val index: Int,
+            val type: String,
+            val supportedTypes: Set<String>,
+        ) : ModelLedger
     }
 
     /**
@@ -196,11 +212,34 @@ object RecorderStore {
      * 步序账 + 任务框建议必须**同写**，且建议一律由 [encodeActions] 现算——
      * 模型原文的 JSON（键序/空格不同）若直接进任务框，V-3 准入会在下一次"执行任务"时把它判成
      * "机器建议已作废"而拒放，等于 AI 编译出的步骤自己放不出来（JVM 用例锁这一条）。
+     *
+     * 两档门禁**各自一条、不并档**（派单书 §4-2）：
+     * 1. [ModelLedger.RefusedRunning]——执行态档（既有那条，一字未改其语义）；
+     * 2. [ModelLedger.RefusedUnsupportedType]——词表档（S3-F 新增），支持集由调用方从 `:byok` 真源注入
+     *    （`recorder/` 不许 import 编译模块＝红线 G，判据本体在纯函数 `firstUnsupportedModelAction`）。
+     *
+     * 这一档**不看 `compileBusy`**，也不该看：本函数就是被编译那一跑**还在路上时**调的
+     * （`compile/ByokGateway.compile` 里 `controller.compile` 先落账、`state.endCompile` 后翻格），
+     * 在这里加编译门禁等于让编译产物永远落不了账——自锁死。
+     * 派单书 §1-F1 现状那句"别误改"就是这一格。
      */
-    fun acceptModelActions(actions: List<com.anytouch.contracts.Action>): ModelLedger {
+    fun acceptModelActions(
+        actions: List<com.anytouch.contracts.Action>,
+        supportedTypes: Set<String>,
+    ): ModelLedger {
         if (AppState.running.value) {
             Log.w(TAG, "S3SMOKE model ledger refused gate=RUNNING incoming=${actions.size}")
             return ModelLedger.RefusedRunning
+        }
+        firstUnsupportedModelAction(actions, supportedTypes)?.let { unsupported ->
+            // 留痕口径与既有 refused 行同构；支持集排序后进日志，脚本与人读的是同一份
+            Log.w(
+                TAG,
+                "S3SMOKE model ledger refused gate=UNSUPPORTED_TYPE index=${unsupported.index} " +
+                    "type=${unsupported.type} supported=${modelLedgerSupportedTypesCopy(supportedTypes)} " +
+                    "incoming=${actions.size}（整本不落账）",
+            )
+            return ModelLedger.RefusedUnsupportedType(unsupported.index, unsupported.type, supportedTypes)
         }
         val stale = compiledActions.value
         val json = encodeActions(actions)
@@ -238,17 +277,37 @@ object RecorderStore {
     }
 
     /**
-     * 状态跃迁后复核**编辑**拒因（执行中禁编辑门禁的过期边，判据在纯函数 [editRejectionAfterStateChange]）：
-     * 与开录面同一条纪律——RUNNING 是纯状态档，执行一结束还挂着"任务执行中不能改步骤"就是假红。
+     * 状态跃迁后复核**编辑**拒因（编辑面纯状态档的过期边，判据在纯函数 [editRejectionAfterStateChange]）：
+     * 与开录面同一条纪律——RUNNING 与 COMPILING 两档都说的是"此刻"，状态一归位还挂着红字就是假红
+     * （S3-F/F1-3 把 COMPILING 并进来，裁决 S31-B2）。
      * 请求绑定的那三档（空账/越界/空名）不在此列，由下一次请求覆盖。
      * @return true=本次复核作废了一条陈旧话术。
      */
     fun revalidateEditRejection(): Boolean {
         val current = editRejectionGate
-        val next = editRejectionAfterStateChange(current, AppState.running.value)
+        val next = editRejectionAfterStateChange(current, AppState.running.value, AppState.compileBusy.value)
         if (current != null && next == null) {
             clearEditRejection()
             Log.i(TAG, "S2SMOKE edit rejection expired gate_was=$current detail=状态已变，陈旧拒因作废")
+            return true
+        }
+        return false
+    }
+
+    /**
+     * 状态跃迁后复核**派发**拒因（S3-F/F1-3；判据在纯函数 [taskRejectionAfterStateChange]，
+     * 与 [revalidateStartRejection] / [revalidateEditRejection] / [revalidateStopRejection] 同一条纪律）：
+     * 派发面挂的红字只有 RUNNING / COMPILING 两种来路，都是纯状态档，状态一归位就必须撤。
+     * V-3 那条"框账不符"的拒因在这里存的是 null（档位身份不是状态档），因此**不会**被本函数抹掉——
+     * 它绑用户那一次点击，由下一次派发覆盖。
+     * @return true=本次复核作废了一条陈旧话术。
+     */
+    fun revalidateRunRejection(): Boolean {
+        val current = AppState.taskRejectionGate
+        val next = taskRejectionAfterStateChange(current, AppState.running.value, AppState.compileBusy.value)
+        if (current != null && next == null) {
+            AppState.setTaskRejection(null, null)
+            Log.i(TAG, "S1SMOKE run rejection expired gate_was=$current detail=状态已归，陈旧派发拒因作废")
             return true
         }
         return false
@@ -271,13 +330,17 @@ object RecorderStore {
     }
 
     /**
-     * 编译归来的那一次状态跃迁要复核的两条陈旧话术（开录格 + 停止格，判据各自住在纯函数里）。
+     * 编译归来的那一次状态跃迁要复核的**四条**陈旧话术（开录格 + 停止格 + 编辑格 + 派发格，
+     * 判据各自住在纯函数里）。S3-F/F1-3 把后两格并进来：编译互斥从"录制两面"扩到"改账与执行"两面之后，
+     * 那两面挂的 COMPILING 红字同样失去依据——不撤就是假红。
      * 为什么由编译侧调、不等服务侧合流：`watchRecordBall` 的三股流里没有"编译在跑"这一股，
      * 服务没连上时那条 collect 根本不转——把过期边挂上去，编译红字就有一条永远等不到作废。
      */
     fun revalidateAfterCompile() {
         revalidateStartRejection()
         revalidateStopRejection()
+        revalidateEditRejection()
+        revalidateRunRejection()
     }
 
     fun start(targetPkg: String = this.targetPkg): SessionOutcome {

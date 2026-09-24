@@ -95,6 +95,14 @@ class NodeTaskRunner(
                 break
             }
 
+            // 这一段 when 就是"执行器跑得动哪些 type"的**行为定义**（派单书 §4-1 钉的真集基准）。
+            // 词表真源住 `:byok`（S3-F/F2、派单书 §5）：`byok/.../ExecutorVocabulary.kt` 的
+            // `executorSupportedActionTypes` 由同样的四条 `ActionType` 常量组成，编译侧与落账侧都从它派生。
+            // 本文件**不许** import 那个符号——`executor/` 住执行路径，红线 G（scripts/ci-local.sh）禁它
+            // 看见编译模块，"编译期联网、执行期零网络"才是结构而不是注释。
+            // 两边脱节因此由**可执行对拍**兜住：`app/src/test/.../executor/ExecutorVocabularyDispatchLockTest.kt`
+            // 逐条真跑这一队，断言"when 判 unsupported_type 的集合 == 真源之外的集合"，
+            // 两个方向都能红（这里加一条分支而真源未改 → 红；真源加一条而这里没改 → 也红）。
             val outcome = when (action.type) {
                 ActionType.WAIT -> {
                     delay(longParam(action.value, "ms", 500))

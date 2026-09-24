@@ -457,16 +457,22 @@ run_key_group() {
     else
         bad "E5e :: 任务框里没有产物 :: [$task]"
     fi
-    # E5i 是这一跑**逼出来的新判据**（不是凑数）：执行器只走 WAIT + CLICK/SCROLL/TYPE_TEXT
-    # （NodeTaskRunner.kt:98-109），其余类型一律 unsupported_type + StopCode.EXECUTOR_ERROR（:111-121）。
-    # 编译器词表与执行支持集**从未对拍**过：AI 交 key=back 时账落得下、屏上看得到，一点「执行任务」
-    # 第一步就以执行器错误收官（见本条紧随其后的 E5h 原文）。这一条红=真缺陷，不洗成绿。
+    # E5i（S3-F 收口后的口径，裁决 S31-B3"收紧词表=编译侧拒并显式"）。
+    # 动作词表全仓只有一份真源：`byok/src/main/kotlin/com/anytouch/byok/ExecutorVocabulary.kt`
+    # 的 `executorSupportedActionTypes` = 执行器 `when (action.type)` 的 WAIT+CLICK+SCROLL+TYPE_TEXT
+    # （NodeTaskRunner.kt:98-121，其余一律 unsupported_type + StopCode.EXECUTOR_ERROR）。
+    # 编译器授权集与提示词那半句现在都从真源派生，key 因此从授权集消失——旧授权集比执行面宽一个 key，
+    # 那一个 key 就是模拟器 [E1-*] 轮抓到的间歇红正身（evidence/S3/slice-e2-k40-key.md §5）；
+    # 执行面**没有**补 KEY/BACK 派发（派单书 §3 明确不做，"扩执行面"那条路没被选）。
+    # 下面这行 `-e` 名单是本批留在磁盘上的**第三份抄本**，它不再靠人对眼：JVM 用例
+    # `byok/src/test/kotlin/com/anytouch/byok/ExecutorVocabularyTest.kt` 把真源与本行逐字对拍，
+    # 真源一改而本行未改，那条用例先红——本行因此不许被读成"没人核对的门禁"。
     unsupported=$(printf '%s' "$types" | tr ',' '\n' | grep -v '^$' \
         | grep -vw -e click -e type_text -e scroll -e wait || true)
     if [ -n "$unsupported" ]; then
-        bad "E5i :: 产物含执行面不支持的类型 [$unsupported]：编译器授权了跑不动的动作（假产物），回放以 EXECUTOR_ERROR 收尾。两侧支持集需一句裁决收口（收紧词表 vs 执行面补类型），本轮不擅自改任一侧"
+        bad "E5i :: 产物含真源之外的类型 [$unsupported]：编译器授权了跑不动的动作（假产物），回放以 EXECUTOR_ERROR 收尾。词表真源=byok/src/main/kotlin/com/anytouch/byok/ExecutorVocabulary.kt，裁决号=S31-B3（已下：收紧词表，不扩执行面）"
     else
-        pass "E5i 产物每一步都在执行面支持集内（click/type_text/scroll/wait） :: types=[$types]"
+        pass "E5i 产物每一步都在真源支持集内（ExecutorVocabulary，JVM 逐字对拍本行 -e 名单，裁 S31-B3） :: types=[$types]"
     fi
     harvest_page 8
     assert_ui "E5d 词表账上屏（ai_ctx_notice：几条/剔了多少）" 'ai_ctx_notice'
@@ -525,6 +531,54 @@ run_key_group() {
     started=$(count_line 'S2SMOKE record start target=')
     if [ "${started:-0}" = "0" ]; then pass "E8c 拒=整条不动：本轮零次成功开录（会话没被起）"; else
         bad "E8c :: 被拒却起了会话（record start target= 计数=$started）"
+    fi
+    # ---------- E8g/E8h/E8i 编译在跑时「执行任务」与「步骤编辑」也拒（裁决 S31-B2；S3-F F1 的设备半边） ----------
+    # 判据与 JVM 真值表同一条：runGateOf / stepEditGateOf 都复用 stopCompileGateOf 那一格
+    # （app/.../platform/AccessibilityGate.kt），本处只锁"注入真被拒、账没动、执行没开始、红字在"。
+    # 取证的口径与 E8a/E8b 逐字同构（正向取被拒行）。写在 E8c 之后而不是 E8f 之后：
+    # 这两条的前提是"编译还在跑"，而 E8d/e 的整页扫描可能跨过编译归位。
+    local e8g_done_before e8g_line e8g_ran e8h_done_before e8h_line e8edited
+    e8g_done_before=$(count_line 'S3SMOKE compile')
+    inject "--es task_json '[{\"action_id\":\"e8g\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"System\"},\"safety\":{\"viewport_ok\":true,\"click_enabled\":true}}]'" true
+    e8g_line=$(wait_line "submit refused gate=COMPILING" 20)
+    if [ -n "$e8g_line" ]; then
+        pass "E8g 编译在跑拒派发（UI 与注入共用同一入口，门禁落入口不落按钮） :: $e8g_line"
+        # 执行不开始：本次注入根本没进总线，执行器一行 S1SMOKE ok= 都不该有
+        e8g_ran=$(count_line 'S1SMOKE ok=')
+        if [ "${e8g_ran:-0}" = "0" ]; then pass "E8g2 被拒=执行真没开始（本轮 S1SMOKE ok= 计数 0）"; else
+            bad "E8g2 :: 拒因说不许动，执行器却跑了一轮（ok= 计数=$e8g_ran）"
+        fi
+    elif [ "$(count_line 'S3SMOKE compile')" != "$e8g_done_before" ]; then
+        # 前提在这次注入里就消失了（编译归位）：此时放行是对的，判红=自造假红（同 E8d/e 第一版的教训）
+        skip "E8g/E8g2 不判红：编译窗口在这一次注入内就归位了，此刻放行本来才对（结论行已出现）"
+    else
+        bad "E8g :: 期望 [submit refused gate=COMPILING]，实际无（编译中放行了执行=账会被那一跑换掉）"
+    fi
+    e8h_done_before=$(count_line 'S3SMOKE compile')
+    inject "--es step_remove 0" true
+    e8h_line=$(wait_line "step edit refused gate=COMPILING" 20)
+    if [ -n "$e8h_line" ]; then
+        pass "E8h 编译在跑拒步骤编辑（与执行中禁编辑同一格门禁，RUNNING 之后就是 COMPILING） :: $e8h_line"
+        e8edited=$(count_line 'S2SMOKE step edit ok')
+        if [ "${e8edited:-0}" = "0" ]; then pass "E8h2 被拒=账真没动（本轮零次成功编辑）"; else
+            bad "E8h2 :: 拒因说不许动，步序账却被改过（step edit ok 计数=$e8edited）"
+        fi
+    elif [ "$(count_line 'S3SMOKE compile')" != "$e8h_done_before" ]; then
+        skip "E8h/E8h2 不判红：编译窗口在这一次注入内就归位了（此刻放行才对）"
+    else
+        bad "E8h :: 期望 [step edit refused gate=COMPILING]，实际无"
+    fi
+    # 红字在：正向取证——读得到即 PASS，读不到不算反证（视口/折叠会吞，与 E8d/e 同一档口径）
+    local shown3=0 shown4=0
+    if first_screen_dump; then
+        grep -aq 'task_rejection' "$FIRST_TMP" && shown3=1
+        grep -aq 'step_edit_rejection' "$FIRST_TMP" && shown4=1
+    fi
+    if [ "$shown3" = "1" ]; then pass "E8i 派发拒因上屏（task_rejection 单屏正向命中）"; else
+        skip "E8i 不判红：task_rejection 未被单屏 dump 命中（视口/折叠可吞；日志侧 E8g 已取正向证据）"
+    fi
+    if [ "$shown4" = "1" ]; then pass "E8j 编辑拒因上屏（step_edit_rejection 单屏正向命中）"; else
+        skip "E8j 不判红：step_edit_rejection 未被单屏 dump 命中（同上）"
     fi
     # E8d/E8e 判据（本批第二版）。第一版是 `harvest_page 6` 之后查两格，结果两条判红，而日志里
     # `record stop rejection expired gate_was=COMPILING` 带时间戳证明：话术在那次扫描期间就正常过期了

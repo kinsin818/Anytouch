@@ -1,0 +1,235 @@
+# raw · 切片 F 设备关（emulator-5554 同构建 13:39 app-debug.apk）· 采集 2026-09-24 14:23:45
+# 键字面量禁入：仅屏上 ***尾4 形态；下方为四支脚本逐字去色输出
+
+## device-smoke (首轮 C5 冷dump假红已在文末说明；此为复跑绿轮)
+
+PASS C1 混合链(scroll+click Settings) :: 09-24 05:48:19.172  5275  5275 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS C2 type_text 经典EditText :: 09-24 05:48:31.910  5275  5275 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+      | C3 前置自复核：task_input 已在无障碍树里（滚到面板底部）
+PASS C3 type_text Compose自目标 :: 09-24 05:48:40.582  5275  5275 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS C4 负例 NODE_NOT_FOUND :: 09-24 05:48:56.681  5275  5275 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C5 高危超时默认拒绝 :: 09-24 05:49:25.221  5275  5275 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="PASSWORD:password"
+PASS C5x 输入通道洁净（零外部触点）
+PASS C6 停止球即时响应 :: 0s :: 09-24 05:49:39.002  5275  5275 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="user_stop"
+PASS C7 面板挂起期点球即停 :: 0s :: 09-24 05:49:58.568  5275  5275 I AnytouchRun: S1SMOKE ok=2 total=3 stopped=true stop="user_stop"
+PASS C7x 输入通道洁净（触摸 0 次 = 预算 0）
+PASS C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+PASS C8b 解绑重绑后执行器自愈 :: 09-24 05:50:22.318  5275  5275 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS C9 服务未连时开录被拒（注入通道同判，无空会话）
+PASS C10 执行中开录被拒（球收起态不得录制）
+
+device-smoke: ALL PASS
+
+## ui-smoke (复跑绿轮)
+
+PASS U1a 预置档编译 3 步 :: 09-24 05:55:04.037  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=4 target=com.android.settings
+PASS U1b 步序账上屏：末行按钮在 + 计数文案'步骤 3'在（行 id 走 testTag，自家窗 4/4 屏）
+PASS U2a 移序 0→2 生效 :: 09-24 05:55:29.326  5275  5275 I AnytouchRun: S2SMOKE step edit ok=move index=0 before=3 after=3
+PASS U2b 移序后步序账顺序=[rec-0002 rec-0003 rec-0001 ]
+PASS U2c 移回 2→0 生效 :: 09-24 05:55:31.766  5275  5275 I AnytouchRun: S2SMOKE step edit ok=move index=2 before=3 after=3
+PASS U2d 还原后顺序=[rec-0001 rec-0002 rec-0003 ]
+PASS U3a 改名生效 :: 09-24 05:55:34.208  5275  5275 I AnytouchRun: S2SMOKE step edit ok=rename index=0 before=3 after=3
+PASS U3b 改名只改 actionId，三条线索原样在账（回放依据没被动）
+PASS U4a 空步骤名被拒 gate=BLANK_NAME :: 09-24 05:55:36.773  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=BLANK_NAME op=rename index=0 ledger=3 detail=步骤名不能为空：留空会让这一步在回放报告里无法归因。
+PASS U4b ok=rename 计数仍为 1（空名未放行）
+PASS U5a 越界删除被拒 gate=OUT_OF_RANGE :: 09-24 05:55:39.191  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=OUT_OF_RANGE op=remove index=99 ledger=3 detail=该步骤已不存在（列表刚刚变动过）：请刷新查看当前步骤，不要按旧序号操作。
+PASS U5b 移序目标位越界被拒 gate=OUT_OF_RANGE :: 09-24 05:55:41.508  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=OUT_OF_RANGE op=move index=0 ledger=3 detail=该步骤已不存在（列表刚刚变动过）：请刷新查看当前步骤，不要按旧序号操作。
+PASS U5c 被拒不崩：进程仍在（pid=5275）
+PASS U5d 越界两步均未放行（[step edit ok=remove] 计数=0）
+PASS U6a 删步生效 3→2 :: 09-24 05:55:44.149  5275  5275 I AnytouchRun: S2SMOKE step edit ok=remove index=2 before=3 after=2
+PASS U6b UI 与账目同步：第 3 行撤下、第 2 行仍在、计数文案改口（扫到底后全页比对）
+PASS U7a 取到编辑后任务 JSON 恰 2 步
+PASS U7b 编辑后回放按新步数执行（删掉的那步没跑） :: 09-24 05:56:23.941  5275  5275 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-
+PASS U8a 删到清零留痕 :: 09-24 05:56:27.296  5275  5275 W AnytouchRun: S2SMOKE step edit ok=remove 步序账清零，不写回放建议（无步骤可放）
+PASS U8b 空账未伪装成品：本轮零条 'S2SMOKE-TASK []'（[S2SMOKE-TASK \[\]] 计数=0）
+PASS U8c 屏上同步为空态文案
+PASS U9a 空账编辑被拒 gate=EMPTY_LEDGER :: 09-24 05:56:47.856  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=EMPTY_LEDGER op=remove index=0 ledger=0 detail=当前没有可编辑的步骤：请先录制并点「停止并编译」，有步骤后才能增删改。
+PASS U9b 拒因计数 0→1（本轮新造，非旧痕复用）
+PASS U10a 前置：机器最后一条建议恰 1 步（账已 0 步=孤儿形态）
+PASS U10b 孤儿建议被拒留痕 :: 09-24 05:56:50.645  5275  5275 W AnytouchRun: S1SMOKE submit refused gate=STALE_SUGGESTION via=adb_inject ledger=0 machineSuggestion=192 detail=任务框里是上一次编辑留下的旧建议，和当前步序账已经不一致：直接执行会放出账上早已删掉的步骤。请重新录制并点「停止并编译」，或在步骤列表里编辑后再执行（你手敲的内容不会被改动）。
+PASS U10c 拒而未放：refused=1 且本轮零执行回执（账外步骤没被跑）
+PASS U10d 拒因上屏（错误必显示，不是静默吞掉一次点击）
+PASS U11a 账外手敲任务仍放行并跑成 :: 09-24 05:57:20.795  5275  5275 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS U11b 放行后拒因撤下（自家窗 3/3 屏，红字=miss，全页扫到底）
+PASS U12a 执行中开录被拒（话术入 startRejection） :: 09-24 05:57:45.959  5275  5275 W AnytouchRun: S2SMOKE record start refused gate=RUNNING detail=任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。
+PASS U12b 本轮执行结束（running 转假） :: 09-24 05:57:57.851  5275  5275 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS U12c 陈旧拒因自动作废 :: 09-24 05:57:57.867  5275  5275 I AnytouchRun: S2SMOKE record rejection expired gate_now=READY detail=状态已变，陈旧拒因作废（任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。）
+PASS U12d 屏上红字确已消失（自家窗 4/4 屏，红字=miss，全页扫到底）
+PASS U13 录制球在右缘（录制态深红球，前置已坐实） :: BALL_STATE=recording BALL_X_RATIO=0.907 matched=3936 green=0 red=3936 size=1080x2400 min=892 max=1066
+PASS U14a 执行中删步被拒 gate=RUNNING :: 09-24 05:58:39.396  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=RUNNING op=remove index=0 ledger=3 detail=任务执行中不能改步骤：账本一边跑一边改，回放依据就对不上执行现场了。请等本轮结束（或点悬浮球停止）后再删改。
+PASS U14b 执行期零条编辑放行（置灰不是门禁，注入通道同判）
+PASS U14c 门禁读到的是真账：拒因行 ledger=3（步骤没被删掉）
+PASS U15a 本轮执行结束 :: 09-24 05:58:51.367  5275  5275 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS U15b 陈旧禁编辑话术自动作废 :: 09-24 05:58:51.379  5275  5275 I AnytouchRun: S2SMOKE edit rejection expired gate_was=RUNNING detail=状态已变，陈旧拒因作废
+PASS U15c 屏上红字与置灰提示均已撤（自家窗 4/4 屏，红字=miss 提示=miss，全页扫到底）
+PASS U15d 跑完立刻可编：同一请求转放行 :: 09-24 05:59:17.544  5275  5275 I AnytouchRun: S2SMOKE step edit ok=remove index=0 before=3 after=2
+
+汇总：通过 41 / 失败计数见下 / 跳过 0（跳过=前置未立，不记绿也不记红）
+ui-smoke: ALL PASS（含 0 条 SKIP）
+
+## s2-smoke ROUNDS=10
+
+·· ===== SC 滚动采集：一次慢拖 = 一步 =====
+09-24 05:59:46.705  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 同手势合并（node=com.android.settings:id/main_content_scrollable_container dir=forward gap=85ms）
+09-24 05:59:49.641  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=scroll value={"resource_id":"com.android.settings:id/main_content_scrollable_container","direction":"forward"}
+PASS SC 一次慢拖只成一步 :: 09-24 05:59:49.640  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=1 drops=0 merged=0 events=3 target=com.android.settings
+·· ===== 第 1/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:00:37.623  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=7 target=com.android.settings
+     09-24 06:00:29.440  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:00:32.046  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:00:35.436  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:00:37.624  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:00:37.629  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:00:37.630  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R1 录→编→放全绿 :: 09-24 06:00:51.966  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 2/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:01:40.384  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 06:01:32.067  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:01:34.946  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:01:38.254  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:01:40.384  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:01:40.385  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:01:40.385  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R2 录→编→放全绿 :: 09-24 06:01:54.815  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 3/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:02:43.142  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 06:02:34.663  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:02:37.687  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:02:40.989  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:02:43.142  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:02:43.142  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:02:43.142  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R3 录→编→放全绿 :: 09-24 06:02:57.298  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 4/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:03:45.956  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 06:03:37.447  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:03:40.521  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:03:43.833  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:03:45.959  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:03:45.960  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:03:45.960  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R4 录→编→放全绿 :: 09-24 06:04:00.091  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 5/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:04:48.594  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 06:04:40.201  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:04:43.247  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:04:46.396  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:04:48.594  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:04:48.594  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:04:48.595  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R5 录→编→放全绿 :: 09-24 06:05:02.901  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 6/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:05:51.189  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 06:05:42.915  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:05:45.641  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:05:49.156  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:05:51.190  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:05:51.190  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:05:51.190  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R6 录→编→放全绿 :: 09-24 06:06:05.407  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 7/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:06:53.704  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 06:06:45.354  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:06:48.190  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:06:51.568  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:06:53.711  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:06:53.714  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:06:53.715  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R7 录→编→放全绿 :: 09-24 06:07:07.955  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 8/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:07:56.489  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 06:07:48.051  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:07:50.853  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:07:54.354  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:07:56.489  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:07:56.489  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:07:56.489  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R8 录→编→放全绿 :: 09-24 06:08:10.573  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 9/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:08:58.790  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 06:08:50.444  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:08:53.228  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:08:56.547  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:08:58.791  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:08:58.791  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:08:58.791  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R9 录→编→放全绿 :: 09-24 06:09:12.947  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+·· ===== 第 10/10 轮：录 → 编 → 放（3 步） =====
+·· 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+·· 编译产物：09-24 06:10:01.415  5275  5275 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=10 target=com.android.settings
+     09-24 06:09:52.946  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:09:55.769  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:09:59.253  5275  5275 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 06:10:01.415  5275  5275 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 06:10:01.416  5275  5275 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 06:10:01.416  5275  5275 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+PASS R10 录→编→放全绿 :: 09-24 06:10:15.483  5275  5275 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+
+PASS S2 闭环达标：10/10 轮全绿（ratio=1.00 ≥ 0.9）
+
+## keyed byok-smoke (E5-E11真编译；E8g/h/g2/h2 上屏正向；E8i/j 记SKIP)
+
+      | pid 未变（5275）：am kill 没收到（应用仍被视为前台）→ E1n 的空闲档按'可能带旧痕'读，已如实标注
+      | ring buffer main=M（已扩档，-d 判据通道可用）
+      | 靶设备：sdk_gphone64_x86_64（模拟器=1；模拟器上一切结论不得写成「真机已过」）
+      | 整页滚遍：4 屏后到底，屏间无缝=是
+PASS E1a 意图框在屏（[ai_intent] 命中=1）
+PASS E1b 编译按钮在屏（[ai_compile] 命中=1）
+PASS E1c 屏上下文开关在屏（[ai_ctx_switch] 命中=1）
+PASS E1d 服务地址框在屏（[byok_base_url] 命中=1）
+PASS E1e 模型名框在屏（[byok_model] 命中=1）
+PASS E1f Key 输入框在屏（[byok_key] 命中=1）
+PASS E1g 保存钮在屏（[byok_save] 命中=1）
+PASS E1h 清除钮在屏（[byok_clear] 命中=1）
+PASS E1i 凭据状态行在屏（[byok_key_tail] 命中=1）
+PASS E1j 折叠线以下滚得到：开始录制（[record_start] 命中=1）
+PASS E1k 折叠线以下滚得到：停止并编译（[record_stop] 命中=1）
+PASS E1l 凭据状态行已配（屏上只有尾 4 位） :: [本机已保存 Key：***JgYp]
+PASS E1m 已配凭据必须有地址回显（裁 §3-4：Key 发往哪儿要先说一次）（[byok_host_notice] 命中=1）
+PASS E1o 整页无 Key 形态字面（24+ 连续字母数字段=0）
+SKIP E2a~E2f 无凭据即拒六断言（本机已配凭据，由 E5 真编译接管）
+SKIP E2b 被拒不写账（同上）
+SKIP E3a~E3b 空意图独立档（本轮不做有凭据下的空意图浪费请求；JVM 已锁两档话术互不雷同）
+PASS E4a 执行中拒编译（门禁落入口，注入通道不例外） :: 09-24 06:15:00.511  5275  5547 W AnytouchRun: S3SMOKE compile refused gate=RUNNING kind=null stage=null rows=0 detail=有任务正在执行，AI 编译先不跑：编译产物是整本替换步序账的，执行中换账会让正在跑的那一跑和屏上的账变成两套。请先点悬浮球停止，或等这一跑结束。
+PASS E4b 执行中的那次编译一个字都没发出去（compile ok 计数=0）
+PASS E4c 本轮执行正常收尾 :: 09-24 06:15:12.128  5275  5275 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+PASS E5a 真 HTTPS 编译成功 :: 09-24 06:17:18.605  5275  5547 I AnytouchRun: S3SMOKE compile ok steps=1 replaced=3 rows=20
+PASS E5b 产物步数=1（≥1）
+PASS E5c 词表真采了几条：rows=20 且已入日志（同一条账要上屏，见 E5d）
+PASS E5e AI 产物已进任务框（框里的 type 集合=[click,]，建议流走的就是既有那条）
+PASS E5i 产物每一步都在真源支持集内（ExecutorVocabulary，JVM 逐字对拍本行 -e 名单，裁 S31-B3） :: types=[click,]
+PASS E5d 词表账上屏（ai_ctx_notice：几条/剔了多少）（[ai_ctx_notice] 命中=1）
+PASS E5f 结论上屏（ai_report 非空话术）（[ai_report] 命中=1）
+PASS E5g 真凭据在场时整页仍无 Key 形态字面
+PASS E5h AI 产物照常放行（没被 V-3 误拒，且真按框跑了 total=1 步；步内类型能否执行见 E5i） :: 09-24 06:17:51.232  5275  5275 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+PASS E8a 编译在跑拒开录 :: 09-24 06:17:55.330  5275  5275 W AnytouchRun: S2SMOKE record start refused gate=COMPILING detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+PASS E8b 编译在跑拒停止并编译 :: 09-24 06:17:55.332  5275  5275 W AnytouchRun: S3SMOKE record stop refused gate=COMPILING detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+PASS E8c 拒=整条不动：本轮零次成功开录（会话没被起）
+PASS E8g 编译在跑拒派发（UI 与注入共用同一入口，门禁落入口不落按钮） :: 09-24 06:17:55.909  5275  5275 W AnytouchRun: S1SMOKE submit refused gate=COMPILING via=adb_inject ledger=1 machineSuggestion=177 detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+PASS E8g2 被拒=执行真没开始（本轮 S1SMOKE ok= 计数 0）
+PASS E8h 编译在跑拒步骤编辑（与执行中禁编辑同一格门禁，RUNNING 之后就是 COMPILING） :: 09-24 06:17:58.480  5275  5275 W AnytouchRun: S2SMOKE step edit refused gate=COMPILING op=remove index=0 ledger=1 detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，此刻删改的那几条既不在这份账上、也不在那份账上。请等编译结论上屏后再编辑步骤。
+PASS E8h2 被拒=账真没动（本轮零次成功编辑）
+SKIP E8i 不判红：task_rejection 未被单屏 dump 命中（视口/折叠可吞；日志侧 E8g 已取正向证据）
+SKIP E8j 不判红：step_edit_rejection 未被单屏 dump 命中（同上）
+PASS E8d 开录拒因上屏 :: 编译在跑时单屏 dump 正向命中
+PASS E8e 停止拒因另起一格 :: 与开录拒因同屏并存（两件事同时红，没互相盖）
+PASS E8f 编译归位即撤陈旧拒因（过期边真的在设备上转） :: 09-24 06:18:25.942  5275  5547 I AnytouchRun: S3SMOKE record stop rejection expired gate_was=COMPILING detail=编译已归，陈旧拒因作废
+      | 第二跑结论（E8 的编译窗口）：09-24 06:18:25.942  5275  5547 I AnytouchRun: S3SMOKE compile ok steps=1 replaced=1 rows=0
+PASS E9a 进程被真收走并重来（pid 5275→21328；install -r 保留 /data 与 Keystore）
+PASS E9b 重进界面从 Keystore 现读回填 :: 09-24 06:19:01.259 21328 21390 I AnytouchRun: S3SMOKE config loaded tail=***JgYp notice=你的 Key 只发往这一个地址：integrate.api.nvidia.com
+PASS E9c 屏上尾 4 位跨进程逐字一致 :: [***JgYp]
+PASS E10 off 档上行零条：rows=0 :: 09-24 06:20:18.981 21328 21390 I AnytouchRun: S3SMOKE compile ok steps=1 replaced=0 rows=0
+SKIP E11a~E11d 清除双槽（真删本机凭据需重新手输；确认要跑就 E_WIPE=1）
+
+byok-smoke: 断言 40 条，跳过 6 条，无失败项
+诚实边界：跳过的都是'真机真 Key'那四条设备点（真 HTTPS/真 Keystore/词表真采/编译期双拒），
+           模拟器与无凭据机器上一律不记 PASS（S3-R5：注入走 byok-credential-inject.sh，本脚本仍不发 Key 字面量）。

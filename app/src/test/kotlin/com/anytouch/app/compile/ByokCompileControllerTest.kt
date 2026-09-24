@@ -13,6 +13,7 @@ import com.anytouch.contracts.Action
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -59,6 +60,32 @@ class ByokCompileControllerTest {
 
     private fun ctx(enabled: Boolean = true, seen: Int = 3, lines: List<String> = listOf("text=\"Bluetooth\"")) =
         ScreenContext(enabled, lines, seen, 0, 0, 0, 0, 0)
+
+    @Test
+    fun `词表档拒收时点名第几步与supported集合并与执行中档分开`() {
+        ledger = RecorderStore.ModelLedger.RefusedUnsupportedType(
+            index = 1,
+            type = "key",
+            supportedTypes = setOf("wait", "click", "scroll", "type_text"),
+        )
+        val r = controller().compile("进蓝牙页", ctx())
+        assertFalse(r.published, "写口整本没收下却报成功=虚报")
+        assertEquals(0, r.steps, "步数只报落账步数")
+        assertNull(r.gate, "这不是预检档（预检已经过了才走到落账口），档位身份在 ModelLedger 自己身上")
+        assertEquals("ledger", r.stage)
+        assertEquals(ByokErrorKind.COMPILE_REJECT, r.errorKind)
+        assertTrue(r.userCopy.contains("第 2 步"), r.userCopy)
+        assertTrue(r.userCopy.contains("key"), r.userCopy)
+        assertTrue(r.userCopy.contains("type_text"), "屏上必须说清现在跑得动的是哪几个：${r.userCopy}")
+        assertTrue(r.userCopy.contains("整本"), r.userCopy)
+        // 两档各说各话（派单书 §4-2"各自一条、不并档"）：并成一句就等于用户不知道该改说法还是该停任务
+        ledger = RecorderStore.ModelLedger.RefusedRunning
+        val running = controller().compile("进蓝牙页", ctx())
+        assertNotEquals(running.userCopy, r.userCopy, "词表档与执行中档给了同一句话=两档并档")
+        assertEquals(ByokPreflight.Gate.RUNNING, running.gate, "执行中档的预检身份不许被新档带跑")
+        assertTrue(running.userCopy.contains("没有写进去"), running.userCopy)
+        assertFalse(running.userCopy.contains("type_text"), "执行中档不该报词表内容：${running.userCopy}")
+    }
 
     @Test
     fun `预检拒时不落账 也不碰模型`() {

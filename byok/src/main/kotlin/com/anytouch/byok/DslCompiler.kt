@@ -42,22 +42,28 @@ sealed interface CompileResult {
 }
 
 object CompilerPrompt {
+    /**
+     * 规则 3 那一半句动作词表**由真源拼出**（`ExecutorVocabulary.kt`，S3-F/F2-2）。
+     * 旧版手抄成 `"click" | "type_text" | "scroll" | "key"`，于是"提示词写一套、校验器认另一套"
+     * 只需改一侧就能发生——现在它抄不出来。JVM 用例再锁一道（提示词出现的 type 名集合 == 真源）。
+     */
     val SYSTEM = """
         你是 Anytouch 的任务编译器：把用户的自然语言意图编译成 Android UI 自动化 Action JSON 数组。
         硬性规则：
         1) 只输出一个 JSON 数组，不要解释、不要 markdown 代码块；
         2) 每个元素字段：action_id（短英文小写id，数组内唯一）、type、source、value、safety；
-        3) type 只允许 "click" | "type_text" | "scroll" | "key"；source 只允许 "node"；
+        3) ${executorSupportedTypesPromptClause()}；source 只允许 "node"；
         4) value：click 用 {"text":"屏幕上可见的目标文本"}；
            type_text 用 {"text":"输入框可见文本","input":"要输入的字符串"}；
            scroll 用 {"resource_id":"容器id","direction":"forward|backward"}；
-           key 用 {"key":"back|home|enter"}；
+           wait 用 {"ms":"等待毫秒数，可省略（省略即 500）"}；
         5) safety 固定 {"viewport_ok":true,"click_enabled":true}；
         6) 严禁出现 target/x/y 等任何坐标字段——定位一律靠节点文本/id；
         7) 意图中出现的英文界面词就是屏幕上的可见文本，直接使用它们；
         8) 例：意图「进蓝牙页」→ [{"action_id":"cd","type":"click","source":"node","value":{"text":"Connected devices"},"safety":{"viewport_ok":true,"click_enabled":true}}]
         9) 若意图后附了【当前屏幕可见词表】：click/type_text 的 text、scroll 的 resource_id 只能从该词表里取，
-           词表里没有就说明它不在屏上——改走 back/key 等不依赖文本的动作，绝不许自己编一个词；
+           词表里没有就说明它不在屏上——不依赖文本的动作只剩 scroll 一条（它的 resource_id 同样只能取自词表），
+           那就宁可少编一步，绝不许多编一步、也绝不许自己编一个词；
            input_field(...) 一行只代表"这里有个输入框"，它的内容没有上行，不许猜测框里现在是什么。
     """.trimIndent()
 
@@ -110,27 +116,41 @@ class DslCompiler(private val transport: LlmTransport) {
                 ?: return reject("action[$i] 缺 action_id")
             if (!ids.add(id)) return reject("action_id 重复: $id")
             val type = obj["type"]?.jsonPrimitive?.contentOrNull
-            if (type !in ALLOWED_TYPES) return reject("action[$i] type=$type 不在白名单 ${ALLOWED_TYPES}")
+            if (type !in ALLOWED_TYPES)
+                return reject("action[$i] type=$type 执行器跑不动：授权词表=${ALLOWED_TYPES}（真源 :byok ExecutorVocabulary，收紧词表=裁 S31-B3）")
             if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return reject("action[$i] source 必须为 node")
             val safety = obj["safety"] as? JsonObject ?: return reject("action[$i] 缺 safety")
             if (safety["viewport_ok"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
                 return reject("action[$i] safety.viewport_ok 未显式放行")
-            if (type == "click" && safety["click_enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
+            if (type == ActionType.CLICK && safety["click_enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
                 return reject("action[$i] click 未显式 click_enabled")
             val value = obj["value"] as? JsonObject ?: return reject("action[$i] 缺 value")
             value.keys.intersect(FORBIDDEN_VALUE_KEYS).let {
                 if (it.isNotEmpty()) return reject("action[$i] value 含坐标类键 $it")
             }
+            // 逐类型的 value 形状判据一律引 ActionType 常量（S31-B5 同一条纪律：比较不写字面量）。
+            // 旧版这里有一条 `"key" -> …`：词表收紧后 key 在上面那档就被拒了，形状判据跟着一起消失，
+            // 不留"授权说不行、形状却又认得"的第三种话。
             when (type) {
-                "click" -> if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] click 缺可见文本")
-                "type_text" -> {
+                ActionType.CLICK -> if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] click 缺可见文本")
+                ActionType.TYPE_TEXT -> {
                     if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] type_text 缺输入框文本")
                     if (value["input"].strOrNull() == null) return reject("action[$i] type_text 缺 input")
                 }
-                "scroll" -> if (value["direction"]?.jsonPrimitive?.contentOrNull !in setOf("forward", "backward"))
+                ActionType.SCROLL -> if (value["direction"]?.jsonPrimitive?.contentOrNull !in setOf("forward", "backward"))
                     return reject("action[$i] scroll direction 非法")
-                "key" -> if (value["key"]?.jsonPrimitive?.contentOrNull !in setOf("back", "home", "enter"))
-                    return reject("action[$i] key 值非法")
+                ActionType.WAIT -> {
+                    // 省略 ms 是合法的：执行器按默认 500ms 走（NodeTaskRunner 的 longParam 口径），
+                    // 但给了就必须是个非负整数——否则"wait 一步"在屏上是几秒说不清。
+                    val raw = value["ms"]
+                    if (raw != null) {
+                        val ms = (raw as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
+                        if (ms == null || ms < 0) return reject("action[$i] wait 的 ms 必须是非负整数（省略即默认 500）")
+                    }
+                }
+                // fail-closed：真源若添了新成员而这里没有形状判据，宁可当场拒，也不放行一条"没人核对过形状"的动作
+                // （今天不可达——真源四个成员上面各有一条，这条锁的是"改真源忘了改这里"）。
+                else -> return reject("action[$i] type=$type 在真源里但没有形状判据（真源与校验器脱节，请补判据而不是放行）")
             }
         }
         return null
@@ -147,7 +167,12 @@ class DslCompiler(private val transport: LlmTransport) {
     ): CompileResult.Reject = CompileResult.Reject(stage, detail, kind)
 
     companion object {
-        val ALLOWED_TYPES = setOf(ActionType.CLICK, ActionType.TYPE_TEXT, ActionType.SCROLL, ActionType.KEY)
+        /**
+         * 授权词表**等于**执行器真源（S3-F/F2-2，裁决 S31-B3"收紧词表"）：这里不再列成员，只转引。
+         * 旧版是手抄的 `setOf(CLICK, TYPE_TEXT, SCROLL, `**`KEY`**`)`——比执行面宽一个 key，
+         * 那一个 key 就是 `[E1-*]` 轮抓到的间歇红正身。JVM 用例锁"两者逐字相等"（ExecutorVocabularyTest）。
+         */
+        val ALLOWED_TYPES: Set<String> get() = executorSupportedActionTypes
         val FORBIDDEN_VALUE_KEYS = setOf("x", "y", "point", "coordinate", "coordinates", "bounds", "offset", "offset_x", "offset_y")
 
         /** 容忍模型裹 ```json 围栏或前后寒暄：取第一个平衡的 [...] 片段。 */

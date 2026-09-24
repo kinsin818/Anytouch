@@ -212,7 +212,9 @@ class ScreenContextPromptTest {
 
     @Test
     fun `关闭态编译时用户消息里没有任何屏幕词`() {
-        val rec = Recorder("""[{"action_id":"a","type":"key","source":"node","value":{"key":"back"},"safety":{"viewport_ok":true,"click_enabled":true}}]""")
+        // 夹具由 key/back 改成 click：S3-F/F2 收紧词表后 key 已不在授权集里（裁 S31-B3），
+        // 本条判的是"开关关着时上行里不含屏幕词"，与被拒的词表无关——留着 key 只会让这条测成"编译拒了"。
+        val rec = Recorder("""[{"action_id":"a","type":"click","source":"node","value":{"text":"Settings"},"safety":{"viewport_ok":true,"click_enabled":true}}]""")
         val off = ScreenContext.disabled()
         val result = DslCompiler(rec).compile("打开设置", off)
         assertTrue(result is CompileResult.Ok)
