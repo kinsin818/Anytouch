@@ -7,6 +7,10 @@
 # 脚本内不手抄近似值）；UI 面用例不走录制通道（不需要球、零人工手指坐标）。
 # 洁净纪律：uiautomator dump 只用于"读 UI 是否同步"，每次 dump 后一律 wait_service_bound 复绑
 # （设备实证：dump 注册 UiTestAutomationService 会挤掉自家服务，不复绑则下一条用例必假红）。
+# 页读纪律（09-24 主窗补，起因=切片 D 立起 BYOK 面板后 U6b/U11b/U12d/U15c 一族转红）：
+# 自家主屏是一列 Compose，**折叠线以下的节点不进无障碍树**，所以"单屏 dump"两个方向都不可信
+# （存在性读不到=假红、缺席读不到=假绿）。读数一律走 ui_sweep：先正向确认回到首屏（target_pkg 读到），
+# 再逐屏往下扫到"连续两屏内容签名相同"才算看完；没扫到底时"缺席"一侧记 SKIP，不记绿也不记红。
 set -u
 
 ADB="adb"
@@ -14,12 +18,18 @@ ADB="adb"
 
 # 词表（真机中文 ROM 用环境变量覆盖，与 device-smoke 同一口径）
 TXT_CONNECTED="${TXT_CONNECTED:-Connected devices}"
+# 自家包名：dump 里每个自家节点都带 package="…"，用它坐实"这一屏读的是自家窗"（与被断言的 testTag 无关）
+OWN_PKG="${OWN_PKG:-com.anytouch.app}"
 
 fail=0
+passed=0
+skipped=0
 RED='\033[0;31m'; GRN='\033[0;32m'; NCT='\033[0m'
-pass() { printf "${GRN}PASS${NCT} %s\n" "$1"; }
+pass() { printf "${GRN}PASS${NCT} %s\n" "$1"; passed=$((passed + 1)); }
 bad()  { printf "${RED}FAIL${NCT} %s\n" "$1"; fail=1; }
 log()  { printf '      | %s\n' "$*"; }
+# 前置没立住的读数不记红、也不记绿：跳过必须显形，不许悄悄算通过。
+skip() { log "SKIP $*"; skipped=$((skipped + 1)); }
 
 # 预置会话档（与 app/src/test/.../UiSmokeSessionFixtureTest.kt 的 FIXTURE 逐字一致，由该测试锁住）
 SESSION_JSON='{"format":"anytouch.recorder.session","version":1,"targetPkg":"com.android.settings","state":"STOPPED","overflowCount":0,"events":[{"type":"window","pkg":"com.android.settings","windowTitle":"session-open","timestampMs":1700000001000},{"type":"action","kind":"CLICK","text":null,"confirmed":true,"timestampMs":1700000002000,"snapshot":{"resourceId":null,"text":"Connected devices","contentDesc":null,"className":"android.widget.TextView","pkg":"com.android.settings","indexPath":[0,1,2]}},{"type":"action","kind":"CLICK","text":null,"confirmed":true,"timestampMs":1700000003000,"snapshot":{"resourceId":null,"text":"Connection preferences","contentDesc":null,"className":"android.widget.TextView","pkg":"com.android.settings","indexPath":[0,1,2,0]}},{"type":"action","kind":"CLICK","text":null,"confirmed":true,"timestampMs":1700000004000,"snapshot":{"resourceId":null,"text":"Bluetooth","contentDesc":null,"className":"android.widget.TextView","pkg":"com.android.settings","indexPath":[0,1,2,1]}}],"rejectedEvents":[]}'
@@ -59,17 +69,120 @@ latest_task() {
 inject() {
     MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --ez keep_fg true $*" >/dev/null 2>&1
     sleep 2
+    SWEEP_DIRTY=1
 }
 
-# UI 面读数（dump 后必复绑）：命中打印 1，未命中 0
-ui_has() {
-    local pat="$1" xml=""
+# ============================================================================================
+# 页读：一次扫全页 → 同一条 dump 底子上比多个模式（不"单屏读一次就下结论"）
+# ============================================================================================
+# 为什么改：自家主屏是一列 Compose，切片 D 把 BYOK 面板立起来之后页面变高，而
+# **折叠线以下的节点压根不进无障碍树**（设备实证：首屏 dump 里 step_delete_*/run_task 全 0，
+# 往下拖一屏才逐字出现；反过来 target_pkg 只在首屏可见）。于是"单屏 dump"两个方向都不可信：
+# 存在性读不到 → 假红；缺席读不到 → 假绿（更贵的那一侧：它把"屏上没同步"判成"同步干净"）。
+# 判据与 byok-smoke 的 harvest_page、device-smoke 的 wait_own_task_input 同一条纪律：
+#  ① 回顶要正向证据：首屏独有的 target_pkg 读到才算在顶（封顶 TOP_TRIES，拖不到就带位开扫）；
+#  ② 到底要正向证据：连续两屏**内容签名**相同 = 列表已到底（SWEEP_OK=1）；
+#  ③ 没到底的扫视只支撑"命中"，不支撑"缺席"——缺席一侧记 SKIP，不记绿；
+#  ④ 每次扫视先坐实"读的是自家窗"（缓冲里至少一条 package="com.anytouch.app" 节点）：
+#     一条都没有时 SWEEP_OK 直接压回 0，命中类断言记 SKIP 而非红（09-24 实测：同一构建同一脚本
+#     两轮读数 0↔1 翻转，产品代码未动——那一轮的"0"是"没在读自家窗"，不许判产品的罪）。
+TOP_TRIES=6
+SCREEN_MAX=6
+SWEEP_BUF=""
+SWEEP_OK=0
+SWEEP_DIRTY=1
+SWEEP_GEOM=""
+# 本扫视里"含自家窗节点"的屏数 / 总屏数：读数器健康的**独立**判据（见 ui_expect 上方注记）
+SWEEP_OWN=0
+SWEEP_SCREENS=0
+
+dump_view() { # 一屏 dump → stdout；失败打印空串（绝不把上一屏的余货当这一屏）
     MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/.uismoke.xml >/dev/null 2>&1 || true
-    xml=$(MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.uismoke.xml 2>/dev/null | tr -d '\r' || true)
+    MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.uismoke.xml 2>/dev/null | tr -d '\r' || true
     MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.uismoke.xml >/dev/null 2>&1
     wait_service_bound || log "dump 后服务未回绑（本条读数仍可用，但下一条须自查）"
-    printf '%s' "$xml" | grep -aq "$pat" && echo 1 || echo 0
 }
+
+# $1=down（手指下滑=往页首走）/ up（手指上滑=往下翻页）
+swipe_page() {
+    local dir="$1" y1 y2
+    [ -z "$SWEEP_GEOM" ] && SWEEP_GEOM=$(MSYS_NO_PATHCONV=1 $ADB shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9]*x[0-9]*' | tail -1)
+    local w=${SWEEP_GEOM%x*} h=${SWEEP_GEOM#*x}
+    [ -z "$w" ] || [ -z "$h" ] && { log "屏宽高的读数不可用 [$SWEEP_GEOM]：本页无法翻页"; return 1; }
+    if [ "$dir" = "down" ]; then y1=$((h * 28 / 100)); y2=$((h * 72 / 100)); else y1=$((h * 72 / 100)); y2=$((h * 28 / 100)); fi
+    MSYS_NO_PATHCONV=1 $ADB shell input swipe "$((w / 2))" "$y1" "$((w / 2))" "$y2" 300 >/dev/null 2>&1
+    sleep 1
+}
+
+page_sig() { # 一屏的"内容签名"：只取 text 与 resource-id 两个集合（排序去重）。
+    # 为什么不逐字比 XML：树里还带着 bounds/focused/光标一类的抖动，逐字比对在两屏之间几乎永不相等，
+    # "到底"就永远判不出来（09-24 首版即此：U6b 因扫不到底只能记 SKIP）。
+    # 为什么签名够用：这里只扫**自家主屏**，步骤行 id 带下标、文案逐行不同，
+    # 再翻一屏必然带来集合变化；签名不变 = 这一屏没翻出新内容 = 到底。
+    printf '%s' "$1" | grep -ao 'resource-id="[^"]*"\|text="[^"]*"' | sort -u | tr '\n' '|'
+}
+
+ui_sweep() {
+    # 两个预算各自独立计次：回顶用掉的次数原先从到底的额度里扣，起始位置越靠页尾剩余额度越少，
+    # "到底"就越判不出来（09-24 首轮 U6b 正是只能记 SKIP；真因未坐实，故这里补一条"没到底时
+    # 把翻了几屏打出来"的日志——下次要能归因，而不是再来一次无据 SKIP）。
+    local j=0 i=0 prev="" cur="" prev_sig="" cur_sig=""
+    SWEEP_BUF=""; SWEEP_OK=0; SWEEP_DIRTY=0; SWEEP_OWN=0; SWEEP_SCREENS=0
+    while [ "$j" -lt "$TOP_TRIES" ]; do
+        cur=$(dump_view)
+        printf '%s' "$cur" | grep -aq 'resource-id="target_pkg"' && break
+        swipe_page down || break
+        j=$((j + 1))
+    done
+    if [ "$j" -ge "$TOP_TRIES" ]; then
+        printf '%s' "$cur" | grep -aq 'resource-id="target_pkg"' || log "回顶未坐实（$TOP_TRIES 次下滑仍没读到首屏独有的 target_pkg）：本扫视只支撑命中"
+    fi
+    prev_sig=""
+    while [ "$i" -lt "$SCREEN_MAX" ]; do
+        cur=$(dump_view)
+        SWEEP_BUF="$SWEEP_BUF
+$cur"
+        SWEEP_SCREENS=$((SWEEP_SCREENS + 1))
+        printf '%s' "$cur" | grep -aq "package=\"$OWN_PKG\"" && SWEEP_OWN=$((SWEEP_OWN + 1))
+        cur_sig=$(page_sig "$cur")
+        if [ -n "$prev_sig" ] && [ "$cur_sig" = "$prev_sig" ]; then SWEEP_OK=1; break; fi
+        prev_sig="$cur_sig"
+        swipe_page up || break
+        i=$((i + 1))
+    done
+    # 一条自家窗节点都没读到的扫视，"到底"这个结论本身不成立（判"到底"的是别人的两屏）：
+    # 直接压回 SWEEP_OK=0，让所有缺席类断言落到 SKIP 而不是绿。
+    if [ "$SWEEP_OWN" = "0" ]; then
+        SWEEP_OK=0
+        log "本扫视 $SWEEP_SCREENS 屏里 0 屏含 package=\"$OWN_PKG\"：读的不是自家窗（窗被换走或还没画出来）"
+    else
+        [ "$SWEEP_OK" = "1" ] || log "扫视未到底：自顶起共翻 $i 屏仍无连续两屏签名相同（页长超出 SCREEN_MAX=$SCREEN_MAX 或签名持续抖动，自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏）"
+    fi
+}
+
+# 命中 hit / 未命中 miss / 读数器不可用 skip（三档，09-24 加）
+# 为什么必须有第三档：同一枚构建、同一份脚本，前一轮 U1b/U6b/U8c/U10d/U11b 五条全读 0、
+# 后一轮五条全读 1，中间产品代码一行未改——那个"0"是"这一扫视里一条自家窗节点都没有"，
+# 把它记成产品红＝拿未归因的读数定产品的罪（假红与假绿同罪）。
+# 为什么判据用 package 而不是被断言的 id：U11b/U12d/U15c 原先拿 run_task 当"自家窗"代理，
+# 被测项和读数器健康判据成了同一个数——run_task 真消失时会被误读成"没在读自家窗"而记 SKIP（把红洗成跳过）。
+ui_expect() {
+    [ "$SWEEP_DIRTY" = "1" ] && ui_sweep
+    if [ "$SWEEP_OWN" = "0" ]; then echo skip; return; fi
+    printf '%s' "$SWEEP_BUF" | grep -aq "$1" && echo hit || echo miss
+}
+
+# 命中 1 / 未命中 0（"未命中"能不能当证据，看 sweep_complete）
+# 注意：本函数与 sweep_complete 都必须在**主 shell**里读到同一份缓存才有效——
+# `x=$(ui_has …)` 是子 shell，里面 ui_sweep 填的 SWEEP_BUF/SWEEP_OK 带不回来（09-24 实测：
+# U6b 因此**永远**只能记 SKIP，SWEEP_OK 在主 shell 里从没被置过 1）。
+# 所以每个 ui_has 组之前，主 shell 先 ui_sweep 一次；子 shell 里的调用只读缓存，不再重复翻页。
+ui_has() {
+    [ "$SWEEP_DIRTY" = "1" ] && ui_sweep
+    printf '%s' "$SWEEP_BUF" | grep -aq "$1" && echo 1 || echo 0
+}
+
+sweep_complete() { [ "$SWEEP_OK" = "1" ] && echo 1 || echo 0; }
 
 # 断言一条编辑日志出现
 assert_edit() {
@@ -107,12 +220,15 @@ fi
 inject "--ez record_stop true"
 u1=$(wait_line "S2SMOKE compiled ok actions=3" 20)
 if [ -n "$u1" ]; then pass "U1a 预置档编译 3 步 :: $u1"; else bad "U1a 预置档编译 3 步 :: 期望 [compiled ok actions=3]"; fi
-rows=$(ui_has 'step_delete_2')
-cnt=$(ui_has '步骤 3')
-if [ "$rows" = "1" ] && [ "$cnt" = "1" ]; then
-    pass "U1b 步序账上屏：末行按钮在 + 计数文案'步骤 3'在（行 id 走 testTag）"
+ui_sweep   # 主 shell 先扫一遍：下面的 ui_expect 都只读这份缓存（见 ui_has 上方那条子 shell 注记）
+rows=$(ui_expect 'step_delete_2')
+cnt=$(ui_expect '步骤 3')
+if [ "$rows" = "skip" ] || [ "$cnt" = "skip" ]; then
+    skip "U1b 步序账上屏 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗，命中与未命中都读不出证据）"
+elif [ "$rows" = "hit" ] && [ "$cnt" = "hit" ]; then
+    pass "U1b 步序账上屏：末行按钮在 + 计数文案'步骤 3'在（行 id 走 testTag，自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏）"
 else
-    bad "U1b 步序账上屏 :: 末行按钮=$rows 计数文案=$cnt（期望 1/1）"
+    bad "U1b 步序账上屏 :: 末行按钮=$rows 计数文案=$cnt（期望 hit/hit）"
 fi
 
 # ---------- U2 移序：0→2 再 2→0 还原（顺序账可逆=移序不夹带副作用） ----------
@@ -164,11 +280,15 @@ assert_no_edit "U5d 越界两步均未放行" "step edit ok=remove"
 # ---------- U6 UI 同步：删掉的行真从屏上撤下（删的是末步 Bluetooth，留 2 步仍可放） ----------
 inject "--es step_remove 2"
 assert_edit "U6a 删步生效 3→2" "step edit ok=remove index=2 before=3 after=2"
+ui_sweep   # 必须发生在主 shell：SWEEP_OK 只能由主 shell 的那一次扫视置起来（子 shell 里的扫视带不回结论）
 gone=$(ui_has 'step_delete_2')
 still=$(ui_has 'step_delete_1')
 cnt2=$(ui_has '步骤 2')
-if [ "$gone" = "0" ] && [ "$still" = "1" ] && [ "$cnt2" = "1" ]; then
-    pass "U6b UI 与账目同步：第 3 行撤下、第 2 行仍在、计数文案改口"
+sure=$(sweep_complete)
+if [ "$sure" != "1" ]; then
+    skip "U6b UI 与账目同步 :: 页没扫到底（连续两屏内容签名未相同；自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏），\"第 3 行不在屏上\"这条缺席读不出证据"
+elif [ "$gone" = "0" ] && [ "$still" = "1" ] && [ "$cnt2" = "1" ]; then
+    pass "U6b UI 与账目同步：第 3 行撤下、第 2 行仍在、计数文案改口（扫到底后全页比对）"
 else
     bad "U6b UI 与账目不同步 :: 旧末行残留=$gone 现有行=$still 计数=$cnt2（期望 0/1/1）"
 fi
@@ -202,8 +322,11 @@ inject "--es step_remove 0"
 cleared=$(wait_line "步序账清零" 12)
 if [ -n "$cleared" ]; then pass "U8a 删到清零留痕 :: $cleared"; else bad "U8a 删到清零 :: 期望日志含 [步序账清零]"; fi
 assert_no_edit "U8b 空账未伪装成品：本轮零条 'S2SMOKE-TASK []'" "S2SMOKE-TASK \[\]"
-empty_ui=$(ui_has '步序账为空')
-if [ "$empty_ui" = "1" ]; then pass "U8c 屏上同步为空态文案"; else bad "U8c 屏上仍挂旧步骤（账已清、屏未清=第二套账）"; fi
+ui_sweep
+empty_ui=$(ui_expect '步序账为空')
+if [ "$empty_ui" = "skip" ]; then
+    skip "U8c 屏上同步为空态文案 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
+elif [ "$empty_ui" = "hit" ]; then pass "U8c 屏上同步为空态文案"; else bad "U8c 屏上仍挂旧步骤（账已清、屏未清=第二套账）:: 空态文案读数=$empty_ui"; fi
 
 # ---------- U9 空账上再编辑必拒 EMPTY_LEDGER（唯一写口不给空账留缝） ----------
 before=$(count_line 'step edit refused gate=EMPTY_LEDGER')
@@ -233,8 +356,11 @@ else
     bad "U10c :: refused=$refused 执行回执=$execs（期望 ≥1 / 0）"
     log "$(logs | grep -a -E 'S1SMOKE' | tail -3 | tr '\n' '~')"
 fi
-u10d=$(ui_has 'task_rejection')
-if [ "$u10d" = "1" ]; then pass "U10d 拒因上屏（错误必显示，不是静默吞掉一次点击）"; else bad "U10d 拒因未上屏 :: task_rejection 读数=$u10d"; fi
+ui_sweep
+u10d=$(ui_expect 'task_rejection')
+if [ "$u10d" = "skip" ]; then
+    skip "U10d 拒因上屏 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
+elif [ "$u10d" = "hit" ]; then pass "U10d 拒因上屏（错误必显示，不是静默吞掉一次点击）"; else bad "U10d 拒因未上屏 :: task_rejection 读数=$u10d"; fi
 
 # ---------- U11 准入的反面：用户手敲的 JSON 照常执行（不夺字，S1 主路径不许被误伤） ----------
 SAFE='"safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}'
@@ -256,12 +382,20 @@ fi
 # 直接 dump 读到的是别人的窗（首轮实测 自家窗=0——0 在这里不是"红字没了"，是"没在读自家窗"）。
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
 sleep 2
-u11b=$(ui_has 'run_task')
-u11c=$(ui_has 'task_rejection')
-if [ "$u11b" = "1" ] && [ "$u11c" = "0" ]; then
-    pass "U11b 放行后拒因撤下（读到自家窗=$u11b，红字=$u11c）"
+ui_sweep
+u11b=$(ui_expect 'run_task')
+u11c=$(ui_expect 'task_rejection')
+sure=$(sweep_complete)
+if [ "$u11b" = "skip" ]; then
+    skip "U11b :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗或窗已换，命中与缺席都读不出证据）"
+elif [ "$u11b" != "hit" ]; then
+    bad "U11b :: run_task=$u11b（期望 hit：自家窗已坐实却读不到 run_task=屏上真没有）"
+elif [ "$sure" != "1" ]; then
+    skip "U11b 放行后拒因撤下 :: 页没扫到底，\"红字不在屏上\"这条缺席读不出证据（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏）"
+elif [ "$u11c" = "miss" ]; then
+    pass "U11b 放行后拒因撤下（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏，红字=$u11c，全页扫到底）"
 else
-    bad "U11b :: 自家窗=$u11b（期望 1，否则 0 是读错窗口的假绿） 红字=$u11c（期望 0）"
+    bad "U11b :: 红字=$u11c（期望 miss：放行后红字必须撤）"
 fi
 
 # ---------- U12 V-2 过期边：执行中拒录话术，跑完必须自动作废（空闲态不许挂着"执行中不能开录"） ----------
@@ -281,31 +415,58 @@ if [ -n "$expired" ]; then pass "U12c 陈旧拒因自动作废 :: $expired"; els
 fi
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
 sleep 2
-u12d=$(ui_has 'run_task')
-u12e=$(ui_has 'record_rejection')
-if [ "$u12d" = "1" ] && [ "$u12e" = "0" ]; then
-    pass "U12d 屏上红字确已消失（自家窗=$u12d 读数器可用，红字=$u12e）"
+ui_sweep
+u12d=$(ui_expect 'run_task')
+u12e=$(ui_expect 'record_rejection')
+sure=$(sweep_complete)
+if [ "$u12d" = "skip" ]; then
+    skip "U12d :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
+elif [ "$u12d" != "hit" ]; then
+    bad "U12d :: run_task=$u12d（期望 hit：自家窗已坐实却读不到 run_task=屏上真没有）"
+elif [ "$sure" != "1" ]; then
+    skip "U12d 屏上红字确已消失 :: 页没扫到底，\"红字不在屏上\"这条缺席读不出证据（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏）"
+elif [ "$u12e" = "miss" ]; then
+    pass "U12d 屏上红字确已消失（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏，红字=$u12e，全页扫到底）"
 else
-    bad "U12d :: 自家窗=$u12d（期望 1） 红字=$u12e（期望 0）"
+    bad "U12d :: 红字=$u12e（期望 miss：空闲态不许挂着\"执行中不能开录\"）"
 fi
 
 # ---------- U13 V-1 球位：录制球必须在右缘（左缘会压住步骤名框与拒因红字首字） ----------
+# 前置自复核（主窗 09-24 补）：球只在**录制会话活着**的时候挂屏，而 U 系列前面全走注入通道、
+# 从不真开录——于是旧口径下这条判据读的是"根本没有球的屏"：命中不到就判红（假红），
+# 偶发撞上一个残留会话时又判绿（假绿）。两头都不是产品事实。改成先真开一次录制、
+# 用 `record start target=` 这条日志坐实球该在屏上，再截屏量像素；用完立刻停录（U14 自带重建账的前置）。
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PY=$(command -v python3 || command -v python || true)
 if [ -z "$PY" ]; then
-    log "U13 跳过：无 python（球位像素判据需要 PIL）"
+    skip "U13 球位：无 python（像素判据需要 PIL）"
 else
-    MSYS_NO_PATHCONV=1 $ADB shell screencap -p /sdcard/.uiball.png >/dev/null 2>&1
-    MSYS_NO_PATHCONV=1 $ADB pull /sdcard/.uiball.png uismoke-ball.png >/dev/null 2>&1
-    MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.uiball.png >/dev/null 2>&1
-    ball=$("$PY" "$SCRIPT_DIR/ball_position.py" uismoke-ball.png 2>&1); ball_rc=$?
-    ratio=$(printf '%s' "$ball" | sed -n 's/.*BALL_X_RATIO=\([0-9.]*\).*/\1/p')
-    if [ "$ball_rc" -eq 0 ] && [ -n "$ratio" ] && awk -v r="$ratio" 'BEGIN{ exit !(r > 0.75) }'; then
-        pass "U13 录制球在右缘 :: $ball"
+    MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+    inject "--es record_start com.android.settings"
+    ball_up=$(wait_line "S2SMOKE record start target=com.android.settings" 15)
+    if [ -z "$ball_up" ]; then
+        skip "U13 球位：前置未立——没拿到 [record start target=…] 回执，球本就不该在屏上（不拿空屏判红也不判绿）"
     else
-        bad "U13 球位 :: $ball（期望中心横占比 >0.75，左缘旧值约 0.11）"
+        sleep 2   # 球是 Overlay 窗口，等它挂上再截
+        MSYS_NO_PATHCONV=1 $ADB shell screencap -p /sdcard/.uiball.png >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 $ADB pull /sdcard/.uiball.png uismoke-ball.png >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.uiball.png >/dev/null 2>&1
+        ball=$("$PY" "$SCRIPT_DIR/ball_position.py" uismoke-ball.png 2>&1); ball_rc=$?
+        ratio=$(printf '%s' "$ball" | sed -n 's/.*BALL_X_RATIO=\([0-9.]*\).*/\1/p')
+        state=$(printf '%s' "$ball" | sed -n 's/.*BALL_STATE=\([a-z]*\).*/\1/p')
+        if [ "$ball_rc" -ne 0 ]; then
+            bad "U13 :: 已在录制（$(printf '%s' "$ball_up" | sed 's/.*AnytouchRun: //')）却截不到任何一档球色 :: $ball"
+        elif [ "$state" != "recording" ]; then
+            bad "U13 :: 状态灯与前置对不上——脚本已坐实在录制，屏上读到的却是 BALL_STATE=$state :: $ball（要么球没随状态换色，要么这张截图不是这一档）"
+        elif awk -v r="$ratio" 'BEGIN{ exit !(r > 0.75) }'; then
+            pass "U13 录制球在右缘（录制态深红球，前置已坐实） :: $ball"
+        else
+            bad "U13 球位 :: $ball（期望中心横占比 >0.75，左缘旧值约 0.11）"
+        fi
+        rm -f uismoke-ball.png
+        inject "--ez record_stop true"
+        wait_line "S2SMOKE compiled" 20 >/dev/null || log "U13 收尾：停录后没等到 compiled 回执（U14 会自建 3 步账，不影响后续判定）"
     fi
-    rm -f uismoke-ball.png
 fi
 
 # ---------- U14 执行中禁编辑（老板 09-23 裁决：门禁落入口，注入通道绕过置灰按钮同样被拒） ----------
@@ -356,17 +517,26 @@ if [ -n "$expired" ]; then pass "U15b 陈旧禁编辑话术自动作废 :: $expi
 fi
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
 sleep 2
-u15c=$(ui_has 'run_task')
-u15d=$(ui_has 'step_edit_rejection')
-u15e=$(ui_has 'step_edit_locked_hint')
-if [ "$u15c" = "1" ] && [ "$u15d" = "0" ] && [ "$u15e" = "0" ]; then
-    pass "U15c 屏上红字与置灰提示均已撤（自家窗=$u15c 读数器可用，红字=$u15d 提示=$u15e）"
+ui_sweep
+u15c=$(ui_expect 'run_task')
+u15d=$(ui_expect 'step_edit_rejection')
+u15e=$(ui_expect 'step_edit_locked_hint')
+sure=$(sweep_complete)
+if [ "$u15c" = "skip" ]; then
+    skip "U15c :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
+elif [ "$u15c" != "hit" ]; then
+    bad "U15c :: run_task=$u15c（期望 hit：自家窗已坐实却读不到 run_task=屏上真没有）"
+elif [ "$sure" != "1" ]; then
+    skip "U15c 屏上红字与置灰提示均已撤 :: 页没扫到底，两条\"不在屏上\"的缺席读不出证据（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏）"
+elif [ "$u15d" = "miss" ] && [ "$u15e" = "miss" ]; then
+    pass "U15c 屏上红字与置灰提示均已撤（自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏，红字=$u15d 提示=$u15e，全页扫到底）"
 else
-    bad "U15c :: 自家窗=$u15c（期望 1） 红字=$u15d（期望 0） 提示=$u15e（期望 0）"
+    bad "U15c :: 红字=$u15d（期望 miss） 提示=$u15e（期望 miss）"
 fi
 inject "--es step_remove 0"
 assert_edit "U15d 跑完立刻可编：同一请求转放行" "step edit ok=remove index=0 before=3 after=2"
 
 echo
-if [ "$fail" -eq 0 ]; then echo "ui-smoke: ALL PASS"; else echo "ui-smoke: 有失败项"; fi
+echo "汇总：通过 $passed / 失败计数见下 / 跳过 $skipped（跳过=前置未立，不记绿也不记红）"
+if [ "$fail" -eq 0 ]; then echo "ui-smoke: ALL PASS（含 $skipped 条 SKIP）"; else echo "ui-smoke: 有失败项"; fi
 exit "$fail"

@@ -35,6 +35,10 @@ E8f `record stop rejection expired gate_was=COMPILING`。
 - 凭据进机：`scripts/byok-credential-inject.sh --key-file <老板给的 key 文件>`（S3-R5 代填通道）——
   脚本内无 Key 字面量、全程不打印 Key、逐字符下发后逐字段读回比对（`input text` 整串下发有换序竞态，见 §4-③），
   屏上/日志里只出现 `***JgYp`。Key 不落 git、不落证据、不进 `logcat`。
+  提交前泄漏筛子的**口径**（本批钉死，别再拿宽筛子当绿）：从老板给的 key 文件里按"无空白、`[A-Za-z0-9_-.]`、长度 ≥32、
+  尾 4 位与屏上 `JgYp` 对齐"筛出**那一条**（len=70），再拿它的**全文**与**前 8 字**两个 needle 扫全仓 309 个文件（排除 `.git/build/.gradle`）
+  → 命中 0。宽筛子（≥20 字符通配）会在 `STATUS.md`/`METRICS.md`/`t2-key-adaptation.md` 里报出十几条 prose 假命中，
+  那些不是凭据形态；**筛子命中必须逐条人工归因**（同 §E1-pre 那条"筛子不是判据"），否则宽筛子会把"其实没漏"报成"漏了"、把窄筛子的空判误当"已扫过"。
 - 靶设备自报：`靶设备：M2012K11AC（模拟器=0…）`——本节所有结论是**真机**结论；
   [E1m] 那一节的结论只是模拟器结论，两边不互相冒领。
 
