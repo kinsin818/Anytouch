@@ -153,6 +153,6 @@ network, and only to the endpoint you chose.
 | 编译互斥四入口（跑着不许串状态） | commit 72af452，`evidence/S3/slice-f-mutex-vocab.md` |
 | 词表只有 click/scroll/type_text/wait，越权整本拒并显式 | `ExecutorVocabulary` 真源 + E5i 真机命中（`slice-e2-k40-key.md` §6） |
 | 高危动作二次确认/超时默认拒 | `evidence/S2/stage-highrisk-confirm-device.md`（设备实证：超时默认拒绝+面板可见） |
-| 无障碍/悬浮球缺席=拒开录拒执行并指名缺哪个 | L1/L2 门禁（task #30；ui-smoke U 系列） |
+| 无障碍/悬浮球缺席=拒开录拒执行并指名缺哪个 | 开录边：`evidence/S2/s2-ondevice-record-replay.md` §8.2（红线 E `AccessibilityGate.kt`，设备实证 C9/C10 于 `scripts/device-smoke.sh`）；执行边：`evidence/S2/safety-ball-failclosed.md`（第 10 项：球挂不上=拒绝执行）。诚实注：§8.2 尾部"待裁"记的是派单**原文**未落盘，代码+设备证据在盘不受影响 |
 | MIUI 持久拒 SET_TEXT 大声报不冒成功 | 雷 12（`evidence/S2/t3-k40-first-contact.md`）+ S31-B8 真机复验 `evidence/S31/stage31-b-k40-reverify.md` |
 | minSdk 26 / 实测机型 K40 | `app/build.gradle.kts`；T3 档案 |
