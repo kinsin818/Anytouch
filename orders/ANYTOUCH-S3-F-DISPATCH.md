@@ -111,3 +111,20 @@
    常量在 `:22-29`，自陈"非严格枚举，留扩展位"）→ 真源若做成集合，元素类型是 `String`；
    比较一律引 `ActionType.X` 常量而不写字面量（S31-B5 同一理由，worker 不要再想改成枚举——那要另一次放行动 `core/`）。
 
+## §5 主窗派单前自纠（09-24，落本文件字面）：真源落点**不能**在 `:app`
+
+§1-F2-1 的原话是"抽成一处 android-free 真源（**建议紧邻 31-B 的新纯函数面，如 `executor/ExecutorDecisions.kt`**）"。
+派单前核 `settings.gradle.kts` + 两份 `build.gradle.kts` 的依赖方向，**这个"建议"落点是编译不过的**，照实更正：
+
+- `:app` `implementation(project(":byok"))`（`app/build.gradle.kts:44`）、`:byok` `api(project(":core:contracts"))`
+  （`byok/build.gradle.kts:13`）⇒ 依赖方向是 **`:app → :byok → :core:contracts`**，`:byok` 看不到 `:app`。
+- F2 的单一真源必须被**两侧同时 import**：`:byok` 的 `DslCompiler.ALLOWED_TYPES`＋提示词，与 `:app` 的
+  `NodeTaskRunner` `when`／`acceptModelActions` 拒档。若真源住 `:app`，`:byok` 引不到＝循环依赖，编译直接失败。
+- 结论（本批**硬约束**，覆盖 §1-F2-1 那句"建议"）：**真源住 `:byok`（android-free）**，
+  如 `byok/src/main/kotlin/com/anytouch/byok/` 下新增一处（文件名 worker 可议，写进自述偏差即可），
+  暴露 `executorSupportedActionTypes: Set<String>` 与/或 `supportsExecutorDispatch(type: String): Boolean`；
+  `:app` 侧 `NodeTaskRunner`、`acceptModelActions` 从 `:byok` 引它（`:app` 已依赖 `:byok`，方向天然成立）。
+  元素类型仍是 `String`（§4-3 不变），`Set` 由 `ActionType.WAIT/CLICK/SCROLL/TYPE_TEXT` 四个**常量**组成，不写字面量。
+- 诚实登记：这条更正把 §1-F2-1 的"建议"从"住 `:app/executor`"改判为"住 `:byok`"，判据是磁盘上的模块方向，
+  不是本窗臆断；worker 若仍按原建议放 `:app`，关 1 编译那一关就会自证此路不通。
+
