@@ -420,6 +420,28 @@ class NodeTaskRunnerTest {
     }
 
     @Test
+    fun `wait步在任何设备拒答下也绝不产perform_failed`() = runBlocking {
+        // A1 接线把原来的两个 if 换成了 while(true)+redispatchPlan。主窗核得：唯一会因此分叉的输入
+        // 是「WAIT 走进 runNodeStep」——而 run() 的 when(action.type) 只把 CLICK/SCROLL/TYPE_TEXT 送进
+        // runNodeStep，WAIT 走 delay 分支，所以该输入不可达、环与原判据在可达输入上逐格同形。
+        // 这条用例锁住那个前提：WAIT 连一次派发都不产生（设备全体拒答时也不收 perform_failed）。
+        // 若将来给 WAIT 补派发分支或把它接进 runNodeStep，这里必须红（届时须重开偏差）。
+        val device = FakeDevice(settingsTree()).apply { succeed = false }
+        val report = runnerFor(device).run(
+            decode(
+                """[
+                  {"action_id":"w1","type":"wait","source":"node","value":{"ms":1},"safety":{"viewport_ok":false,"click_enabled":false}},
+                  {"action_id":"w2","type":"wait","source":"node","value":{"ms":1,"resource_id":"android:id/list","text":"System","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}
+                ]""",
+            ),
+        )
+        assertEquals(listOf(), device.performed, "WAIT 从不派发：A1 的重派环对它不可达")
+        assertFalse(report.stopped)
+        assertEquals(2, report.results.size)
+        assertTrue(report.results.all { it.ok }, "WAIT 步不得被判成 perform_failed：${report.results.map { it.recovery }}")
+    }
+
+    @Test
     fun `多类同中主判取声明序最高类别`() = runBlocking {
         val rules = HighRiskMatcher.from(
             HighRiskRuleSource {

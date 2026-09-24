@@ -1,0 +1,116 @@
+[0;33m··[0m ===== SC 滚动采集：一次慢拖 = 一步 =====
+[0;31mFAIL[0m SC 一次慢拖 :: 期望 1 步 scroll，实际 [0 步 ]，拖前焦点=[com.android.settings/com.android.settings.Settings] :: 09-24 04:16:16.486 15179 15179 W AnytouchRun: S2SMOKE compiled EMPTY task, 步序账清零、不写回放建议（丢弃归因见 DETAIL）
+09-24 04:16:11.798 15179 15179 I AnytouchRun: S2SMOKE record start 作废旧步序账 steps=2（任务框文本不动，需保留请自行另存）
+09-24 04:16:11.799 15179 15179 I AnytouchRun: S2SMOKE record start target=com.android.settings
+09-24 04:16:16.484 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=0 drops=0 merged=0 events=2 target=com.android.settings
+09-24 04:16:16.486 15179 15179 W AnytouchRun: S2SMOKE compiled EMPTY task, 步序账清零、不写回放建议（丢弃归因见 DETAIL）
+[0;33m··[0m SC 尸检：拖后焦点=[com.android.settings/com.android.settings.Settings]
+scrollable=true 节点数=2
+text="Settings"
+text="Search settings"
+text="Network &amp; internet"
+text="Mobile, Wi‑Fi, hotspot"
+text="Connected devices"
+text="Bluetooth, pairing"
+[0;33m··[0m ===== 第 1/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:17:06.833 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:16:58.332 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:17:01.218 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:17:04.543 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:17:06.834 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:17:06.834 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:17:06.834 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R1 录→编→放全绿 :: 09-24 04:17:20.427 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 2/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:18:08.555 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:17:59.914 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:18:02.936 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:18:06.316 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:18:08.555 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:18:08.557 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:18:08.557 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R2 录→编→放全绿 :: 09-24 04:18:22.227 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 3/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:19:10.367 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 04:19:02.019 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:19:04.853 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:19:07.927 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:19:10.368 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:19:10.369 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:19:10.369 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R3 录→编→放全绿 :: 09-24 04:19:24.080 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 4/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:20:12.251 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:20:03.684 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:20:06.659 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:20:09.999 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:20:12.252 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:20:12.252 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:20:12.252 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R4 录→编→放全绿 :: 09-24 04:20:25.940 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 5/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:21:13.823 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:21:05.299 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:21:08.182 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:21:11.548 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:21:13.823 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:21:13.823 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:21:13.826 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R5 录→编→放全绿 :: 09-24 04:21:27.491 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 6/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:22:15.369 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:22:06.881 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:22:09.696 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:22:13.125 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:22:15.370 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:22:15.370 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:22:15.370 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R6 录→编→放全绿 :: 09-24 04:22:29.214 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 7/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:23:17.114 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 04:23:08.530 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:23:11.587 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:23:14.666 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:23:17.114 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:23:17.114 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:23:17.115 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R7 录→编→放全绿 :: 09-24 04:23:30.657 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 8/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:24:18.657 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=9 target=com.android.settings
+     09-24 04:24:10.244 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:24:13.017 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:24:16.530 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:24:18.657 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:24:18.657 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:24:18.659 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R8 录→编→放全绿 :: 09-24 04:24:32.868 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 9/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:25:21.708 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:25:13.266 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:25:16.147 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:25:19.454 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:25:21.710 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:25:21.710 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:25:21.710 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R9 录→编→放全绿 :: 09-24 04:25:35.708 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+[0;33m··[0m ===== 第 10/10 轮：录 → 编 → 放（3 步） =====
+[0;33m··[0m 预走坐标可复用：S2_COORDS='412 1090|343 1120|302 786'
+[0;33m··[0m 编译产物：09-24 04:26:23.631 15179 15179 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=8 target=com.android.settings
+     09-24 04:26:15.155 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:26:18.291 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:26:21.483 15179 15179 W AnytouchRun: S2SMOKE capture note: viewScrolled 无位移证据 pkg=com.android.settings id=com.android.settings:id/recycler_view delta=0x0 pos=0x0 max=0x0（布局重排，不成步）
+     09-24 04:26:23.632 15179 15179 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+     09-24 04:26:23.632 15179 15179 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+     09-24 04:26:23.632 15179 15179 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+[0;32mPASS[0m R10 录→编→放全绿 :: 09-24 04:26:37.843 15179 15179 I AnytouchRun: S1SMOKE ok=3 total=3 stopped=false stop=-
+
+[0;32mPASS[0m S2 闭环达标：10/10 轮全绿（ratio=1.00 ≥ 0.9）

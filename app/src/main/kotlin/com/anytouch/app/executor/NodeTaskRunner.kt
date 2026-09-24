@@ -302,50 +302,70 @@ class NodeTaskRunner(
                 val input = action.value?.string("input") ?: ""
                 // 真机实测（K40/MIUI 搜索框）：SET_TEXT 可"明示拒绝"返回 false——兜底通道必须在这条边
                 // 也上场，而非只治"虚报 true"；成败终裁仍是下方落字复核，paste 派发被接收≠落字。
-                device.setText(t, input) || device.pasteText(t, input)
+                // A2：两通道的合计判据在 textDispatchRoute；"何时真去调 PASTE"的短路留在这里——
+                // 那是有副作用的设备调用，无条件派发 PASTE 本身就是语义变化（setText 已接收时不该再贴一次）。
+                val setTextOk = device.setText(t, input)
+                val pasteOk = if (setTextOk) false else device.pasteText(t, input)
+                textDispatchRoute(setTextOk, pasteOk)
             }
             else -> false
         }
+        // A1：原判据「明示拒 → 沉降 settleMs*2 → 按原线索重定位 → 重派一次 → 仍 false 才收
+        // perform_failed」的"该不该重派 + 派到第几次"整体住在 redispatchPlan（三档落点互不相同）。
+        // 平台侧这里只剩三档的**动作**：沉降与设备调用是取数，attempt 只做自增（无循环由纯函数的封顶给出，
+        // 不在这里再数一遍轮数）。动作派发本身绝不进纯函数（那是假下沉）。
         var dispatched = performed
-        if (!dispatched && action.type != ActionType.WAIT) {
-            // 句柄陈旧假红（AVD 三档矩阵收口轮 C1/C7 + MarvisPhone 重启后 C7 设备实证）：定位命中后
-            // 异步卡片/索引重排整棵树，performAction 打在死句柄上被明示拒绝（type_text 亦同：SET_TEXT
-            // 与 PASTE 双双 false 可能只是派发瞬间字段在重建）。false=动作根本没执行过、无线索被消耗、
-            // 无输入落盘，按原线索重定位一次再派是零副作用的自证；仍 false 才收 perform_failed。
-            delay(settleMs * 2)
-            val again = (locator.locate(device.root(), request) as? LocatorHit)?.node
-            if (again != null) {
-                dispatched = when (action.type) {
-                    ActionType.CLICK -> device.click(again)
-                    ActionType.SCROLL -> device.scroll(
-                        again,
-                        (action.value?.string("direction") ?: "forward") != "backward",
-                    )
+        var attempt = 0
+        while (true) {
+            when (redispatchPlan(dispatched, action.type, attempt)) {
+                // 派发已被接收（或该类型不参与重派）：出环，走下方落字复核
+                Redispatch.Skip -> break
 
-                    ActionType.TYPE_TEXT -> {
-                        val input = action.value?.string("input") ?: ""
-                        device.focus(again)
-                        delay(focusSettleMs)
-                        device.setText(again, input) || device.pasteText(again, input)
+                Redispatch.RetryOnce -> {
+                    attempt += 1
+                    // 句柄陈旧假红（AVD 三档矩阵收口轮 C1/C7 + MarvisPhone 重启后 C7 设备实证）：定位命中后
+                    // 异步卡片/索引重排整棵树，performAction 打在死句柄上被明示拒绝（type_text 亦同：SET_TEXT
+                    // 与 PASTE 双双 false 可能只是派发瞬间字段在重建）。false=动作根本没执行过、无线索被消耗、
+                    // 无输入落盘，按原线索重定位一次再派是零副作用的自证。
+                    delay(settleMs * 2)
+                    val again = (locator.locate(device.root(), request) as? LocatorHit)?.node
+                    if (again != null) {
+                        dispatched = when (action.type) {
+                            ActionType.CLICK -> device.click(again)
+                            ActionType.SCROLL -> device.scroll(
+                                again,
+                                (action.value?.string("direction") ?: "forward") != "backward",
+                            )
+
+                            ActionType.TYPE_TEXT -> {
+                                val input = action.value?.string("input") ?: ""
+                                device.focus(again)
+                                delay(focusSettleMs)
+                                // A2：同上，合计判据在 textDispatchRoute，短路留平台侧
+                                val setTextOk = device.setText(again, input)
+                                val pasteOk = if (setTextOk) false else device.pasteText(again, input)
+                                textDispatchRoute(setTextOk, pasteOk)
+                            }
+
+                            else -> false
+                        }
                     }
-
-                    else -> false
                 }
-            }
-        }
-        if (!dispatched) {
-            return StepOutcome(
-                failure(
-                    action,
-                    StopReason(
-                        code = StopCode.EXECUTOR_ERROR,
-                        severity = StopSeverity.STOP,
-                        message = "performAction 失败: ${action.type} @ ${hit.nodeRef.indexPath}",
-                        evidence = buildJsonObject { put("index_path", hit.nodeRef.indexPath) },
+
+                // 封顶已过仍明示拒：这一次重派的机会已经用掉了，收 perform_failed（绝不第三派）
+                Redispatch.GiveUp -> return StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = StopCode.EXECUTOR_ERROR,
+                            severity = StopSeverity.STOP,
+                            message = "performAction 失败: ${action.type} @ ${hit.nodeRef.indexPath}",
+                            evidence = buildJsonObject { put("index_path", hit.nodeRef.indexPath) },
+                        ),
                     ),
-                ),
-                gateReceipt(action, index, "perform_failed").toCommand(),
-            )
+                    gateReceipt(action, index, "perform_failed").toCommand(),
+                )
+            }
         }
         var usedPasteRoute = false
         if (action.type == ActionType.TYPE_TEXT) {
@@ -448,16 +468,18 @@ class NodeTaskRunner(
             if (killSwitch.isStopped()) return text
             text = device.textOf(node)?.trim()
             if (text?.contains(want) == true) return text
-            if (want.isNotEmpty()) {
-                // 句柄活读兜底扫树（AVD API 35 搜索页实证）：过渡期派发给旧句柄后 Compose 整节点
-                // 换新，字已落进新输入框而旧句柄永远读不到——不扫树就把"真落字"报成 set_text_unverified 假红。
-                // 这不是"按线索重定位"（线索 hint 会被输入改掉），匹配键是输入本身；限定可编辑类，
-                // 防搜索结果列表（TextView 含同词）造成假阳性。
-                val landedElsewhere = device.root()?.preOrder()?.firstOrNull {
-                    it.className?.contains("EditText") == true && it.text?.contains(want) == true
-                }
-                if (landedElsewhere != null) return landedElsewhere.text?.trim()
-            }
+            // A3：兜底扫树的判据整体在 landedViaTreeScan（含 want 空白不构成凭据那一层早退）。
+            // 平台侧只做取数：把活树按文档序摊平成 LandedNodeFact（只喂判据要读的两个字段）。
+            // 上方"派发句柄活读优先"那半边是活读设备句柄（device.textOf→refresh），属取数，按军令不搬。
+            // 句柄活读兜底扫树（AVD API 35 搜索页实证）：过渡期派发给旧句柄后 Compose 整节点
+            // 换新，字已落进新输入框而旧句柄永远读不到——不扫树就把"真落字"报成 set_text_unverified 假红。
+            // 这不是"按线索重定位"（线索 hint 会被输入改掉），匹配键是输入本身；限定可编辑类，
+            // 防搜索结果列表（TextView 含同词）造成假阳性。
+            val landedElsewhere = landedViaTreeScan(
+                device.root()?.preOrder()?.map { LandedNodeFact(it.className, it.text) } ?: emptyList(),
+                want,
+            )
+            if (landedElsewhere != null) return landedElsewhere.text?.trim()
             if (System.currentTimeMillis() >= deadline) return text
             delay(locatePollMs)
         }
