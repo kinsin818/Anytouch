@@ -24,7 +24,7 @@ SER="${ANDROID_SERIAL:-}"
 [ -n "$SER" ] && ADB="adb -s $SER"
 KEY_FILE="${KEY_FILE:-}"
 
-fail=0; ran=0; skipped=0; REQ_USED=0; REQ_CAP=4
+fail=0; ran=0; skipped=0; REQ_USED=0; REQ_CAP="${REQ_CAP:-4}"
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[0;33m'; NCT='\033[0m'
 pass() { printf "${GRN}PASS${NCT} %s\n" "$1"; ran=$((ran + 1)); }
 bad()  { printf "${RED}FAIL${NCT} %s\n" "$1"; fail=1; }
