@@ -93,7 +93,8 @@
 
 ## §4 基线（派单时由主窗填）
 
-**JVM 分模块真数与 main commit 待 STAGE-31-B 集成后填**（31-B 落完是新基线，不许拿 363 冒领"当时 main 的实测数"）。
+**JVM 基线（主窗 09-24 独立重跑填入）= main commit `72db2c0`（STAGE-31-B 代码已集成入树）：`--rerun-tasks` 单变体分模块 XML app **306** / byok **59** / contracts **19** = 384，0 失败**。** 本批 S3-F 的 JVM 用例起跳数以此为准，完工后主窗按同口径独立重跑对账（总数不得因冒真数而虚增）。
+诚实边界照实登记：**31-B 代码已入树但 ACCEPTED 仍挂 K40 真机复验**（雷12 持久拒，见 `evidence/S31/stage31-b-emulator-gate.md` §5）——这与本批无冲突：31-B 的两个 hunk 只落在 `runNodeStep` 的 `:302-351`（派发/重派边）与 `:448-463`（`awaitLanded` 兜底扫树），**`when (action.type)` 支持集 `:98-121` 一行未动**（下方 §4-1 真源引用仍逐字有效），且 S3-F 动的是 `DslCompiler`/`RecorderStore`/提示词/`byok-smoke` E5i 措辞面，与执行器文件正交；K40 一旦复验出须回退执行器，也是回退 31-B 那两个 hunk，不影响 S3-F 的落点，主窗届时只需按新基线重测 S3-F、不返工其代码。
 
 以下三条是**今天已在磁盘上核过、且不随 31-B 移动**的事实，worker 不必重新摸（31-B 的靶表只动 `runNodeStep` 里的派发边 A1/A2 与复核边 A3，`when (action.type)` 这个支持集本身一行不碰）：
 
