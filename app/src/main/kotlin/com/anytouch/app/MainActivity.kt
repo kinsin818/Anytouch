@@ -96,28 +96,28 @@ class MainActivity : ComponentActivity() {
                         val connected by AppState.serviceConnected.collectAsState()
                         val running by AppState.running.collectAsState()
                         val report by AppState.lastRunReport.collectAsState()
-                        Text("Anytouch S1 执行器", style = MaterialTheme.typography.headlineSmall)
+                        Text("Anytouch executor", style = MaterialTheme.typography.headlineSmall)
                         // L2-①：未连接即首启引导必现（同一话术单源于 AccessibilityGate，UI 不各写一份）
                         Text(
-                            if (connected) "无障碍服务：已连接"
+                            if (connected) "Accessibility service: connected"
                             else RecordGate.SERVICE_OFF.userCopy().orEmpty(),
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text(
                             when {
-                                running -> "任务执行中…（可点悬浮球停止）"
+                                running -> "Task running… (tap the floating ball to stop)"
                                 // 编译持有的那一段时间必须看得见（裁决 S3-R4-1：屏上不说，用户只会觉得按钮自己坏了）
                                 // 编译持有的那一段时间必须看得见（裁决 S3-R4-1：屏上不说，用户只会觉得按钮自己坏了；
                                 // S31-B2 扩面后这一句要把四个入口都点到：录制、改账、执行）
-                                compileBusy -> "AI 编译中…（一问一答在路上，录制、改账与执行此刻都不动）"
-                                else -> "空闲"
+                                compileBusy -> "AI compiling… (one request is in flight; recording, step edits and runs stay paused)"
+                                else -> "Idle"
                             },
                         )
                         OutlinedTextField(
                             value = targetPkg,
                             onValueChange = { targetPkg = it },
                             modifier = Modifier.fillMaxWidth().testTag("target_pkg"),
-                            label = { Text("录制目标包名") },
+                            label = { Text("Package to record") },
                             singleLine = true,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -126,15 +126,17 @@ class MainActivity : ComponentActivity() {
                                 // 编译在跑即置灰（灰只是提示，门禁在 RecorderStore 入口，adb 通道同样被拒）
                                 enabled = connected && recording == null && !compileBusy,
                                 modifier = Modifier.testTag("record_start"),
-                            ) { Text("开始录制") }
+                            ) { Text("Start recording") }
                             Button(
                                 onClick = { RecorderStore.stopAndCompile() },
                                 enabled = recording != null && !compileBusy,
                                 modifier = Modifier.testTag("record_stop"),
-                            ) { Text("停止并编译") }
+                            ) { Text("Stop & compile") }
                         }
                         Text(
-                            if (recording != null && RecorderStore.isRecording) "录制中：只收目标包窗口内动作" else "未在录制",
+                            if (recording != null && RecorderStore.isRecording)
+                                "Recording: only actions inside the target package's windows"
+                            else "Not recording",
                             style = MaterialTheme.typography.bodySmall,
                         )
                         // L2-③：被拒的开录必须把话术显示出来（静默禁用=黑洞）；adb 注入通道同一条流
@@ -181,17 +183,17 @@ class MainActivity : ComponentActivity() {
                                 onClick = { loadTemplate("photos_cleanup", "ui_button") },
                                 enabled = !compileBusy,
                                 modifier = Modifier.testTag("template_photos"),
-                            ) { Text("相册模板") }
+                            ) { Text(PresetTemplateLibrary.byId("photos_cleanup")!!.label) }
                             Button(
                                 onClick = { loadTemplate("gmail_cleanup", "ui_button") },
                                 enabled = !compileBusy,
                                 modifier = Modifier.testTag("template_gmail"),
-                            ) { Text("Gmail 模板") }
+                            ) { Text(PresetTemplateLibrary.byId("gmail_cleanup")!!.label) }
                             Button(
                                 onClick = { loadTemplate("discord_checkin", "ui_button") },
                                 enabled = !compileBusy,
                                 modifier = Modifier.testTag("template_discord"),
-                            ) { Text("Discord 模板") }
+                            ) { Text(PresetTemplateLibrary.byId("discord_checkin")!!.label) }
                         }
                         // S5-R7 上架口径同源：这两个模板需用户先在对应 App 内自行登录；本工具不做登录、不碰凭证
                         Text(
@@ -219,7 +221,7 @@ class MainActivity : ComponentActivity() {
                             // 真门禁在 submitTask 入口，adb 注入绕过按钮同样被拒（下面 task_rejection 那格就是它的红字）。
                             enabled = connected && !compileBusy,
                             modifier = Modifier.testTag("run_task"),
-                        ) { Text("执行任务") }
+                        ) { Text("Run task") }
                         // 被拦下的派发必须显形（与开录/编辑拒因同律：静默"点了没反应"=黑洞）。
                         // 这一格现在装两种拒因，同源不同档：V-3 的"框账不符"（请求绑定，下一次派发覆盖）
                         // 与 S3-F 的"编译在跑"（纯状态档，编译归位即由 revalidateRunRejection 作废）。
@@ -358,17 +360,19 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     is RecorderStore.ModelLedger.RefusedRunning -> {
-                        val copy = "任务执行中，模板整本拒落账（在跑的这一跑与屏上的账不许变两套）。" +
-                            "等这一跑结束或点悬浮球停止后再装载。"
+                        val copy = "A task is running, so the whole template was refused entry to the ledger " +
+                            "(the running task and the on-screen ledger must never become two books). Wait " +
+                            "for this run to finish, or tap the floating ball to stop, then load it again."
                         AppState.templateRejection.value = copy
                         Log.w(TAG, "S5SMOKE template load refused gate=RUNNING id=${load.template.id} via=$via")
                     }
                     is RecorderStore.ModelLedger.RefusedUnsupportedType -> {
                         // 词表档判据在落账口；此处只把"预制资产带病"说清楚（话术与编译来路分格：
                         // 编译来路该重编，模板来路是库与资产脱钩——两件事不许共用一句"再点一次 AI 编译"）
-                        val copy = "模板「${load.template.label}」第 ${verdict.index + 1} 步是 " +
-                            "type=${verdict.type}，执行器跑不动它，整本一步都没落账。" +
-                            "预制资产带病（JVM 锁 PresetTemplatesTest 应同步红），请勿使用，等修复版。"
+                        val copy = "Template “${load.template.label}” step ${verdict.index + 1} is " +
+                            "type=${verdict.type}, which the executor cannot run — not a single step of the " +
+                            "whole ledger was written. This shipped template asset is defective (the JVM lock " +
+                            "PresetTemplatesTest should be red as well); do not use it until a fixed build."
                         AppState.templateRejection.value = copy
                         Log.w(
                             TAG,

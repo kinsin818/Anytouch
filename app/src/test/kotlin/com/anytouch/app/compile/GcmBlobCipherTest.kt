@@ -86,7 +86,7 @@ class GcmBlobCipherTest {
         val noKey = GcmBlobCipher { throw IllegalStateException("keystore entry gone") }
         val failed = assertIs<GcmBlobCipher.Outcome.Failed>(noKey.decrypt(ByteArray(40)))
         assertEquals(GcmBlobCipher.Failure.UNWRAP_FAILED, failed.failure)
-        assertTrue(failed.userCopy().contains("密钥"), "取不到密钥要说清是密钥库问题：${failed.userCopy()}")
+        assertTrue(failed.userCopy().contains("system keystore"), "取不到密钥要说清是密钥库问题：${failed.userCopy()}")
     }
 
     @Test

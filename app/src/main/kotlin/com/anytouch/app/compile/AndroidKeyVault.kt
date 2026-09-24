@@ -54,7 +54,7 @@ object AndroidKeyVault {
             }
         }
         val aliasSlot = object : WipeSlot {
-            override val name: String get() = "系统密钥库别名"
+            override val name: String get() = "system keystore alias"
 
             // 连密钥库都打不开时按"别名还在"处理：宁可报没清干净，也不能报清干净（fail-closed）
             override fun exists(): Boolean = runCatching { keyStore().isKeyEntry(KEY_ALIAS) }.getOrDefault(true)

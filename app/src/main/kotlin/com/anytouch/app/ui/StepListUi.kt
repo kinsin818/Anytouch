@@ -42,10 +42,11 @@ fun StepListEditor(
     editable: Boolean = true,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("步骤 ${actions.size}（删/改名/移序只改这份步序账）", style = MaterialTheme.typography.titleSmall)
+        Text("Steps ${actions.size} (delete / rename / reorder only touch this step ledger)", style = MaterialTheme.typography.titleSmall)
         if (actions.isEmpty()) {
             Text(
-                "步序账为空：先录制并点「停止并编译」，这里才会出现步骤。",
+                "The step ledger is empty: record first and tap “Stop & compile”, only then do steps " +
+                    "appear here.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -82,31 +83,31 @@ private fun StepRow(
                 onValueChange = { draft = it },
                 modifier = Modifier.weight(1f).testTag("step_rename_field_$index"),
                 singleLine = true,
-                label = { Text("步骤名") },
+                label = { Text("Step name") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             )
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Rename(index, draft)) },
                 enabled = editable,
                 modifier = Modifier.testTag("step_rename_$index"),
-            ) { Text("改名") }
+            ) { Text("Rename") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Move(index, index - 1)) },
                 enabled = editable && index > 0,
                 modifier = Modifier.testTag("step_up_$index"),
-            ) { Text("上移") }
+            ) { Text("Up") }
             OutlinedButton(
                 onClick = { onEdit(StepEdit.Move(index, index + 1)) },
                 enabled = editable && index < total - 1,
                 modifier = Modifier.testTag("step_down_$index"),
-            ) { Text("下移") }
+            ) { Text("Down") }
             Button(
                 onClick = { onEdit(StepEdit.Remove(index)) },
                 enabled = editable,
                 modifier = Modifier.testTag("step_delete_$index"),
-            ) { Text("删除") }
+            ) { Text("Delete") }
         }
     }
 }

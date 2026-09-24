@@ -95,10 +95,10 @@ class GcmBlobCipher(private val keyProvider: () -> SecretKey) {
 
         data class Failed(val failure: Failure) : Outcome {
             override fun userCopy(): String = when (failure) {
-                Failure.NO_DATA -> "还没有保存过 Key。"
-                Failure.BAD_FORMAT -> "本地保存的 Key 文件不完整（可能被清理或写坏），请重新填一次。"
-                Failure.TAMPERED -> "本地保存的 Key 与系统密钥不匹配（改动过或换机恢复过来的），请重新填一次。"
-                Failure.UNWRAP_FAILED -> "系统密钥库里这把加密密钥取不出来（可能被清除或被安全策略限制），请重新保存一次 Key。"
+                Failure.NO_DATA -> "No key has been saved yet."
+                Failure.BAD_FORMAT -> "The locally saved key file is incomplete (it may have been cleaned up or written badly); please enter the key once more."
+                Failure.TAMPERED -> "The locally saved key no longer matches the system key (the file was edited, or this came from a device migration); please enter the key once more."
+                Failure.UNWRAP_FAILED -> "The encryption key cannot be released from the system keystore (it may have been cleared or blocked by a security policy); please save the key again."
             }
         }
     }

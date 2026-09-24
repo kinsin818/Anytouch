@@ -23,9 +23,9 @@ class WipeReport(
     val stillThere: List<String>,
 ) {
     fun userCopy(): String = when {
-        cleared -> "已清除：本机不再保存任何 Key。"
-        else -> "没能完全清除，这些还留在机器上：${stillThere.joinToString("、")}。" +
-            "请按提示手动清理，或在系统设置里清除本应用数据。"
+        cleared -> "Erased: this device no longer stores any key."
+        else -> "The wipe was not complete — these are still on the device: ${stillThere.joinToString(", ")}. " +
+            "Clear them as prompted, or wipe this app's data in system settings."
     }
 }
 

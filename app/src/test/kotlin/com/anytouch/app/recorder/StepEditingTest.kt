@@ -277,10 +277,10 @@ class StepEditingTest {
             StepEditGate.BLANK_NAME,
         ).map { assertNotNull(it.userCopy(), "$it 必须给用户话术（L2-③ 禁静默禁用）") }
         assertEquals(4, copies.distinct().size, "四档拒因话术雷同=用户无从知道该改哪一条")
-        assertTrue(copies[0].contains("执行中") && copies[0].contains("停止"), "执行中话术须给出出口（等完/点球停止）：${copies[0]}")
-        assertTrue(copies[1].contains("录制"), "空账话术须指向'先录制编译'：${copies[1]}")
-        assertTrue(copies[2].contains("刷新"), "越界话术须提示看当前列表：${copies[2]}")
-        assertTrue(copies[3].contains("不能为空"), "空名话术须说明名不能空：${copies[3]}")
+        assertTrue(copies[0].contains("while a task is running") && copies[0].contains("stop"), "执行中话术须给出出口（等完/点球停止）：${copies[0]}")
+        assertTrue(copies[1].contains("record first"), "空账话术须指向'先录制编译'：${copies[1]}")
+        assertTrue(copies[2].contains("refresh"), "越界话术须提示看当前列表：${copies[2]}")
+        assertTrue(copies[3].contains("cannot be empty"), "空名话术须说明名不能空：${copies[3]}")
     }
 
     // ---------- 空账不发建议 ----------
@@ -339,7 +339,7 @@ class StepEditingTest {
             stepLabel(act(ActionType.CLICK, clues = arrayOf(RecorderCompiler.PATH_KEY to "root/1/2"))),
         )
         assertEquals(
-            "click · 无线索",
+            "click · no clue",
             stepLabel(act(ActionType.CLICK)),
             "零线索步骤不得冒充有线索（与编译器归因同口径）",
         )
@@ -352,7 +352,7 @@ class StepEditingTest {
             stepLabel(act(ActionType.SCROLL, clues = arrayOf(RecorderCompiler.DIRECTION_KEY to "forward"))),
         )
         assertEquals(
-            "type_text · Search settings · 输入 bluetooth",
+            "type_text · Search settings · types bluetooth",
             stepLabel(
                 act(
                     ActionType.TYPE_TEXT,
@@ -366,12 +366,12 @@ class StepEditingTest {
         val long = stepLabel(act(ActionType.CLICK, clues = arrayOf(RecorderCompiler.TEXT_KEY to "x".repeat(40))))
         assertTrue(long.endsWith("…"), "超长线索须截断，不撑爆编辑行：$long")
         assertEquals(
-            "scroll · 无方向",
+            "scroll · no direction",
             stepLabel(act(ActionType.SCROLL)),
             "缺方向不得显示 unknown（用户看得懂的字才叫提示）",
         )
         assertEquals(
-            "type_text · 无线索",
+            "type_text · no clue",
             stepLabel(act(ActionType.TYPE_TEXT)),
             "既无线索也无输入时不编造内容",
         )

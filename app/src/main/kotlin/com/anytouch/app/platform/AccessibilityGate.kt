@@ -48,7 +48,7 @@ enum class RecordGate {
  * 每个入口**在头一句之后**各接自己那一句细节（改账说的是步序账，执行说的是派发排队），
  * 细节按入口不同是应该的，头一句不同就不应该。
  */
-const val COMPILE_HOLD_HEADLINE = "AI 编译中，改账与执行此刻不动"
+const val COMPILE_HOLD_HEADLINE = "AI compile in progress — recording, step edits and task runs stay paused until it returns"
 
 /**
  * 编译持有对**停止并编译**入口的判定（裁决 S3-R4-1）。判据只住这一个函数：开录面（[recordGateOf]）、
@@ -93,17 +93,23 @@ fun recordGateOf(
 fun RecordGate.userCopy(): String? = when (this) {
     RecordGate.READY -> null
     RecordGate.SERVICE_OFF ->
-        "无障碍服务未连接：请立即到 设置 → 无障碍 → 已下载的服务 开启 Anytouch；未开启不能开始录制或执行。"
+        "Accessibility service is not connected: please open Settings → Accessibility → Downloaded services " +
+            "and turn Anytouch on right away. Until it is on, recording and execution cannot start."
     RecordGate.RUNNING ->
-        "任务执行中不能开录：执行器的手会被录成你的意图。请等本轮结束（或点悬浮球停止）后再录。"
+        "Cannot start recording while a task is running: the executor's own taps would be recorded as your " +
+            "intent. Wait for this run to finish (or tap the floating ball to stop), then record."
     RecordGate.BALL_UNAVAILABLE ->
-        "录制球无法显示：录制全靠这颗球开录与急停，看不见球就不允许开始。请重新开启无障碍服务后重试" +
-            "（小米/红米机型被强行停止后绑定会被清掉，见装机引导 G2）。"
+        "The recording ball cannot be shown: recording depends entirely on this ball to start and to " +
+            "emergency-stop, so starting without it on screen is not allowed. Please turn the accessibility " +
+            "service back on and retry (on Xiaomi/Redmi devices, force-stopping the app clears the binding — " +
+            "see setup guide G2)."
     // 一句话现在服务**四个**入口（开录/停止并编译/执行任务/步骤编辑，裁 S31-B2 扩了两面）：
     // 话术单源（ui/MainActivity 与 adb 通道都不许各抄一份），头一句取自 COMPILE_HOLD_HEADLINE。
     RecordGate.COMPILING ->
-        "$COMPILE_HOLD_HEADLINE：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、" +
-            "删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。"
+        "$COMPILE_HOLD_HEADLINE — this run will replace the whole step ledger when it comes back, so " +
+            "starting a recording, tapping “Stop & compile”, tapping “Run task” and deleting or renaming " +
+            "steps are all not allowed meanwhile — afterwards nobody could say which product is the one left " +
+            "on screen. Please wait until the compile verdict is on screen (both success and failure speak up)."
 }
 
 /**
@@ -114,8 +120,9 @@ fun RecordGate.userCopy(): String? = when (this) {
  */
 fun RecordGate.runUserCopy(): String? = when (this) {
     RecordGate.RUNNING ->
-        "任务执行中，本次派发不动：已有任务在跑，这一条只会排在它之后（单执行器语义），" +
-            "而当前那一跑的产物会覆写屏上这份报告。要真停下来请点悬浮停止球。"
+        "A task is already running, so this dispatch is not started: with a single executor the new task " +
+            "would only queue up behind the current one, and that run's result would overwrite this report " +
+            "on screen. To really stop it, tap the floating stop ball."
     else -> userCopy()
 }
 

@@ -44,18 +44,18 @@ data class ScreenContext(
     }
 
     fun notice(): String = if (!enabled) {
-        "屏幕上下文：已关闭——本次编译不上行任何屏幕文本"
+        "Screen context: off — this compile sends no on-screen text at all"
     } else {
         buildString {
-            append("屏幕上下文：已开启——屏上 $nodesSeen 个节点，本次上行 $uploadedCount 条可见文本")
+            append("Screen context: on — $nodesSeen nodes on screen, $uploadedCount visible text line(s) sent")
             val drops = buildList {
-                if (droppedPassword > 0) add("密码类整条剔除 $droppedPassword")
-                if (droppedHiddenContent > 0) add("输入框只报存在 $droppedHiddenContent")
-                if (droppedInvisible > 0) add("屏外 $droppedInvisible")
-                if (droppedDuplicate > 0) add("重复 $droppedDuplicate")
-                if (droppedOverCap > 0) add("超上限 $droppedOverCap")
+                if (droppedPassword > 0) add("password lines dropped $droppedPassword")
+                if (droppedHiddenContent > 0) add("input fields reported as present only $droppedHiddenContent")
+                if (droppedInvisible > 0) add("off-screen $droppedInvisible")
+                if (droppedDuplicate > 0) add("duplicate $droppedDuplicate")
+                if (droppedOverCap > 0) add("over cap $droppedOverCap")
             }
-            if (drops.isNotEmpty()) append("；").append(drops.joinToString("、"))
+            if (drops.isNotEmpty()) append(" — ").append(drops.joinToString(", "))
         }
     }
 

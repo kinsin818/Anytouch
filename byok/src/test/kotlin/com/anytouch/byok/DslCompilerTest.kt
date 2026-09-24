@@ -87,14 +87,14 @@ class DslCompilerTest {
     fun `action_id 重复必须拒`() {
         val r = compile("""[{"action_id":"a","type":"click","source":"node","value":{"text":"x"},"safety":{"viewport_ok":true,"click_enabled":true}},{"action_id":"a","type":"click","source":"node","value":{"text":"y"},"safety":{"viewport_ok":true,"click_enabled":true}}]""")
         assertIs<CompileResult.Reject>(r)
-        assertTrue(r.detail.contains("重复"))
+        assertTrue(r.detail.contains("duplicate action_id"))
     }
 
     @Test
     fun `空数组走拒绝而非假绿`() {
         val r = compile("[]")
         assertIs<CompileResult.Reject>(r)
-        assertTrue(r.detail.contains("空动作数组"))
+        assertTrue(r.detail.contains("empty action array"))
     }
 
     @Test

@@ -114,8 +114,8 @@ class AccessibilityGateTest {
     @Test
     fun `未连接话术含立即可见动作与禁用结论（L2-① 字面判据）`() {
         val copy = RecordGate.SERVICE_OFF.userCopy().orEmpty()
-        assertEquals(true, copy.contains("请立即"))
-        assertEquals(true, copy.contains("不能开始录制"))
+        assertEquals(true, copy.contains("right away"))
+        assertEquals(true, copy.contains("cannot start"))
     }
 
     // ---- V-2（老板 09-23 裁决）：拒因的过期边 ----
@@ -226,8 +226,8 @@ class AccessibilityGateTest {
         val viaRun = requireNotNull(RecordGate.RUNNING.runUserCopy())
         val viaRecord = requireNotNull(RecordGate.RUNNING.userCopy())
         assertNotEquals(viaRecord, viaRun, "派发口挂上「不能开录」=把另一件事说成这件事（话术面串状态）")
-        assertTrue(viaRun.contains("派发"), viaRun)
-        assertTrue(viaRecord.contains("开录"), viaRecord)
+        assertTrue(viaRun.contains("dispatch"), viaRun)
+        assertTrue(viaRecord.contains("start recording"), viaRecord)
         // 其余档回落到同一份表：派发口不另写一句"编译中"
         assertEquals(RecordGate.COMPILING.userCopy(), RecordGate.COMPILING.runUserCopy())
         assertEquals(RecordGate.SERVICE_OFF.userCopy(), RecordGate.SERVICE_OFF.runUserCopy())

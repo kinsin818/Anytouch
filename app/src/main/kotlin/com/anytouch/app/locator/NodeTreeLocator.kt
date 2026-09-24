@@ -16,7 +16,7 @@ class NodeTreeLocator {
         if (root == null) {
             return LocatorMiss(
                 LocatorLevel.entries.map { level ->
-                    LocatorAttempt(level, queryFor(level, request), AttemptOutcome.NOT_ATTEMPTED, 0, "根节点为空（无障碍树未就绪）")
+                    LocatorAttempt(level, queryFor(level, request), AttemptOutcome.NOT_ATTEMPTED, 0, "root is null (accessibility tree not ready)")
                 },
             )
         }
@@ -62,10 +62,10 @@ class NodeTreeLocator {
     /* ---- 一阶：resource-id 精确 ---- */
 
     private fun byResourceId(root: UiNode, request: LocatorRequest): LevelOutcome {
-        val wanted = request.resourceId ?: return missing(AttemptOutcome.NOT_ATTEMPTED, "请求未给出 resource-id")
-        if (wanted.isBlank()) return missing(AttemptOutcome.INVALID_QUERY, 0, "resource-id 为空串")
+        val wanted = request.resourceId ?: return missing(AttemptOutcome.NOT_ATTEMPTED, "request carries no resource-id")
+        if (wanted.isBlank()) return missing(AttemptOutcome.INVALID_QUERY, 0, "resource-id is blank")
         val candidates = root.preOrder().filter { it.resourceId?.trim() == wanted.trim() }
-        if (candidates.isEmpty()) return missing(AttemptOutcome.NO_MATCH, 0, "resource-id '${wanted}' 零命中")
+        if (candidates.isEmpty()) return missing(AttemptOutcome.NO_MATCH, 0, "resource-id '$wanted' zero hits")
         return pick(candidates, request.instance) { "resource-id='${wanted}'" }
     }
 
@@ -75,12 +75,12 @@ class NodeTreeLocator {
         val text = request.text
         val desc = request.contentDesc
         if (text == null && desc == null) {
-            return missing(AttemptOutcome.NOT_ATTEMPTED, "请求未给出 text/contentDescription")
+            return missing(AttemptOutcome.NOT_ATTEMPTED, "request carries no text/contentDescription")
         }
         val trimmedText = text?.trim()?.takeIf { it.isNotEmpty() }
         val trimmedDesc = desc?.trim()?.takeIf { it.isNotEmpty() }
         if (trimmedText == null && trimmedDesc == null) {
-            return missing(AttemptOutcome.INVALID_QUERY, 0, "text/contentDescription 均为空串")
+            return missing(AttemptOutcome.INVALID_QUERY, 0, "text/contentDescription are both blank")
         }
         val matched = root.preOrder().mapNotNull { node ->
             when {
@@ -93,7 +93,7 @@ class NodeTreeLocator {
             return missing(
                 AttemptOutcome.NO_MATCH,
                 0,
-                "text='$trimmedText'/desc='$trimmedDesc' trim 全等零命中（非 contains）",
+                "text='$trimmedText'/desc='$trimmedDesc' zero trimmed-equality hits (not contains)",
             )
         }
         return pick(matched.map { it.first }, request.instance) { node -> matched.first { it.first === node }.second }
@@ -102,11 +102,11 @@ class NodeTreeLocator {
     /* ---- 三阶：层级路径 ---- */
 
     private fun byPath(root: UiNode, request: LocatorRequest): LevelOutcome {
-        val path = request.path ?: return missing(AttemptOutcome.NOT_ATTEMPTED, "请求未给出层级路径")
+        val path = request.path ?: return missing(AttemptOutcome.NOT_ATTEMPTED, "request carries no hierarchical path")
         val segments = try {
             PathPatternParser.parse(path)
         } catch (e: PathSyntaxException) {
-            return missing(AttemptOutcome.INVALID_QUERY, 0, "路径 '$path' 语法非法：${e.message}")
+            return missing(AttemptOutcome.INVALID_QUERY, 0, "path '$path' has invalid syntax: ${e.message}")
         }
         var scope: List<UiNode> = root.subtreeBreadthFirst()
         for ((depth, segment) in segments.withIndex()) {
@@ -115,30 +115,30 @@ class NodeTreeLocator {
                 return missing(
                     AttemptOutcome.NO_MATCH,
                     0,
-                    "第 ${depth + 1} 段 '${segment.raw}' 零命中（${scopeLabel(scope)}）",
+                    "segment ${depth + 1} '${segment.raw}' zero hits (${scopeLabel(scope)})",
                 )
             }
             val anchor = candidates.getOrNull(segment.index) ?: return missing(
                 AttemptOutcome.INDEX_OUT_OF_RANGE,
                 candidates.size,
-                "第 ${depth + 1} 段 '${segment.raw}' 命中 ${candidates.size} 个，取序号 ${segment.index} 越界",
+                "segment ${depth + 1} '${segment.raw}' hit ${candidates.size}, index ${segment.index} is out of range",
             )
             if (depth == segments.lastIndex) {
                 return LevelOutcome.Found(
                     node = anchor,
                     matchedBy = "path='$path'",
                     candidateCount = candidates.size,
-                    detail = "末段 '${segment.raw}' 于 ${scopeLabel(scope)} 命中 ${candidates.size} 个，取 [${segment.index}]",
+                    detail = "last segment '${segment.raw}' at ${scopeLabel(scope)} hit ${candidates.size}, taking [${segment.index}]",
                 )
             }
             scope = anchor.subtreeBreadthFirst().drop(1)
         }
-        return missing(AttemptOutcome.INVALID_QUERY, 0, "路径 '$path' 无段可匹配")
+        return missing(AttemptOutcome.INVALID_QUERY, 0, "path '$path' has no matchable segment")
     }
 
     private fun scopeLabel(scope: List<UiNode>): String {
-        val head = scope.firstOrNull()?.let { NodeLabel.of(it) } ?: "空范围"
-        return "范围 $head 起、共 ${scope.size} 个节点"
+        val head = scope.firstOrNull()?.let { NodeLabel.of(it) } ?: "empty scope"
+        return "scope starts at $head, ${scope.size} node(s)"
     }
 
     /* ---- 共用：多命中按文档序取 instance ---- */
@@ -151,13 +151,13 @@ class NodeTreeLocator {
         val node = candidates.getOrNull(instance) ?: return missing(
             AttemptOutcome.INDEX_OUT_OF_RANGE,
             candidates.size,
-            "命中 ${candidates.size} 个，取 instance=$instance 越界",
+            "${candidates.size} hit(s), instance=$instance is out of range",
         )
         return LevelOutcome.Found(
             node = node,
             matchedBy = matchedBy(node),
             candidateCount = candidates.size,
-            detail = "命中 ${candidates.size} 个，取 instance=$instance",
+            detail = "${candidates.size} hit(s), taking instance=$instance",
         )
     }
 

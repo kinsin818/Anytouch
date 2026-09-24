@@ -71,7 +71,7 @@ class ByokCompileController(
             return ByokReport(
                 published = false,
                 userCopy = ByokErrorKind.UNREACHABLE.userCopy() +
-                    "（归因：compile·" + KeyMasker.mask(e.javaClass.simpleName).take(120) + "）",
+                    " (cause: compile · " + KeyMasker.mask(e.javaClass.simpleName).take(120) + ")",
                 errorKind = ByokErrorKind.UNREACHABLE,
                 stage = "compile",
                 context = context,
@@ -83,8 +83,8 @@ class ByokCompileController(
                 val kind = result.kind ?: ByokErrorKind.COMPILE_REJECT
                 ByokReport(
                     published = false,
-                    userCopy = kind.userCopy() + "（归因：" + result.stage + "·" +
-                        KeyMasker.mask(result.detail).take(120) + "）",
+                    userCopy = kind.userCopy() + " (cause: " + result.stage + " · " +
+                        KeyMasker.mask(result.detail).take(120) + ")",
                     errorKind = kind,
                     stage = result.stage,
                     context = context,
@@ -98,12 +98,12 @@ class ByokCompileController(
             is RecorderStore.ModelLedger.Written -> ByokReport(
                 published = true,
                 userCopy = buildString {
-                    append("AI 编排出 ").append(ledger.steps).append(" 步，已写进步序账")
+                    append("AI compiled ").append(ledger.steps).append(" step(s), written into the step ledger")
                     if (ledger.replaced > 0) {
-                        append("（作废旧账 ").append(ledger.replaced).append(" 步）")
+                        append(" (discarded ").append(ledger.replaced).append(" stale step(s))")
                     }
-                    append("。请逐条核对步序列表，再点「执行任务」。")
-                    contextZeroRowWarning(context)?.let { append("；").append(it) }
+                    append(". Check the step list one by one, then tap “Run task.”")
+                    contextZeroRowWarning(context)?.let { append(" — ").append(it) }
                 },
                 steps = ledger.steps,
                 replaced = ledger.replaced,
@@ -111,8 +111,9 @@ class ByokCompileController(
             )
             RecorderStore.ModelLedger.RefusedRunning -> ByokReport(
                 published = false,
-                userCopy = "模型编排出 " + actions.size + " 步，但步序账拒绝在执行中换账——" +
-                    "这一步**没有写进去**，屏上的步序列表还是原来的账。请停止或等这一跑结束后重编。",
+                userCopy = "The model compiled " + actions.size + " step(s), but the step ledger refused to " +
+                    "swap books mid-run — these steps were **not written**, and the list on screen is still " +
+                    "the old ledger. Stop the current run or wait for it to finish, then compile again.",
                 gate = ByokPreflight.Gate.RUNNING,
                 context = context,
             )
@@ -138,8 +139,9 @@ class ByokCompileController(
      */
     private fun contextZeroRowWarning(context: ScreenContext): String? =
         if (context.enabled && context.nodesSeen == 0) {
-            "注意：屏幕上下文开着，但一个节点都没采到（当前活动窗可能是本 App 自己，或无障碍服务刚断开）——" +
-                "本次没有上行任何屏幕文本，模型只按你那句话编排"
+            "Heads-up: screen context was ON but not a single node was captured (the active window may be " +
+                "this app itself, or the accessibility service just disconnected) — no on-screen text was " +
+                "sent this time, the model compiled from your sentence alone"
         } else {
             null
         }

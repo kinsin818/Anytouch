@@ -31,12 +31,12 @@ class CredentialRepository(
         fun userCopy(): String
 
         object Saved : SaveResult {
-            override fun userCopy(): String = "已加密保存到本机。"
+            override fun userCopy(): String = "Encrypted and saved on this device."
         }
 
         /** [detail] 只放机器事实（异常类名等），永不含 Key。 */
         data class Failed(val reason: Reason, val detail: String? = null) : SaveResult {
-            override fun userCopy(): String = reason.userCopy() + (detail?.let { "（$it）" } ?: "")
+            override fun userCopy(): String = reason.userCopy() + (detail?.let { " ($it)" } ?: "")
         }
 
         enum class Reason {
@@ -47,10 +47,14 @@ class CredentialRepository(
             ;
 
             fun userCopy(): String = when (this) {
-                KEY_UNAVAILABLE -> "系统密钥库现在拿不到加密密钥，Key 没有落盘。请稍后重试或重启手机后再保存。"
-                WRITE_FAILED -> "写入本机文件失败，Key 没有保存。请检查存储是否被清理。"
-                READ_BACK_NOTHING -> "写入报告成功，但读不回凭据——Key 不能算已保存。"
-                READ_BACK_MISMATCH -> "读回的凭据与刚保存的不一致，Key 不能算已保存，请重填一次。"
+                KEY_UNAVAILABLE -> "The system keystore cannot hand over an encryption key right now, so the " +
+                    "key never reached disk. Try again shortly, or reboot the phone and save again."
+                WRITE_FAILED -> "Writing the local file failed, so the key was not saved. Check whether the " +
+                    "app's storage was cleared."
+                READ_BACK_NOTHING -> "The write reported success but the credential cannot be read back — the " +
+                    "key cannot be counted as saved."
+                READ_BACK_MISMATCH -> "The credential read back differs from what was just saved, so the key " +
+                    "cannot be counted as saved; please enter it once more."
             }
         }
     }
@@ -61,10 +65,13 @@ class CredentialRepository(
 
         data class Failed(val failure: GcmBlobCipher.Failure) : LoadResult {
             fun userCopy(): String = when (failure) {
-                GcmBlobCipher.Failure.BAD_FORMAT -> "本机保存的凭据文件不完整，请重新填一次 Key。"
-                GcmBlobCipher.Failure.TAMPERED -> "本机凭据与系统密钥不匹配（换机或改过文件），请重新填一次 Key。"
-                GcmBlobCipher.Failure.UNWRAP_FAILED -> "系统密钥库取不出加密密钥，请在设置里重新保存一次 Key。"
-                GcmBlobCipher.Failure.NO_DATA -> "本机还没有凭据。"
+                GcmBlobCipher.Failure.BAD_FORMAT -> "The credential file stored on this device is incomplete; " +
+                    "please enter the key once more."
+                GcmBlobCipher.Failure.TAMPERED -> "The credential on this device does not match the system key " +
+                    "(device change or an edited file); please enter the key once more."
+                GcmBlobCipher.Failure.UNWRAP_FAILED -> "The system keystore cannot release the encryption key; " +
+                    "please save the key again in Settings."
+                GcmBlobCipher.Failure.NO_DATA -> "There is no credential on this device yet."
             }
         }
 
@@ -113,7 +120,7 @@ class CredentialRepository(
     /** 密文文件 + 密钥库别名两处同灭，缺一处即报未清干净（判定见 [wipeSlots]）。 */
     fun clear(): WipeReport {
         val fileSlot = object : WipeSlot {
-            override val name: String get() = "本机凭据文件"
+            override val name: String get() = "local credential file"
             override fun exists(): Boolean = store.exists()
             override fun erase() {
                 store.delete()

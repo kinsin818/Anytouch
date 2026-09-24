@@ -64,24 +64,24 @@ internal object PathPatternParser {
     /** 解析失败抛 [PathSyntaxException]，携带可读原因；不做静默宽容。 */
     fun parse(path: String): List<PathSegment> {
         val trimmed = path.trim()
-        if (trimmed.isEmpty()) throw PathSyntaxException("路径为空")
+        if (trimmed.isEmpty()) throw PathSyntaxException("path is empty")
         return trimmed.split('>').map { before ->
             var text = before.trim()
-            if (text.isEmpty()) throw PathSyntaxException("段 '$before' 为空")
+            if (text.isEmpty()) throw PathSyntaxException("segment '$before' is empty")
             var index = 0
             if (text.endsWith("]")) {
                 val open = text.lastIndexOf('[')
-                if (open < 0) throw PathSyntaxException("段 '$before' 的 ']' 缺少配对的 '['")
+                if (open < 0) throw PathSyntaxException("segment '$before': ']' has no matching '['")
                 val digits = text.substring(open + 1, text.length - 1)
                 if (digits.isEmpty() || digits.any { !it.isDigit() }) {
-                    throw PathSyntaxException("段 '$before' 的序号 '$digits' 不是非负整数")
+                    throw PathSyntaxException("segment '$before': index '$digits' is not a non-negative integer")
                 }
                 index = digits.toInt()
                 text = text.substring(0, open).trim()
             }
-            if (text.isEmpty()) throw PathSyntaxException("段 '$before' 只有序号、没有谓词")
+            if (text.isEmpty()) throw PathSyntaxException("segment '$before' has an index but no predicate")
             val parts = text.split('&').map { it.trim() }
-            if (parts.any { it.isEmpty() }) throw PathSyntaxException("段 '$before' 含空谓词")
+            if (parts.any { it.isEmpty() }) throw PathSyntaxException("segment '$before' contains an empty predicate")
             PathSegment(raw = before.trim(), predicates = parts.map { parsePredicate(before.trim(), it) }, index = index)
         }
     }
@@ -91,26 +91,26 @@ internal object PathPatternParser {
         val eq = part.indexOf('=')
         if (eq < 0) {
             if (part.contains('[') || part.contains(']')) {
-                throw PathSyntaxException("段 '$segment' 的谓词 '$part' 语法非法")
+                throw PathSyntaxException("segment '$segment': predicate '$part' has invalid syntax")
             }
             return SegmentPredicate.Equals("class", part)
         }
         val key = part.substring(0, eq).trim().lowercase()
         val value = part.substring(eq + 1).trim()
-        if (key.isEmpty()) throw PathSyntaxException("段 '$segment' 的谓词 '$part' 缺少键名")
+        if (key.isEmpty()) throw PathSyntaxException("segment '$segment': predicate '$part' is missing its key")
         if (key in BOOLEAN_KEYS) {
             val expected = when (value.lowercase()) {
                 "true" -> true
                 "false" -> false
-                else -> throw PathSyntaxException("段 '$segment'：$key 的取值 '${value}' 只能是 true/false")
+                else -> throw PathSyntaxException("segment '$segment': value '$value' of $key must be true/false")
             }
             return SegmentPredicate.BooleanFlag(key, expected)
         }
         if (key !in VALUE_KEYS) {
             val allowed = (VALUE_KEYS + BOOLEAN_KEYS).sorted().joinToString("/")
-            throw PathSyntaxException("段 '$segment' 的未知谓词键 '$key'（可用：$allowed）")
+            throw PathSyntaxException("segment '$segment': unknown predicate key '$key' (allowed: $allowed)")
         }
-        if (value.isEmpty()) throw PathSyntaxException("段 '$segment' 的谓词 '$part' 缺少取值")
+        if (value.isEmpty()) throw PathSyntaxException("segment '$segment': predicate '$part' is missing its value")
         return SegmentPredicate.Equals(key, value)
     }
 }

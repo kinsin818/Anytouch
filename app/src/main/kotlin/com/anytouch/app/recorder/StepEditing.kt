@@ -98,15 +98,20 @@ fun editRejectionAfterStateChange(
 /** 用户向话术（L2-③：错误必显示，禁静默禁用）。 */
 fun StepEditGate.userCopy(): String? = when (this) {
     StepEditGate.READY -> null
-    StepEditGate.RUNNING -> "任务执行中不能改步骤：账本一边跑一边改，回放依据就对不上执行现场了。" +
-        "请等本轮结束（或点悬浮球停止）后再删改。"
+    StepEditGate.RUNNING -> "Steps cannot be edited while a task is running: if the ledger changes under a " +
+        "run in flight, playback no longer matches what actually executed. Wait for this run to finish " +
+        "(or tap the floating ball to stop) before deleting or changing steps."
     // 头一句与录制/执行面共用一格常量（S31-B2 要求"AI 编译中，改账与执行此刻不动"这一句在四个入口都成立），
     // 后半句才补本入口特有的细节——两句话术分叉正是"这一面说了不动、那一面没说要不动"的成因。
-    StepEditGate.COMPILING -> "$COMPILE_HOLD_HEADLINE：这一跑回来会把整本步序账换掉，" +
-        "此刻删改的那几条既不在这份账上、也不在那份账上。请等编译结论上屏后再编辑步骤。"
-    StepEditGate.EMPTY_LEDGER -> "当前没有可编辑的步骤：请先录制并点「停止并编译」，有步骤后才能增删改。"
-    StepEditGate.OUT_OF_RANGE -> "该步骤已不存在（列表刚刚变动过）：请刷新查看当前步骤，不要按旧序号操作。"
-    StepEditGate.BLANK_NAME -> "步骤名不能为空：留空会让这一步在回放报告里无法归因。"
+    StepEditGate.COMPILING -> "$COMPILE_HOLD_HEADLINE — this run will replace the whole step ledger when it " +
+        "comes back, and whatever you edit right now belongs to neither book. Wait until the compile " +
+        "verdict is on screen before editing steps."
+    StepEditGate.EMPTY_LEDGER -> "There are no steps to edit yet: record first and tap “Stop & compile” — " +
+        "adding, deleting and changing steps only exist once the ledger has steps."
+    StepEditGate.OUT_OF_RANGE -> "That step no longer exists (the list just changed): refresh to see the " +
+        "current steps instead of acting on a stale position."
+    StepEditGate.BLANK_NAME -> "The step name cannot be empty: a blank name leaves that step unattributable " +
+        "in the playback report."
 }
 
 /** 编辑后生效的步序账（供展示与序列化）。 */
@@ -143,14 +148,14 @@ private fun JsonObject.clueText(key: String): String? = this[key]?.jsonPrimitive
 fun stepLabel(action: Action): String {
     val value = action.value
     if (action.type == ActionType.SCROLL) {
-        return "${action.type} · ${value?.clueText(RecorderCompiler.DIRECTION_KEY) ?: "无方向"}"
+        return "${action.type} · ${value?.clueText(RecorderCompiler.DIRECTION_KEY) ?: "no direction"}"
     }
     val clue = value?.clueText(RecorderCompiler.TEXT_KEY)?.ellipsize(24)
         ?: value?.clueText(RecorderCompiler.CONTENT_DESC_KEY)?.ellipsize(24)
         ?: value?.clueText(RecorderCompiler.RESOURCE_ID_KEY)?.substringAfterLast('/')?.ellipsize(24)
         ?: value?.clueText(RecorderCompiler.PATH_KEY)?.ellipsize(24)
-        ?: "无线索"
-    val input = value?.clueText(RecorderCompiler.INPUT_KEY)?.ellipsize(20)?.let { "输入 $it" }
+        ?: "no clue"
+    val input = value?.clueText(RecorderCompiler.INPUT_KEY)?.ellipsize(20)?.let { "types $it" }
     return listOfNotNull(action.type, clue, input).joinToString(" · ")
 }
 

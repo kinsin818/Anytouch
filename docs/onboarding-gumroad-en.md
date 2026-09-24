@@ -61,24 +61,34 @@ your API key, then **Save**.
 - Local/self-signed metadata addresses (localhost, link-local, cloud metadata endpoints) are
   rejected by design — the key cannot be tricked into leaving the device network.
 
-## On-screen labels (current build UI is Chinese — honest mapping)
+## On-screen labels (verbatim, from the device sweep)
 
-English localization of the app UI is **not done yet**. This build shows Chinese labels; here is
-the exact mapping this guide refers to:
+From **v1.0.1** the whole UI is English and there is no language switch (v1.0.0 and earlier shipped
+Chinese labels). The right-hand column below is copied verbatim off the running app — the same
+strings the `scripts/ui-english-sweep.sh` dump captured on an API-34 emulator, so if a future build
+drifts, this table is what changes.
 
 | This guide says | On the phone you tap / see |
 |---|---|
-| Save (key panel) | **保存** |
-| Clear credentials | **清除本机凭据** |
-| Base URL field | **服务地址（OpenAI 兼容端点，仅 https）** |
-| Model field | **模型名** |
-| API key field | **API Key（保存后屏上只留尾 4 位）** |
-| Compile button | **AI 编译**（panel header: **AI 编译（用自己的 Key，只在创建任务时联网）**） |
-| Intent box | **用一句话说要做什么（例：进蓝牙页）** |
-| Screen-word switch | **带上当前屏幕的可见词表（只上行可见文字与控件 id；输入框内容、密码框、截图一律不上行）** |
-| Run task | **执行任务** |
-| Start / stop recording (manual recorder, optional path) | **开始录制** / **停止并编译** |
-| Target app package field | **录制目标包名** |
+| Save (key panel) | **Save** |
+| Clear credentials | **Erase device credentials** |
+| Base URL field | **Service URL (OpenAI-compatible endpoint, https only)** |
+| Model field | **Model name** |
+| API key field | **API key (after saving, only its last 4 digits stay on screen)** |
+| Credential state line | **Key saved on this device: \*\*\*XXXX** |
+| Where the key goes | **Your key is sent to exactly this one address: integrate.api.nvidia.com** |
+| Compile button | **AI compile** (panel header: **AI compile (bring your own key — network is used only when creating a task)**) |
+| Intent box | **Say what to do in one sentence (e.g. open the Bluetooth page)** |
+| Screen-word switch | **Attach the visible text of the current screen (only on-screen labels and control ids are sent; text-field contents, password fields and screenshots never are)** |
+| Run task | **Run task** |
+| Step ledger header | **Steps 9 (delete / rename / reorder only touch this step ledger)** — the number is the step count |
+| Empty ledger | **The step ledger is empty: record first and tap “Stop & compile”, only then do steps appear here.** |
+| Step editor | **Step name** · **Rename** · **Up** · **Down** · **Delete** |
+| Start / stop recording (manual recorder, optional path) | **Start recording** / **Stop & compile** |
+| Target app package field | **Package to record** |
+| Preset templates | **Photo cleanup** · **Gmail cleanup** · **Discord check-in** |
+| Screen title | **Anytouch executor** |
+
 
 ## Compile your first task
 
@@ -110,9 +120,9 @@ ledger exactly like a compiled task (same gate, same editability, same high-risk
 
 | Template | What it does | Verified to what level |
 |---|---|---|
-| **Photos cleanup** (`相册清理`) | Empties the Google Photos trash permanently, end to end | Full chain proven on an emulator with Google mobile services (Android 14/15 class images): load → ledger → playback → trash physically emptied |
-| **Gmail cleanup** (`Gmail 清理`) | Opens Gmail and filters to unread mail via search | Loader + structure checks only (JVM); business steps not run against a live signed-in inbox |
-| **Discord check-in** (`Discord 签到`) | Types a daily check-in message into the focused channel and sends it | Loader + structure checks only (JVM); business steps not run against a live signed-in account |
+| **Photos cleanup** | Empties the Google Photos trash permanently, end to end | Full chain proven on an emulator with Google mobile services (Android 14/15 class images): load → ledger → playback → trash physically emptied |
+| **Gmail cleanup** | Opens Gmail and filters to unread mail via search | Loader + structure checks only (JVM); business steps not run against a live signed-in inbox |
+| **Discord check-in** | Types a daily check-in message into the focused channel and sends it | Loader + structure checks only (JVM); business steps not run against a live signed-in account |
 
 **The Gmail and Discord templates require you to be signed in to those apps yourself.** Anytouch
 never performs logins, never reads your credentials and never stores them — in BYOK spirit, your
@@ -139,7 +149,7 @@ network, and only to the endpoint you chose.
 | `401 / 403` after Compile | Key or endpoint rejected by your provider. Check key validity; re-save. |
 | `429` | Your provider's quota is busy. Retry later — this is on your side of the BYOK deal. |
 | `Timeout / unreachable` | The app never follows redirects and speaks HTTPS only; corporate/captive-portal Wi-Fi can break this. Try mobile data. |
-| A step fails during playback | Steps reference screen elements by structure. If you changed the app's language or layout, recompile that step — old ledgers honestly report `NO_MATCH` rather than tapping something random. |
+| A step fails during playback | Steps reference screen elements by structure. If you changed the **target app's** language or layout (Anytouch's own UI is English-only and never switches), recompile that step — old ledgers honestly report `NO_MATCH` rather than tapping something random. |
 | Text steps do nothing on some MIUI builds | MIUI is known to persistently refuse injected text in certain search fields (hardware-level denial on that ROM). Anytouch reports the failed step and its count honestly instead of pretending the text was typed. |
 | Recording / executing refuses to start | Either accessibility or the overlay ball is off — the red line on screen names which one. |
 

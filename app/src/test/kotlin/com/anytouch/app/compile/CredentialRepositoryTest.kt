@@ -108,7 +108,7 @@ class CredentialRepositoryTest {
         store.nullOnRead = true // 存储层"写完了又说没有"——最典型的假绿来源
         val failed = assertIs<CredentialRepository.SaveResult.Failed>(repo(store).save("k", "https://x/v1", "m"))
         assertEquals(CredentialRepository.SaveResult.Reason.READ_BACK_NOTHING, failed.reason)
-        assertTrue(failed.userCopy().contains("不能算已保存"), failed.userCopy())
+        assertTrue(failed.userCopy().contains("cannot be counted as saved"), failed.userCopy())
     }
 
     @Test
@@ -160,7 +160,7 @@ class CredentialRepositoryTest {
         assertTrue(r.hasStoredCredential(), "文件还在，存在性判断不依赖能否解密")
         val failed = assertIs<CredentialRepository.LoadResult.Failed>(r.load())
         assertEquals(GcmBlobCipher.Failure.TAMPERED, failed.failure)
-        assertTrue(failed.userCopy().contains("重新填"), failed.userCopy())
+        assertTrue(failed.userCopy().contains("enter the key once more"), failed.userCopy())
 
         assertIs<CredentialRepository.LoadResult.NotFound>(repo(FakeStore()).load())
     }

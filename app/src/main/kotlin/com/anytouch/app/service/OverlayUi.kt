@@ -115,7 +115,7 @@ class OverlayUi(private val context: Context) {
     }
 
     private fun styleRecordBall(ball: TextView, recording: Boolean) {
-        ball.text = if (recording) "■停录" else "●开录"
+        ball.text = if (recording) "■ Stop" else "● Rec"
         ball.setTextColor(Color.WHITE)
         ball.textSize = 18f
         ball.setBackgroundColor(if (recording) 0xCCB71C1C.toInt() else 0xCC1B5E20.toInt())
@@ -134,11 +134,11 @@ class OverlayUi(private val context: Context) {
     suspend fun awaitSecondConfirm(verdict: SafetyVerdict.RequiresSecondConfirm): Boolean =
         suspendCancellableCoroutine { cont ->
             val message = buildString {
-                append("高危操作：").append(verdict.matchedRule.ruleId)
+                append("High-risk action: ").append(verdict.matchedRule.ruleId)
                 verdict.allMatches.firstOrNull()?.let { m ->
-                    append('\n').append("命中 ").append(m.matchedField.name).append(" 字段")
+                    append('\n').append("matched field ").append(m.matchedField.name)
                 }
-                append("\n确认执行？")
+                append("\nConfirm and run it?")
             }
             val panel = LinearLayout(context)
             panel.orientation = LinearLayout.VERTICAL
@@ -154,7 +154,7 @@ class OverlayUi(private val context: Context) {
             }
             val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             row.addView(Button(context).apply {
-                text = "取消"
+                text = "Cancel"
                 setOnClickListener {
                     // 决策即撤面板：只 resume 不 remove 会让已完成的确认框永久盖在页面上（设备实测复现）
                     removePanel(panel)
@@ -162,7 +162,7 @@ class OverlayUi(private val context: Context) {
                 }
             }, lp)
             row.addView(Button(context).apply {
-                text = "确认执行"
+                text = "Confirm and run"
                 setOnClickListener {
                     removePanel(panel)
                     if (cont.isActive) cont.resume(true)

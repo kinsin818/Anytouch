@@ -267,10 +267,10 @@ assert_ui "E1j 折叠线以下滚得到：开始录制" 'record_start'
 assert_ui "E1k 折叠线以下滚得到：停止并编译" 'record_stop'
 
 # 凭据状态行必须是 either/or 两档之一（先读它，后面几档缺席断言才有前提）
-tail_read=$(page_line '本机[^"<]*保存 Key[^"<]*')
-if printf '%s' "$tail_read" | grep -q '本机未保存 Key'; then
-    KEY_PRESENT=0; pass "E1l 凭据状态行说「本机未保存 Key」 :: [$tail_read]"
-elif printf '%s' "$tail_read" | grep -q '本机已保存 Key：\*\*\*'; then
+tail_read=$(page_line 'ey saved on this device[^"<]*')
+if printf '%s' "$tail_read" | grep -q 'No key saved on this device'; then
+    KEY_PRESENT=0; pass "E1l 凭据状态行说「No key saved on this device」 :: [$tail_read]"
+elif printf '%s' "$tail_read" | grep -q 'Key saved on this device: \*\*\*'; then
     KEY_PRESENT=1; pass "E1l 凭据状态行已配（屏上只有尾 4 位） :: [$tail_read]"
 else
     KEY_PRESENT=-1; bad "E1l 凭据状态行读不出 either/or :: [$tail_read]（两档话术互不雷同，读到第三种=串了）"
@@ -644,7 +644,7 @@ run_key_group() {
         MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
         sleep 2
         harvest_page 12
-        tail_before=$(printf '%s' "$(page_line '本机已保存 Key：[^\"<]*')" | sed 's/本机已保存 Key：//')
+        tail_before=$(printf '%s' "$(page_line 'Key saved on this device: [^\"<]*')" | sed 's/Key saved on this device: //')
         [ -n "$tail_before" ] && break
         log "E9 前置第 $try_9 轮：整页扫遍（$SWEEP_PASSES 屏，无缝=$([ "$SWEEP_GAP" = 0 ] && echo 是 || echo 否)）没现读到凭据行 → 重来一轮"
         try_9=$((try_9 + 1))
@@ -679,7 +679,7 @@ run_key_group() {
     # 右半边与左半边必须走**同一条取数通道**：两边都是整页扫遍（12 屏上限），
     # 一边扫 3 屏一边扫 12 屏的比对不叫逐字一致，叫挑口径。
     harvest_page 12
-    tail_after=$(printf '%s' "$(page_line '本机已保存 Key：[^\"<]*')" | sed 's/本机已保存 Key：//')
+    tail_after=$(printf '%s' "$(page_line 'Key saved on this device: [^\"<]*')" | sed 's/Key saved on this device: //')
     if [ -n "$loaded" ]; then pass "E9b 重进界面从 Keystore 现读回填 :: $loaded"; else
         bad "E9b :: 期望 [S3SMOKE config loaded tail=]，实际无（存了却读不回=写成功≠存上了）"
     fi
@@ -719,7 +719,7 @@ run_key_group() {
             bad "E11a :: 期望 [config wipe cleared=true leftover=[]]，实际 [$wiped]"
         fi
         harvest_page 8
-        assert_ui "E11b 屏上回到「本机未保存 Key」" '本机未保存 Key'
+        assert_ui "E11b 屏上回到「No key saved on this device」" 'No key saved on this device'
         assert_ui "E11c 清除后不留地址回显" 'byok_host_notice' 0
         inject "--es ai_intent e11-after-wipe --ez ai_compile true" true
         local e11d

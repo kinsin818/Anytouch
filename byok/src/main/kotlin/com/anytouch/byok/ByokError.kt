@@ -36,18 +36,29 @@ enum class ByokErrorKind {
     ;
 
     /**
-     * 面向用户的中文话术（真文案在切片 D 接 UI；此处先把口径钉死）。
+     * 面向用户的话术（真文案在切片 D 接 UI；此处先把口径钉死）。S5-c 起上屏一律纯英文。
      * 只说"发生了什么 + 下一步做什么"，绝不复述配置内容——URL 里可能带 token，Key 一个字都不行。
      */
     fun userCopy(): String = when (this) {
-        UNREACHABLE -> "连不上这个服务地址：可能是手机没网、地址写错，或证书没通过。请到手机浏览器里打开同一个地址确认能通，再回来检查服务地址。"
-        UNAUTHORIZED -> "服务拒绝了这把 Key（401/403）。请到服务商控制台确认 Key 仍然有效、没被截断粘贴、且开通了对话接口，然后重新填写。"
-        RATE_LIMITED -> "请求太频繁或额度用完了（429）。等一会儿再编译；如果一直这样，请到服务商控制台看余额和限速。"
-        SERVER_ERROR -> "服务自己出错了（5xx），不是你配置的问题。稍后重编一次；连续几次都这样，去看服务商的状态页。"
-        TIMEOUT -> "等了很久没等到完整回答。模型可能正排队，或网络太慢。可以稍后重试，或换更快的模型再编一次。"
-        BAD_RESPONSE -> "服务回答的不是我们约定的格式（不是预期的 JSON）。常见原因是登录/鉴权页面把请求拦下来了，或这个地址不是对话接口。请核对服务地址是否以 /v1 这类 OpenAI 兼容端点结尾。"
-        COMPILE_REJECT -> "模型产出的步骤没有通过安全校验（出现了坐标、越界动作类型或漏掉安全标记）。这类输出不会被送进执行器。请把任务说得更具体一点后重试。"
-        EMPTY_ACTIONS -> "模型认为这句话编不出可执行步骤（返回了空列表）。请把目标拆成看得见的具体动作，例如先点哪个可见文字。"
+        UNREACHABLE -> "This service URL cannot be reached: the phone may be offline, the address may be " +
+            "mis-typed, or its certificate was not accepted. Open the same address in the phone's browser to " +
+            "confirm it is reachable, then come back and re-check the service URL."
+        UNAUTHORIZED -> "The service rejected this key (401/403). Check in the provider's console that the key " +
+            "is still valid, was pasted in full, and has chat/completions access, then enter it again."
+        RATE_LIMITED -> "Too many requests or the quota is used up (429). Wait a moment and compile again; if " +
+            "this keeps happening, check your balance and rate limits in the provider's console."
+        SERVER_ERROR -> "The service itself failed (5xx) — this is not your configuration. Compile again in a " +
+            "moment; if it fails repeatedly, check the provider's status page."
+        TIMEOUT -> "Waited a long time and never got a complete answer. The model may be queued or the network " +
+            "too slow. Try again shortly, or pick a faster model and compile again."
+        BAD_RESPONSE -> "The service replied in a format we did not agree on (not the expected JSON). Usually a " +
+            "login/auth wall intercepted the request, or this address is not a chat endpoint. Verify the service " +
+            "URL ends in an OpenAI-compatible endpoint such as /v1."
+        COMPILE_REJECT -> "The steps the model produced did not pass the safety check (raw coordinates, an " +
+            "action type outside the vocabulary, or a missing safety flag). Such output is never handed to the " +
+            "executor. State the task more concretely and try again."
+        EMPTY_ACTIONS -> "The model could not turn that sentence into executable steps (it returned an empty " +
+            "list). Break the goal into visible actions, e.g. which on-screen text to tap first."
     }
 }
 

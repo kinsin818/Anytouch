@@ -16,3 +16,6 @@ local.properties
 # os
 Thumbs.db
 Desktop.ini
+
+# device-smoke scratch dumps (test channel working files)
+.smoke-tmp/

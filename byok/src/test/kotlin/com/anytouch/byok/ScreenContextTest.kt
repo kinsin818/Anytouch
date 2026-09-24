@@ -26,8 +26,8 @@ class ScreenContextTest {
         assertTrue(off.lines.isEmpty(), "关闭后必须零条，实际=${off.lines}")
         assertEquals(0, off.uploadedCount)
         assertEquals("", off.render(), "关闭时渲染必须是空串（一个字都不上行）")
-        assertTrue(off.notice().contains("已关闭"))
-        assertFalse(off.notice().contains("上行 2 条"), "关闭话术里不许出现条数冒充上行")
+        assertTrue(off.notice().contains("Screen context: off"))
+        assertFalse(off.notice().contains("2 visible text line(s) sent"), "关闭话术里不许出现条数冒充上行")
     }
 
     @Test
@@ -146,8 +146,11 @@ class ScreenContextTest {
             ),
         )
         assertEquals(3, ctx.uploadedCount, "输入框也占一行（只是那行没有内容）")
-        assertTrue(ctx.notice().contains("上行 ${ctx.uploadedCount} 条"), ctx.notice())
-        assertTrue(ctx.notice().contains("密码类") || ctx.notice().contains("输入框只报存在"), ctx.notice())
+        assertTrue(ctx.notice().contains("${ctx.uploadedCount} visible text line(s) sent"), ctx.notice())
+        assertTrue(
+            ctx.notice().contains("password lines dropped") || ctx.notice().contains("input fields reported as present only"),
+            ctx.notice(),
+        )
     }
 
     @Test

@@ -154,7 +154,8 @@ class NodeTaskRunner(
                     StopReason(
                         code = PipelineStopCode.INVALID_INPUT,
                         severity = StopSeverity.STOP,
-                        message = "action ${action.actionId} 缺少定位线索（value 需含 resource_id/text/content_desc/path 之一）",
+                        message = "action ${action.actionId} has no locator clue (value must carry one of " +
+                            "resource_id / text / content_desc / path)",
                     ),
                 ),
                 gateReceipt(action, index, "missing_locator", PipelineStopCode.INVALID_INPUT).toCommand(),
@@ -171,7 +172,7 @@ class NodeTaskRunner(
                     StopReason(
                         code = StopCode.USER_STOP,
                         severity = StopSeverity.STOP,
-                        message = "用户在定位期间按下停止",
+                        message = "the user pressed stop while locating",
                         evidence = buildJsonObject {
                             put("stop_reason", kill.reason)
                             put("stop_source", kill.source)
@@ -249,7 +250,7 @@ class NodeTaskRunner(
                                 StopReason(
                                     code = StopCode.USER_STOP,
                                     severity = StopSeverity.STOP,
-                                    message = "用户在二次确认等待期按下停止",
+                                    message = "the user pressed stop while waiting for the second confirmation",
                                     evidence = buildJsonObject {
                                         put("stop_reason", kill.reason)
                                         put("stop_source", kill.source)
@@ -265,7 +266,7 @@ class NodeTaskRunner(
                             StopReason(
                                 code = PipelineStopCode.SAFETY_GATE_BLOCKED,
                                 severity = StopSeverity.STOP,
-                                message = "高危命中未获二次确认: ${verdict.matchedRule.ruleId}",
+                                message = "high-risk match never got the second confirmation: ${verdict.matchedRule.ruleId}",
                                 evidence = buildJsonObject { put("rule", verdict.matchedRule.ruleId) },
                             ),
                         ),
@@ -281,7 +282,7 @@ class NodeTaskRunner(
                         StopReason(
                             code = PipelineStopCode.SAFETY_GATE_BLOCKED,
                             severity = StopSeverity.STOP,
-                            message = "安全阀拒绝: ${verdict.reason.name}",
+                            message = "safety valve refused: ${verdict.reason.name}",
                             evidence = buildJsonObject { put("reason", verdict.reason.name) },
                         ),
                     ),
@@ -367,7 +368,7 @@ class NodeTaskRunner(
                         StopReason(
                             code = StopCode.EXECUTOR_ERROR,
                             severity = StopSeverity.STOP,
-                            message = "performAction 失败: ${action.type} @ ${hit.nodeRef.indexPath}",
+                            message = "performAction failed: ${action.type} @ ${hit.nodeRef.indexPath}",
                             evidence = buildJsonObject { put("index_path", hit.nodeRef.indexPath) },
                         ),
                     ),
@@ -423,7 +424,7 @@ class NodeTaskRunner(
                                 StopReason(
                                     code = StopCode.USER_STOP,
                                     severity = StopSeverity.STOP,
-                                    message = "用户在落字复核期间按下停止",
+                                    message = "the user pressed stop during the landed-text re-check",
                                     evidence = buildJsonObject {
                                         put("stop_reason", kill.reason)
                                         put("stop_source", kill.source)
@@ -439,10 +440,11 @@ class NodeTaskRunner(
                             StopReason(
                                 code = StopCode.EXECUTOR_ERROR,
                                 severity = StopSeverity.STOP,
-                                message = "SET_TEXT${if (usedPasteRoute) "/PASTE" else ""} 未落字（performAction=true 为虚报）: 期望包含 \"$input\"",
+                                message = "SET_TEXT${if (usedPasteRoute) "/PASTE" else ""} never landed " +
+                                    "(performAction=true was a false report): expected to contain \"$input\"",
                                 evidence = buildJsonObject {
                                     put("expected", input)
-                                    put("actual", landedText ?: "<句柄失效或无文本>")
+                                    put("actual", landedText ?: "<handle dead or no text>")
                                 },
                             ),
                         ),

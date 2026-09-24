@@ -74,16 +74,16 @@ class ByokCompileControllerTest {
         assertNull(r.gate, "这不是预检档（预检已经过了才走到落账口），档位身份在 ModelLedger 自己身上")
         assertEquals("ledger", r.stage)
         assertEquals(ByokErrorKind.COMPILE_REJECT, r.errorKind)
-        assertTrue(r.userCopy.contains("第 2 步"), r.userCopy)
+        assertTrue(r.userCopy.contains("Step 2"), r.userCopy)
         assertTrue(r.userCopy.contains("key"), r.userCopy)
         assertTrue(r.userCopy.contains("type_text"), "屏上必须说清现在跑得动的是哪几个：${r.userCopy}")
-        assertTrue(r.userCopy.contains("整本"), r.userCopy)
+        assertTrue(r.userCopy.contains("whole ledger"), r.userCopy)
         // 两档各说各话（派单书 §4-2"各自一条、不并档"）：并成一句就等于用户不知道该改说法还是该停任务
         ledger = RecorderStore.ModelLedger.RefusedRunning
         val running = controller().compile("进蓝牙页", ctx())
         assertNotEquals(running.userCopy, r.userCopy, "词表档与执行中档给了同一句话=两档并档")
         assertEquals(ByokPreflight.Gate.RUNNING, running.gate, "执行中档的预检身份不许被新档带跑")
-        assertTrue(running.userCopy.contains("没有写进去"), running.userCopy)
+        assertTrue(running.userCopy.contains("not written"), running.userCopy)
         assertFalse(running.userCopy.contains("type_text"), "执行中档不该报词表内容：${running.userCopy}")
     }
 
@@ -112,7 +112,7 @@ class ByokCompileControllerTest {
         assertFalse(r.published)
         assertEquals(ByokErrorKind.COMPILE_REJECT, r.errorKind)
         assertEquals("validate", r.stage)
-        assertTrue(r.userCopy.contains("安全校验"))
+        assertTrue(r.userCopy.contains("safety check"))
         assertTrue(published.isEmpty(), "被校验拒掉的产物写进了步序账=第二套真值")
     }
 
@@ -151,7 +151,7 @@ class ByokCompileControllerTest {
         assertTrue(r.published)
         assertEquals(1, r.steps)
         assertEquals(4, r.replaced)
-        assertTrue(r.userCopy.contains("1 步") && r.userCopy.contains("作废旧账 4 步"))
+        assertTrue(r.userCopy.contains("1 step") && r.userCopy.contains("discarded 4 stale"))
         assertEquals("Bluetooth", published.single().single().value!!["text"]!!.toString().trim('"'))
     }
 
@@ -161,23 +161,23 @@ class ByokCompileControllerTest {
         val r = controller().compile("进蓝牙页", ctx())
         assertFalse(r.published, "写口没收下却报成功=虚报")
         assertEquals(ByokPreflight.Gate.RUNNING, r.gate)
-        assertTrue(r.userCopy.contains("没有写进去"))
+        assertTrue(r.userCopy.contains("not written"))
         assertEquals(0, r.steps, "steps 只报**落账**步数：没落账还报 1 步，屏上就出现了一个像成功的数字")
     }
 
     @Test
     fun `词表开着却一个节点没采到时必须说破`() {
         val warned = controller().compile("进蓝牙页", ctx(seen = 0, lines = emptyList()))
-        assertTrue(warned.userCopy.contains("一个节点都没采到"), warned.userCopy)
+        assertTrue(warned.userCopy.contains("not a single node was captured"), warned.userCopy)
         val normal = controller().compile("进蓝牙页", ctx(seen = 12))
-        assertFalse(normal.userCopy.contains("一个节点都没采到"))
+        assertFalse(normal.userCopy.contains("not a single node was captured"))
         assertEquals(12, normal.context!!.nodesSeen, "条数账要跟着结论走，UI 才有东西可显示")
     }
 
     @Test
     fun `开关关闭时不追加零节点提醒`() {
         val r = controller().compile("进蓝牙页", ctx(enabled = false, seen = 0, lines = emptyList()))
-        assertFalse(r.userCopy.contains("一个节点都没采到"), "用户自己关的开关，不该被说成采不到")
+        assertFalse(r.userCopy.contains("not a single node was captured"), "用户自己关的开关，不该被说成采不到")
     }
 
     @Test

@@ -34,7 +34,7 @@ object PresetTemplateLibrary {
     val all: List<PresetTemplate> = listOf(
         PresetTemplate(
             id = "photos_cleanup",
-            label = "相册清理",
+            label = "Photo cleanup",
             assetPath = "templates/photos_cleanup.json",
             requiresUserSignIn = false,
             // 实证背书在盘：evidence/S5/photos_cleanup-device-proven-avd.md（avd34+avd35 各 5 轮全链绿，
@@ -43,14 +43,14 @@ object PresetTemplateLibrary {
         ),
         PresetTemplate(
             id = "gmail_cleanup",
-            label = "Gmail 清理",
+            label = "Gmail cleanup",
             assetPath = "templates/gmail_cleanup.json",
             requiresUserSignIn = true,
             verification = TemplateVerification.STRUCTURAL_ONLY,
         ),
         PresetTemplate(
             id = "discord_checkin",
-            label = "Discord 签到",
+            label = "Discord check-in",
             assetPath = "templates/discord_checkin.json",
             requiresUserSignIn = true,
             verification = TemplateVerification.STRUCTURAL_ONLY,
@@ -61,8 +61,9 @@ object PresetTemplateLibrary {
 
     /** 屏上与上架文案同一口径（S5-R7）：需要登录的模板点名说清，不碰凭证一句话在册。 */
     fun signInHint(): String {
-        val names = all.filter { it.requiresUserSignIn }.joinToString("、") { it.label }
-        return "$names 需要你先在对应 App 内自行登录账号。Anytouch 只在你登录后执行界面自动化，" +
-            "不做登录操作、不读取也不保存你的账号凭证。"
+        val names = all.filter { it.requiresUserSignIn }.joinToString(" and ") { it.label }
+        return "$names require you to sign in to the app yourself first. Anytouch only automates the " +
+            "interface after you are signed in; it never performs logins and never reads or stores " +
+            "your account credentials."
     }
 }

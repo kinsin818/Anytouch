@@ -31,7 +31,7 @@ object BaseUrlPolicy {
     /** [httpsUrl] 去掉尾部斜杠，可直接拼 [CHAT_COMPLETIONS_PATH]；[hostEcho] 是唯一允许回显/落日志的片段。 */
     data class Accepted(val httpsUrl: String, val hostEcho: String) {
         /** 军令 S3 §3-4：自定义 host 必须先让用户看见"Key 要去哪儿"，按下编译前知情。 */
-        fun keyDestination(): String = "你的 Key 只发往这一个地址：$hostEcho"
+        fun keyDestination(): String = "Your key is sent to exactly this one address: $hostEcho"
     }
 
     data class Rejected(val reason: Reason, val userCopy: String)
@@ -103,16 +103,22 @@ object BaseUrlPolicy {
     }
 
     fun userCopyFor(reason: Reason, detail: String? = null): String = when (reason) {
-        Reason.BLANK -> "服务地址不能为空。"
-        Reason.NOT_ABSOLUTE -> "服务地址要写完整、带 https:// 开头（例如 https://integrate.api.nvidia.com/v1）。" +
-            if (detail == null) "" else "（当前地址连协议都没写）"
-        Reason.BAD_SCHEME -> "只允许 https（当前协议：${detail ?: "无"}）。明文 http 会让 Key 裸奔在网络里，这一档不放行。"
-        Reason.NO_HOST -> "这个地址里看不出主机名，请检查是否漏写了域名。"
-        Reason.HAS_USERINFO -> "地址里不许带 user:password@ 这种内嵌凭据——Key 只走请求头。"
-        Reason.PRIVATE_ADDRESS -> "这个地址指向本机、内网或云元数据段（${detail ?: "本地"}），只允许公网服务地址。"
-        Reason.HAS_QUERY -> "服务地址是接口前缀，不许带 ?查询参数——Key 也不会从参数里读。"
-        Reason.HAS_FRAGMENT -> "服务地址不许带 #片段。"
-        Reason.MALFORMED -> "这个字符串无法按 URL 解析，请检查括号、引号与多余的空格。"
+        Reason.BLANK -> "The service URL cannot be empty."
+        Reason.NOT_ABSOLUTE -> "Write the service URL in full, starting with https:// (for example " +
+            "https://integrate.api.nvidia.com/v1)." +
+            if (detail == null) "" else " (this address has no scheme at all)"
+        Reason.NO_HOST -> "No host name can be made out of this address; please check whether the domain was " +
+            "left out."
+        Reason.BAD_SCHEME -> "Only https is allowed (current scheme: ${detail ?: "none"}). Plain http would put " +
+            "the key on the wire in the clear, so this never passes."
+        Reason.HAS_USERINFO -> "The address must not carry embedded credentials like user:password@ — the key " +
+            "travels only in the request headers."
+        Reason.PRIVATE_ADDRESS -> "This address points at this device, a private network or the cloud metadata " +
+            "range (${detail ?: "local"}); only public service addresses are allowed."
+        Reason.HAS_QUERY -> "The service URL is an endpoint prefix and must not carry ?query parameters — the " +
+            "key is never read from parameters."
+        Reason.HAS_FRAGMENT -> "The service URL must not carry a #fragment."
+        Reason.MALFORMED -> "This string cannot be parsed as a URL; check for brackets, quotes or stray spaces."
     }
 
     /** OpenAI 兼容对话端点：唯一允许被拼接的路径后缀。 */

@@ -90,7 +90,7 @@ class DslCompiler(private val transport: LlmTransport) {
             return CompileResult.Reject("transport", e.message ?: e.javaClass.simpleName, ByokErrorKind.UNREACHABLE)
         }
         val snippet = extractJsonArray(raw)
-            ?: return reject("模型输出中无 JSON 数组: ${raw.take(160)}", ByokErrorKind.BAD_RESPONSE, stage = "parse")
+            ?: return reject("no JSON array in model output: ${raw.take(160)}", ByokErrorKind.BAD_RESPONSE, stage = "parse")
         val actions = try {
             ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), snippet)
         } catch (e: Exception) {
@@ -105,52 +105,52 @@ class DslCompiler(private val transport: LlmTransport) {
         val root = try {
             ContractJson.instance.parseToJsonElement(snippet).jsonArray
         } catch (e: Exception) {
-            return reject("二次解析失败: ${e.message}", ByokErrorKind.BAD_RESPONSE, stage = "decode")
+            return reject("re-parse failed: ${e.message}", ByokErrorKind.BAD_RESPONSE, stage = "decode")
         }
-        if (root.isEmpty()) return reject("空动作数组（模型拒编或意图不可编译）", ByokErrorKind.EMPTY_ACTIONS)
+        if (root.isEmpty()) return reject("empty action array (the model declined or the intent is not compilable)", ByokErrorKind.EMPTY_ACTIONS)
         val ids = HashSet<String>()
         for ((i, el) in root.withIndex()) {
-            val obj = el as? JsonObject ?: return reject("action[$i] 不是对象")
-            if (obj.containsKey("target")) return reject("action[$i] 出现坐标字段 target——产品红线禁止")
+            val obj = el as? JsonObject ?: return reject("action[$i] is not an object")
+            if (obj.containsKey("target")) return reject("action[$i] carries the coordinate field target — banned by product red line")
             val id = obj["action_id"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
-                ?: return reject("action[$i] 缺 action_id")
-            if (!ids.add(id)) return reject("action_id 重复: $id")
+                ?: return reject("action[$i] is missing action_id")
+            if (!ids.add(id)) return reject("duplicate action_id: $id")
             val type = obj["type"]?.jsonPrimitive?.contentOrNull
             if (type !in ALLOWED_TYPES)
-                return reject("action[$i] type=$type 执行器跑不动：授权词表=${ALLOWED_TYPES}（真源 :byok ExecutorVocabulary，收紧词表=裁 S31-B3）")
-            if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return reject("action[$i] source 必须为 node")
-            val safety = obj["safety"] as? JsonObject ?: return reject("action[$i] 缺 safety")
+                return reject("action[$i] type=$type cannot run on the executor: allowed vocabulary=$ALLOWED_TYPES (single source :byok ExecutorVocabulary, tightening = ruling S31-B3)")
+            if (obj["source"]?.jsonPrimitive?.contentOrNull != "node") return reject("action[$i] source must be node")
+            val safety = obj["safety"] as? JsonObject ?: return reject("action[$i] is missing safety")
             if (safety["viewport_ok"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
-                return reject("action[$i] safety.viewport_ok 未显式放行")
+                return reject("action[$i] safety.viewport_ok is not explicitly allowed")
             if (type == ActionType.CLICK && safety["click_enabled"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() != true)
-                return reject("action[$i] click 未显式 click_enabled")
-            val value = obj["value"] as? JsonObject ?: return reject("action[$i] 缺 value")
+                return reject("action[$i] click is missing an explicit click_enabled")
+            val value = obj["value"] as? JsonObject ?: return reject("action[$i] is missing value")
             value.keys.intersect(FORBIDDEN_VALUE_KEYS).let {
-                if (it.isNotEmpty()) return reject("action[$i] value 含坐标类键 $it")
+                if (it.isNotEmpty()) return reject("action[$i] value carries coordinate-like keys $it")
             }
             // 逐类型的 value 形状判据一律引 ActionType 常量（S31-B5 同一条纪律：比较不写字面量）。
             // 旧版这里有一条 `"key" -> …`：词表收紧后 key 在上面那档就被拒了，形状判据跟着一起消失，
             // 不留"授权说不行、形状却又认得"的第三种话。
             when (type) {
-                ActionType.CLICK -> if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] click 缺可见文本")
+                ActionType.CLICK -> if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] click is missing visible text")
                 ActionType.TYPE_TEXT -> {
-                    if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] type_text 缺输入框文本")
-                    if (value["input"].strOrNull() == null) return reject("action[$i] type_text 缺 input")
+                    if (value["text"].strOrNull().isNullOrBlank()) return reject("action[$i] type_text is missing the input-field text")
+                    if (value["input"].strOrNull() == null) return reject("action[$i] type_text is missing input")
                 }
                 ActionType.SCROLL -> if (value["direction"]?.jsonPrimitive?.contentOrNull !in setOf("forward", "backward"))
-                    return reject("action[$i] scroll direction 非法")
+                    return reject("action[$i] scroll direction is invalid")
                 ActionType.WAIT -> {
                     // 省略 ms 是合法的：执行器按默认 500ms 走（NodeTaskRunner 的 longParam 口径），
                     // 但给了就必须是个非负整数——否则"wait 一步"在屏上是几秒说不清。
                     val raw = value["ms"]
                     if (raw != null) {
                         val ms = (raw as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
-                        if (ms == null || ms < 0) return reject("action[$i] wait 的 ms 必须是非负整数（省略即默认 500）")
+                        if (ms == null || ms < 0) return reject("action[$i] wait ms must be a non-negative integer (omitted means 500)")
                     }
                 }
                 // fail-closed：真源若添了新成员而这里没有形状判据，宁可当场拒，也不放行一条"没人核对过形状"的动作
                 // （今天不可达——真源四个成员上面各有一条，这条锁的是"改真源忘了改这里"）。
-                else -> return reject("action[$i] type=$type 在真源里但没有形状判据（真源与校验器脱节，请补判据而不是放行）")
+                else -> return reject("action[$i] type=$type exists in the single source but has no shape check here (source and validator out of sync — add the check, do not pass it through)")
             }
         }
         return null

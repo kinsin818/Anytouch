@@ -64,7 +64,7 @@ never screen coordinates — and refuses to act on anything it cannot match, hon
 4. **Compile a task**: type an intent, optionally keep *use on-screen words* on, tap *AI compile*.
 5. **Run it**: tap *Run task*; tap the stop ball any time to abort.
 
-> UI labels in the current build are Chinese; the mapping table in
+> Since v1.0.1 the whole UI is English-only — there is no language switch. The label table in
 > [`docs/onboarding-gumroad-en.md`](docs/onboarding-gumroad-en.md) names every label verbatim.
 
 ## Building from source
@@ -91,7 +91,7 @@ and abort loudly with the reason instead of failing silently).
 | `app/` | The Android app: UI, accessibility service, recorder, executor. |
 | `:byok` (`byok/`) | Android-free BYOK module: OpenAI-compatible transport, base-URL policy, key masking, Keystore-backed storage, screen-context minimization, `ExecutorVocabulary` single source of truth. |
 | `tools/compiler/` | Host-side compile probe (dev tooling; never ships in the APK). |
-| `docs/` | End-user guide (English). |
+| `docs/` | `onboarding-gumroad-en.md` = the English end-user guide for buyers (its closing "Appendix B — backing table" is an internal record, remove before publishing). `usage-notes.md` = device-limitation notes written for internal use, currently Chinese — not part of the English buyer doc. |
 | `evidence/` | Timestamped engineering records: raw device logs, run ledgers, acceptance proofs. The backing table in the user guide maps each public claim to a file here. |
 | `orders/` | Internal build orders and rulings (the process this project is built under). |
 
@@ -142,7 +142,7 @@ as required by the project's delivery terms.
 - Recording, compiling and playback have been device-verified end-to-end in segments under the
   `evidence/` ledger; a single uninterrupted full-chain green run on a real device is recorded as
   "not achieved, accepted by project decision" — see `evidence/S4/slice-s4a-fullflow.md`.
-- The in-app UI is Chinese in this build; an English UI is not shipped in this build.
+- The UI ships English-only from v1.0.1 onward: there is no language switch and no second locale.
 - **Preset templates ship at two verification tiers.** *Photos trash cleanup* is proven end-to-end
   on emulator images carrying Google mobile services. *Gmail cleanup* and *Discord check-in* are
   loader- and structure-verified only (JVM locks): their business steps have never been run against

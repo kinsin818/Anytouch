@@ -39,6 +39,8 @@ fun taskAdmission(boxJson: String, ledgerJson: String, lastSuggestion: String?):
 fun TaskAdmission.userCopy(): String? = when (this) {
     TaskAdmission.ACCEPT -> null
     TaskAdmission.STALE_SUGGESTION ->
-        "任务框里是上一次编辑留下的旧建议，和当前步序账已经不一致：直接执行会放出账上早已删掉的步骤。" +
-            "请重新录制并点「停止并编译」，或在步骤列表里编辑后再执行（你手敲的内容不会被改动）。"
+        "The task box still holds the stale suggestion published by the last edit, and the step ledger has " +
+            "moved on: running it as-is would dispatch steps that are long gone from the ledger. Record " +
+            "again and tap “Stop & compile”, or edit the steps in the list before running " +
+            "(anything you typed by hand is never touched)."
 }

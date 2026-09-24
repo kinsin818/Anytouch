@@ -65,7 +65,7 @@ class NodeTreeLocatorTest {
         val attempt = miss.attempt(LocatorLevel.RESOURCE_ID)
         assertEquals(AttemptOutcome.INDEX_OUT_OF_RANGE, attempt.outcome)
         assertEquals(3, attempt.candidateCount)
-        assertTrue("越界" in attempt.detail, attempt.detail)
+        assertTrue("out of range" in attempt.detail, attempt.detail)
         assertEquals(AttemptOutcome.NOT_ATTEMPTED, miss.attempt(LocatorLevel.TEXT).outcome)
         assertEquals(AttemptOutcome.NOT_ATTEMPTED, miss.attempt(LocatorLevel.PATH).outcome)
     }
@@ -137,7 +137,7 @@ class NodeTreeLocatorTest {
 
         val miss = locator.locate(root, LocatorRequest(text = "保存")).miss()
         assertEquals(AttemptOutcome.NO_MATCH, miss.attempt(LocatorLevel.TEXT).outcome)
-        assertTrue("非 contains" in miss.summary, miss.summary)
+        assertTrue("not contains" in miss.summary, miss.summary)
     }
 
     @Test
@@ -223,8 +223,8 @@ class NodeTreeLocatorTest {
         assertEquals("root/0/2/0", hit.nodeRef.indexPath)
         assertEquals("path='Window>ListView>clickable=true[2]'", hit.matchedBy)
         assertEquals(3, hit.attempts.last().candidateCount)
-        assertTrue("末段 'clickable=true[2]'" in hit.attempts.last().detail, hit.attempts.last().detail)
-        assertTrue("命中 3 个，取 [2]" in hit.attempts.last().detail, hit.attempts.last().detail)
+        assertTrue("last segment 'clickable=true[2]'" in hit.attempts.last().detail, hit.attempts.last().detail)
+        assertTrue("hit 3, taking [2]" in hit.attempts.last().detail, hit.attempts.last().detail)
     }
 
     @Test
@@ -243,7 +243,7 @@ class NodeTreeLocatorTest {
         val attempt = miss.attempt(LocatorLevel.PATH)
         assertEquals(AttemptOutcome.INDEX_OUT_OF_RANGE, attempt.outcome)
         assertEquals(3, attempt.candidateCount)
-        assertTrue("第 3 段" in attempt.detail, attempt.detail)
+        assertTrue("segment 3" in attempt.detail, attempt.detail)
     }
 
     @Test
@@ -253,9 +253,9 @@ class NodeTreeLocatorTest {
         val miss = locator.locate(root, LocatorRequest(path = "Window>ScrollView>clickable=true")).miss()
         val attempt = miss.attempt(LocatorLevel.PATH)
         assertEquals(AttemptOutcome.NO_MATCH, attempt.outcome)
-        assertTrue("第 2 段" in attempt.detail, attempt.detail)
+        assertTrue("segment 2" in attempt.detail, attempt.detail)
         assertTrue("'ScrollView'" in attempt.detail, attempt.detail)
-        assertTrue("范围 ListView#list 起、共 5 个节点" in attempt.detail, attempt.detail)
+        assertTrue("scope starts at ListView#list, 5 node(s)" in attempt.detail, attempt.detail)
     }
 
     @Test
@@ -265,8 +265,8 @@ class NodeTreeLocatorTest {
         val miss = locator.locate(root, LocatorRequest(path = "Window>ListView>clickable=true[2]>Button>TextView")).miss()
         val attempt = miss.attempt(LocatorLevel.PATH)
         assertEquals(AttemptOutcome.NO_MATCH, attempt.outcome)
-        assertTrue("第 4 段" in attempt.detail, attempt.detail)
-        assertTrue("共 0 个节点" in attempt.detail, attempt.detail)
+        assertTrue("segment 4" in attempt.detail, attempt.detail)
+        assertTrue("0 node(s)" in attempt.detail, attempt.detail)
     }
 
     @Test
@@ -329,7 +329,7 @@ class NodeTreeLocatorTest {
             val miss = locator.locate(root, LocatorRequest(path = path)).miss()
             val attempt = miss.attempt(LocatorLevel.PATH)
             assertEquals(AttemptOutcome.INVALID_QUERY, attempt.outcome, "path=[$path]")
-            assertTrue("语法非法" in attempt.detail, "path=[$path] -> ${attempt.detail}")
+            assertTrue("invalid syntax" in attempt.detail, "path=[$path] -> ${attempt.detail}")
             assertEquals(path, attempt.query, "path=[$path]")
         }
     }
@@ -390,7 +390,7 @@ class NodeTreeLocatorTest {
 
         assertEquals(3, miss.attempts.size)
         assertTrue(miss.attempts.all { it.outcome == AttemptOutcome.NOT_ATTEMPTED })
-        assertTrue(miss.attempts.all { "根节点为空" in it.detail })
+        assertTrue(miss.attempts.all { "root is null" in it.detail })
     }
 
     @Test

@@ -114,7 +114,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
                     // 丢弃也必须留痕（第 9 项）：无声吞注入=报告层黑洞，与虚报成功同罪。
                     val receipt = droppedRunReport(
                         PipelineStopCode.REQUEST_EXPIRED,
-                        "注入超过 ${TaskPolicy.TTL_MS / 1000}s 未被消费即作废（防重绑偷跑）",
+                        "injected request older than ${TaskPolicy.TTL_MS / 1000}s was voided unconsumed " +
+                            "(guards against a replay after service re-binding)",
                     )
                     AppState.lastRunReport.value = receipt
                     Log.w(TAG, "S1SMOKE stale request ${request.id} expired, dropped receipt=$receipt")
@@ -238,8 +239,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
             if (!ui.showStopBall { KillSwitch.stop() }) {
                 val receipt = droppedRunReport(
                     PipelineStopCode.SAFETY_BALL_UNAVAILABLE,
-                    "悬浮停止球挂不上，全局急停手段缺席",
-                    "任务未开始执行（fail-closed 拒跑）",
+                    "the floating stop ball could not be attached — no global emergency stop",
+                    "the task never started executing (refused fail-closed)",
                 )
                 AppState.lastRunReport.value = receipt
                 Log.w(TAG, "S1SMOKE stop ball unavailable, refuse to run receipt=$receipt")
@@ -283,10 +284,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
 
     private fun startForegroundCompat() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "任务执行", NotificationManager.IMPORTANCE_LOW))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Task execution", NotificationManager.IMPORTANCE_LOW))
         val notification = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("Anytouch 正在执行任务")
-            .setContentText("悬浮球可随时全局停止")
+            .setContentTitle("Anytouch is running a task")
+            .setContentText("The floating ball stops everything at any time")
             .setSmallIcon(android.R.drawable.sym_def_app_icon)
             .setOngoing(true)
             .build()
@@ -348,7 +349,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
  * 丢弃场景根本未开始执行；note 讲清语义，避免空 results 被误读为"执行过且零步成功"。
  * 顶层函数（非类成员），JVM 单测可直接调用。
  */
-internal fun droppedRunReport(stopCode: String, reason: String, note: String = "任务未走正常执行收尾；results 缺失，不代表已执行/未执行内容"): String =
+internal fun droppedRunReport(stopCode: String, reason: String, note: String = "The task did not reach a normal " +
+    "finish; results are absent, which does not mean anything was (or was not) executed"): String =
     buildJsonObject {
         put("stopped", true)
         put("results", buildJsonArray { })

@@ -195,22 +195,60 @@ while [ "$R" -le "$ROUNDS" ]; do
     done
     [ "$PH" -eq 1 ] || bad "轮 $R :: 30s 内焦点没回到 Photos（执行未开跑，注入/拒收面有问题）"
     # 面板判据=mCurrentFocus 是无活动后缀的自家窗；出现即点"确认执行"（用户手指的替身，测试通道）
+    # 轮 3/5 血账（本批实锤）：点一次就撒手=盲投——固定坐标落空时产品按 fail-closed 15s 自拒，
+    # 账面只剩"回执不达"，分不清"测试手指没点到"与"产品确认钮坏了"。现补两件事（判据只加不减）：
+    #   ①面板在场瞬间截图留证（screencap 只读，非 uiautomator dump，不打断在跑任务）；
+    #   ②点完必须复核面板窗是否撤走（撤走=决策真被吃进），8s 内没撤=坐标落空，如实记红并补点一次
+    #     让本轮链走完，但补点事实进 RAW，不洗成"一次点中"。
     PANEL_SEEN=0; i=0
     while [ "$i" -lt 40 ]; do
         if MSYS_NO_PATHCONV=1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | grep -qE "u0 com\.anytouch\.app\}"; then
-            PANEL_SEEN=1; MSYS_NO_PATHCONV=1 $ADB shell input tap $BTN_CONFIRM_X $BTN_CONFIRM_Y; break
+            PANEL_SEEN=1
+            PSHOT="$RAW_DIR/s5a-panel-round$R-$(date +%H%M%S).png"
+            MSYS_NO_PATHCONV=1 $ADB exec-out screencap -p > "$PSHOT" 2>/dev/null
+            echo "# 面板在场截图=$PSHOT 焦点=$(MSYS_NO_PATHCONV 1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | tr -d '\r')" >> "$RAW"
+            MSYS_NO_PATHCONV=1 $ADB shell input tap $BTN_CONFIRM_X $BTN_CONFIRM_Y
+            break
         fi
         sleep 1; i=$((i + 1))
     done
     [ "$PANEL_SEEN" -eq 1 ] || bad "轮 $R :: 40s 内未见高危确认面板（第 9 步前必有——没见=链条没走到，磁盘判据再绿也不记全绿）"
-    sleep 12
+    GONE=0; i=0
+    while [ "$i" -lt 8 ]; do
+        MSYS_NO_PATHCONV=1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | grep -qE "u0 com\.anytouch\.app\}" || { GONE=1; break; }
+        sleep 1; i=$((i + 1))
+    done
+    if [ "$GONE" -eq 0 ]; then
+        bad "轮 $R :: 首次确认点击未落（面板窗 8s 后仍在焦=决策没被吃进，坐标/时机问题，不是产品放行逻辑问题）"
+        echo "# 首次点击未落，补点一次以走完本轮链（事实已记红，不洗）" >> "$RAW"
+        MSYS_NO_PATHCONV=1 $ADB shell input tap $BTN_CONFIRM_X $BTN_CONFIRM_Y
+    fi
+    i=0
+    while [ "$i" -lt 30 ]; do
+        logs | grep -aq "S1SMOKE ok=" && break
+        sleep 1; i=$((i + 1))
+    done
+    echo "# 回执等待 ${i}s（host=$(date +%H:%M:%S) device=$($ADB shell date '+%H:%M:%S' | tr -d '\r')）" >> "$RAW"
     RLINE=$(logs | grep -a "S1SMOKE ok=" | tail -1)
     echo "$RLINE" >> "$RAW"
     if printf '%s' "$RLINE" | grep -q "ok=9 total=9 stopped=false"; then pass "轮 $R :: 全链回执 ok=9/9 未中止"; else bad "轮 $R :: 回执不达 ok=9 total=9 stopped=false → $RLINE"; fi
-    LEFT=$($ADB shell "ls -a /sdcard/DCIM/Camera/" | grep -c ".trashed-.*S5SEED" || true)
-    ANY=$($ADB shell "ls /sdcard/DCIM/Camera/" | grep -c "S5SEED" || true)
-    echo "# 磁盘终判 .trashed 残留=$LEFT 种子残留=$ANY" >> "$RAW"
-    if [ "$LEFT" -eq 0 ] && [ "$ANY" -eq 0 ]; then pass "轮 $R :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）"; else bad "轮 $R :: 回收站仍有残留（trashed=$LEFT any=$ANY）"; fi
+    # 磁盘终判：ok=9 落账在前、Photos/MediaProvider 物理删除在后（本批实锤：轮 1 回执 ok=9 当场读
+    # 仍见 .trashed=2，稍后再读已归零）。旧脚本靠"点完 sleep 12"顺带吃到了这段异步，改成回执即读
+    # 就把这条真延迟变成了假红。现固定留 15s 沉降，再最多三次对拍（0/8/16s），每次读数全进 RAW：
+    # 判据本身不松——残留必须归零才记绿，只是不再把"删除在飞"当成"删除失败"。
+    sleep 15
+    LEFT=""; ANY=""; VERDICT=""
+    for k in 1 2 3; do
+        [ $k -gt 1 ] && sleep 8
+        LEFT=$($ADB shell "ls -a /sdcard/DCIM/Camera/" | grep -c ".trashed-.*S5SEED" || true)
+        ANY=$($ADB shell "ls /sdcard/DCIM/Camera/" | grep -c "S5SEED" || true)
+        echo "# 磁盘终判 第 $k 读 @$($ADB shell date '+%H:%M:%S' | tr -d '\r') .trashed 残留=$LEFT 种子残留=$ANY" >> "$RAW"
+        if [ "$LEFT" -eq 0 ] && [ "$ANY" -eq 0 ]; then VERDICT=clean; break; fi
+    done
+    if [ "$VERDICT" = clean ]; then
+        pass "轮 $R :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）"
+        [ "${k:-1}" -gt 1 ] && log "轮 $R :: 归零发生在第 $k 次对拍（删除异步，读数已入 RAW）"
+    else bad "轮 $R :: 回收站仍有残留（三次对拍后 trashed=$LEFT any=$ANY）"; fi
     logs >> "$RAW"
     log "raw → $RAW"
     R=$((R + 1))

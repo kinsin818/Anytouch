@@ -1,0 +1,16 @@
+# S5-a photos_cleanup 全链轮 5  @ 2026-09-25T06:06:16+08:00  serial=emulator-5554
+
+# 磁盘终判 .trashed 残留=2 种子残留=0
+--------- beginning of main
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE model ledger written origin=template steps=9 replaced=9
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=0 type=click value={"content_desc":"Show Navigation Drawer"}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=1 type=wait value={"ms":800}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=2 type=click value={"text":"Trash"}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=3 type=wait value={"ms":1500}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=4 type=click value={"content_desc":"More options"}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=5 type=wait value={"ms":800}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=6 type=click value={"text":"Empty trash"}
+09-24 22:07:20.309 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=7 type=wait value={"ms":800}
+09-24 22:07:20.310 18782 18782 I AnytouchRun: S3SMOKE-MODEL-STEP index=8 type=click value={"resource_id":"com.google.android.apps.photos:id/confirmation_button"}
+09-24 22:07:20.310 18782 18782 I AnytouchRun: S3SMOKE-TASK [{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+09-24 22:07:20.310 18782 18782 I AnytouchRun: S5SMOKE template load ok id=photos_cleanup via=adb_inject steps=9 replaced=9 verification=DEVICE_PROVEN_ON_AVD

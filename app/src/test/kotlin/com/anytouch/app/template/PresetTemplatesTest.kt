@@ -139,10 +139,10 @@ class PresetTemplatesTest {
             PresetTemplateLibrary.all.associate { it.id to it.requiresUserSignIn },
         )
         val hint = PresetTemplateLibrary.signInHint()
-        assertTrue(hint.contains("Gmail 清理"))
-        assertTrue(hint.contains("Discord 签到"))
-        assertTrue("相册不该被点名要登录", !hint.contains("相册"))
-        assertTrue(hint.contains("不做登录操作"))
+        assertTrue(hint.contains("Gmail cleanup"))
+        assertTrue(hint.contains("Discord check-in"))
+        assertTrue("相册不该被点名要登录", !hint.contains("Photo cleanup"))
+        assertTrue(hint.contains("never performs logins"))
     }
 
     @Test

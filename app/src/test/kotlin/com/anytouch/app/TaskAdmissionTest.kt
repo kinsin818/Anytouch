@@ -98,9 +98,9 @@ class TaskAdmissionTest {
     @Test
     fun `话术说清三件事：为什么没放、账已不含这些步、不夺用户输入`() {
         val copy = TaskAdmission.STALE_SUGGESTION.userCopy().orEmpty()
-        assertTrue(copy.contains("步序账"), copy)
-        assertTrue(copy.contains("停止并编译"), copy)
-        assertTrue(copy.contains("不会被改动"), copy)
+        assertTrue(copy.contains("step ledger"), copy)
+        assertTrue(copy.contains("Stop & compile"), copy)
+        assertTrue(copy.contains("never touched"), copy)
     }
 
     @Test

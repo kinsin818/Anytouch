@@ -67,15 +67,15 @@ open class OpenAiCompatTransport(
             conn.disconnect()
             code to raw
         } catch (e: SSLException) {
-            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "TLS 握手失败（证书未通过）"))
+            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "TLS handshake failed (certificate not accepted)"))
         } catch (e: SocketTimeoutException) {
-            throw TransportFailure(ByokErrorKind.TIMEOUT, detail(e, "超时"))
+            throw TransportFailure(ByokErrorKind.TIMEOUT, detail(e, "timed out"))
         } catch (e: UnknownHostException) {
-            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "域名解析失败"))
+            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "DNS lookup failed"))
         } catch (e: ConnectException) {
-            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "连接被拒"))
+            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "connection refused"))
         } catch (e: IOException) {
-            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "IO 失败"))
+            throw TransportFailure(ByokErrorKind.UNREACHABLE, detail(e, "IO failure"))
         }
         val (code, raw) = attempt
         httpKindOf(code)?.let { kind ->
@@ -121,7 +121,7 @@ open class OpenAiCompatTransport(
             if (text.isNullOrBlank()) {
                 throw TransportFailure(
                     ByokErrorKind.BAD_RESPONSE,
-                    "应答缺 choices[0].message.content: ${KeyMasker.mask(rawBody).take(200)}",
+                    "response is missing choices[0].message.content: ${KeyMasker.mask(rawBody).take(200)}",
                 )
             }
             return text

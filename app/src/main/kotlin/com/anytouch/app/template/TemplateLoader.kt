@@ -18,12 +18,12 @@ object TemplateLoader {
 
     fun load(context: Context, id: String): TemplateLoad {
         val template = PresetTemplateLibrary.byId(id)
-            ?: return TemplateLoad.Failed(id, "没有这个预制模板（注册表里查无 id），一步都没落账。")
+            ?: return TemplateLoad.Failed(id, "No such preset template (the registry has no such id); not a single step was written.")
         return try {
             val text = context.assets.open(template.assetPath).bufferedReader().use { it.readText() }
             TemplateLoad.Ok(template, decodeActions(text))
         } catch (e: Exception) {
-            TemplateLoad.Failed(id, "模板「${template.label}」读取或解析失败（${e.javaClass.simpleName}），一步都没落账。")
+            TemplateLoad.Failed(id, "Template \"${template.label}\" failed to load or parse (${e.javaClass.simpleName}); not a single step was written.")
         }
     }
 }

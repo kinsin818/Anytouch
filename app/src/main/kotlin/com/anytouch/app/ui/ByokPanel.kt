@@ -53,12 +53,12 @@ fun ByokPanel(
     var keyField by remember { mutableStateOf("") }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("AI 编译（用自己的 Key，只在创建任务时联网）", style = MaterialTheme.typography.titleSmall)
+        Text("AI compile (bring your own key — network is used only when creating a task)", style = MaterialTheme.typography.titleSmall)
         OutlinedTextField(
             value = intentDraft,
             onValueChange = { state.intent.value = it },
             modifier = Modifier.fillMaxWidth().testTag("ai_intent"),
-            label = { Text("用一句话说要做什么（例：进蓝牙页）") },
+            label = { Text("Say what to do in one sentence (e.g. open the Bluetooth page)") },
             minLines = 2,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -68,7 +68,8 @@ fun ByokPanel(
                 modifier = Modifier.testTag("ai_ctx_switch"),
             )
             Text(
-                "带上当前屏幕的可见词表（只上行可见文字与控件 id；输入框内容、密码框、截图一律不上行）",
+                "Attach the visible text of the current screen (only on-screen labels and control ids are " +
+                    "sent; text-field contents, password fields and screenshots never are)",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -76,10 +77,11 @@ fun ByokPanel(
             onClick = { gateway.compile(state.intent.value) },
             enabled = !busy,
             modifier = Modifier.testTag("ai_compile"),
-        ) { Text(if (busy) "AI 正在编排…" else "AI 编译") }
+        ) { Text(if (busy) "AI is compiling…" else "AI compile") }
         if (busy) {
             Text(
-                "AI 正在编排：这一跑会向下面那个地址发一次请求，几秒到几十秒。",
+                "AI is compiling: this run sends one request to the address below and takes from a few " +
+                    "seconds up to tens of seconds.",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.testTag("ai_busy"),
             )
@@ -100,12 +102,12 @@ fun ByokPanel(
                 )
             }
         }
-        Text("BYOK 配置（保存在本机 Keystore，永不上传到他处）", style = MaterialTheme.typography.titleSmall)
+        Text("BYOK configuration (kept encrypted on this device in the Keystore, never sent anywhere else)", style = MaterialTheme.typography.titleSmall)
         OutlinedTextField(
             value = baseUrl,
             onValueChange = { state.baseUrl.value = it },
             modifier = Modifier.fillMaxWidth().testTag("byok_base_url"),
-            label = { Text("服务地址（OpenAI 兼容端点，仅 https）") },
+            label = { Text("Service URL (OpenAI-compatible endpoint, https only)") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
         )
@@ -113,14 +115,14 @@ fun ByokPanel(
             value = model,
             onValueChange = { state.model.value = it },
             modifier = Modifier.fillMaxWidth().testTag("byok_model"),
-            label = { Text("模型名") },
+            label = { Text("Model name") },
             singleLine = true,
         )
         OutlinedTextField(
             value = keyField,
             onValueChange = { keyField = it },
             modifier = Modifier.fillMaxWidth().testTag("byok_key"),
-            label = { Text("API Key（保存后屏上只留尾 4 位）") },
+            label = { Text("API key (after saving, only its last 4 digits stay on screen)") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -132,14 +134,14 @@ fun ByokPanel(
                     keyField = ""
                 },
                 modifier = Modifier.testTag("byok_save"),
-            ) { Text("保存") }
+            ) { Text("Save") }
             OutlinedButton(
                 onClick = { gateway.clear() },
                 modifier = Modifier.testTag("byok_clear"),
-            ) { Text("清除本机凭据") }
+            ) { Text("Erase device credentials") }
         }
         Text(
-            keyTail?.let { "本机已保存 Key：$it" } ?: "本机未保存 Key",
+            keyTail?.let { "Key saved on this device: $it" } ?: "No key saved on this device",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.testTag("byok_key_tail"),
         )

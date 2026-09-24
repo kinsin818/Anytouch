@@ -42,7 +42,7 @@ class ByokPreflightTest {
     fun `意图为空先拒意图 连凭据和执行态都不看`() {
         val v = ByokPreflight.check("   ", running = true, creds = Credentials.Absent)
         assertEquals(Gate.EMPTY_INTENT, (v as Verdict.Blocked).gate)
-        assertTrue(v.userCopy.contains("意图框是空的"))
+        assertTrue(v.userCopy.contains("the intent box is empty"))
     }
 
     @Test
@@ -54,7 +54,7 @@ class ByokPreflightTest {
     fun `本机从没存过凭据时拒在出门前`() {
         val v = blocked(creds = Credentials.Absent)
         assertEquals(Gate.NO_CREDENTIAL, v.gate)
-        assertTrue(v.userCopy.contains("尾 4 位"), "要告诉用户怎么才算存上")
+        assertTrue(v.userCopy.contains("last 4 digits"), "要告诉用户怎么才算存上")
     }
 
     @Test
@@ -63,7 +63,7 @@ class ByokPreflightTest {
         val v = blocked(creds = ByokPreflight.credentialsOf(load))
         assertEquals(Gate.UNREADABLE, v.gate)
         assertTrue(
-            v.userCopy.contains("换机或改过文件"),
+            v.userCopy.contains("device change or an edited file"),
             "只说'读不出来'等于没说：必须带上存储层已经算好的那半句归因",
         )
     }
@@ -77,8 +77,8 @@ class ByokPreflightTest {
     fun `已存地址现在过不了政策时带上政策原因`() {
         val v = blocked(creds = ready(url = "http://127.0.0.1:8080/v1"))
         assertEquals(Gate.BAD_BASE_URL, v.gate)
-        assertTrue(v.userCopy.contains("只允许 https"))
-        assertTrue(v.userCopy.contains("没有"), "要说清什么都没发出去")
+        assertTrue(v.userCopy.contains("Only https"))
+        assertTrue(v.userCopy.contains("not a single byte"), "要说清什么都没发出去")
     }
 
     @Test
@@ -118,10 +118,10 @@ class ByokPreflightTest {
 
     @Test
     fun `保存门禁 半条配置一个字都不落盘`() {
-        assertTrue(ByokPreflight.checkSave("", "https://a.example/v1", "m")!!.contains("空的"))
-        assertTrue(ByokPreflight.checkSave(secretKey, "https://a.example/v1", " ")!!.contains("模型名"))
+        assertTrue(ByokPreflight.checkSave("", "https://a.example/v1", "m")!!.contains("The key is empty"))
+        assertTrue(ByokPreflight.checkSave(secretKey, "https://a.example/v1", " ")!!.contains("model name is empty"))
         val http = ByokPreflight.checkSave(secretKey, "http://a.example/v1", "m")!!
-        assertTrue(http.contains("只允许 https") && http.contains("一个字节都没写"))
+        assertTrue(http.contains("Only https") && http.contains("not a single byte was written"))
         assertNull(ByokPreflight.checkSave(secretKey, "https://a.example/v1", "m"))
     }
 }

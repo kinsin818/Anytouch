@@ -41,7 +41,11 @@ fun modelLedgerSupportedTypesCopy(supportedTypes: Set<String>): String = support
  * 否则用户只拿到一句"编译失败"，改什么都不知道——那一跑的钱就白烧了（F2-4 的副作用照报）。
  */
 fun unsupportedModelLedgerCopy(unsupported: UnsupportedModelAction, supportedTypes: Set<String>): String =
-    "第 ${unsupported.index + 1} 步是 type=${unsupported.type}，执行器跑不动它，整本一步都没落账。" +
-        "现在跑得动的只有 " + modelLedgerSupportedTypesCopy(supportedTypes) + "（真源=:byok ExecutorVocabulary，裁 S31-B3 收紧词表）。" +
-        "为什么整本拒而不是跳过那一步：半本账会照常上屏，屏上步骤与你说的意图不一致却没有任何一句报错，" +
-        "比「这一跑没成」更难发现。请改说跑得动的意图，再点一次「AI 编译」（拒一次=重编一次，这一步不省钱）。"
+    "Step ${unsupported.index + 1} is type=${unsupported.type}, which the executor cannot run — not a single " +
+        "step of the whole ledger was written. Only these run today: " +
+        modelLedgerSupportedTypesCopy(supportedTypes) +
+        " (single source = :byok ExecutorVocabulary, ruling S31-B3 tightened the vocabulary). " +
+        "Why the whole book is refused instead of skipping that one step: a half ledger would still reach " +
+        "the screen, leaving the on-screen steps at odds with your intent with no error at all — harder to " +
+        "spot than \"this run failed\". Rephrase into something runnable and tap “AI compile” again " +
+        "(one refusal = one recompile, and that still costs a request)."

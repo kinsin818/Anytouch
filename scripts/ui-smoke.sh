@@ -222,7 +222,7 @@ u1=$(wait_line "S2SMOKE compiled ok actions=3" 20)
 if [ -n "$u1" ]; then pass "U1a 预置档编译 3 步 :: $u1"; else bad "U1a 预置档编译 3 步 :: 期望 [compiled ok actions=3]"; fi
 ui_sweep   # 主 shell 先扫一遍：下面的 ui_expect 都只读这份缓存（见 ui_has 上方那条子 shell 注记）
 rows=$(ui_expect 'step_delete_2')
-cnt=$(ui_expect '步骤 3')
+cnt=$(ui_expect 'Steps 3')
 if [ "$rows" = "skip" ] || [ "$cnt" = "skip" ]; then
     skip "U1b 步序账上屏 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗，命中与未命中都读不出证据）"
 elif [ "$rows" = "hit" ] && [ "$cnt" = "hit" ]; then
@@ -283,7 +283,7 @@ assert_edit "U6a 删步生效 3→2" "step edit ok=remove index=2 before=3 after
 ui_sweep   # 必须发生在主 shell：SWEEP_OK 只能由主 shell 的那一次扫视置起来（子 shell 里的扫视带不回结论）
 gone=$(ui_has 'step_delete_2')
 still=$(ui_has 'step_delete_1')
-cnt2=$(ui_has '步骤 2')
+cnt2=$(ui_has 'Steps 2')
 sure=$(sweep_complete)
 if [ "$sure" != "1" ]; then
     skip "U6b UI 与账目同步 :: 页没扫到底（连续两屏内容签名未相同；自家窗 $SWEEP_OWN/$SWEEP_SCREENS 屏），\"第 3 行不在屏上\"这条缺席读不出证据"
@@ -323,7 +323,7 @@ cleared=$(wait_line "步序账清零" 12)
 if [ -n "$cleared" ]; then pass "U8a 删到清零留痕 :: $cleared"; else bad "U8a 删到清零 :: 期望日志含 [步序账清零]"; fi
 assert_no_edit "U8b 空账未伪装成品：本轮零条 'S2SMOKE-TASK []'" "S2SMOKE-TASK \[\]"
 ui_sweep
-empty_ui=$(ui_expect '步序账为空')
+empty_ui=$(ui_expect 'step ledger is empty')
 if [ "$empty_ui" = "skip" ]; then
     skip "U8c 屏上同步为空态文案 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
 elif [ "$empty_ui" = "hit" ]; then pass "U8c 屏上同步为空态文案"; else bad "U8c 屏上仍挂旧步骤（账已清、屏未清=第二套账）:: 空态文案读数=$empty_ui"; fi

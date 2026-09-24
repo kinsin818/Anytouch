@@ -79,7 +79,7 @@ class ModelLedgerGateTest {
     @Test
     fun `拒因点名第几步、什么 type、以及现在跑得动的有哪几个`() {
         val copy = unsupportedModelLedgerCopy(UnsupportedModelAction(2, ActionType.KEY), supported)
-        assertTrue(copy.contains("第 3 步"), "位序要按人读的第 N 步说（账上 index=2）：$copy")
+        assertTrue(copy.contains("Step 3"), "位序要按人读的第 N 步说（账上 index=2）：$copy")
         assertTrue(copy.contains(ActionType.KEY), "没点名跑不动的那一条 type：$copy")
         for (type in supported) {
             assertTrue(copy.contains(type), "没告诉用户现在跑得动的是哪几个（type=$type）：$copy")
@@ -89,9 +89,9 @@ class ModelLedgerGateTest {
     @Test
     fun `拒因必须说清整本不落账并交代重编代价`() {
         val copy = unsupportedModelLedgerCopy(UnsupportedModelAction(0, ActionType.SELECT_DROPDOWN), supported)
-        assertTrue(copy.contains("整本"), "没说整本拒=用户以为那一步被跳过后账还在：$copy")
-        assertTrue(copy.contains("一步都没落账"), copy)
-        assertTrue(copy.contains("重编"), "拒一次=再烧一跑的钱，副作用不许瞒：$copy")
+        assertTrue(copy.contains("whole ledger"), "没说整本拒=用户以为那一步被跳过后账还在：$copy")
+        assertTrue(copy.contains("not a single step"), copy)
+        assertTrue(copy.contains("recompile"), "拒一次=再烧一跑的钱，副作用不许瞒：$copy")
         assertTrue(copy.contains("S31-B3"), "话术要带裁决号，屏上归因才对得上工单：$copy")
     }
 

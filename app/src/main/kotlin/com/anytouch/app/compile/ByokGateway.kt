@@ -125,7 +125,7 @@ class ByokGateway private constructor(private val appContext: Context) {
                 null
             }
             state.configMessage.value = result?.userCopy()
-                ?: "保存过程在本机就断了（没有写出凭据文件）。请重试或重启手机后再保存。"
+                ?: "The save broke on this device before any credential file was written. Please retry, or reboot the phone and save again."
             if (result is CredentialRepository.SaveResult.Saved) {
                 state.keyTail.value = KeyMasker.maskForDisplay(key)
                 state.baseUrl.value = baseUrl
@@ -152,7 +152,7 @@ class ByokGateway private constructor(private val appContext: Context) {
                 null
             }
             if (report == null) {
-                state.configMessage.value = "清除过程在本机就断了，凭据可能还在。请重试或到系统设置里清除本应用数据。"
+                state.configMessage.value = "The wipe broke on this device and the credential may still be there. Please retry, or clear this app's data in system settings."
                 return@launch
             }
             if (report.cleared) state.onCredentialsWiped()
@@ -199,7 +199,7 @@ class ByokGateway private constructor(private val appContext: Context) {
     private fun crashReport(e: Throwable): ByokReport = ByokReport(
         published = false,
         userCopy = ByokErrorKind.UNREACHABLE.userCopy() +
-            "（归因：本机·" + KeyMasker.mask(e.javaClass.simpleName).take(120) + "）",
+            " (cause: device · " + KeyMasker.mask(e.javaClass.simpleName).take(120) + ")",
         errorKind = ByokErrorKind.UNREACHABLE,
         stage = "device",
     )

@@ -36,7 +36,7 @@ class VaultWipeTest {
         assertTrue(r.cleared, r.userCopy())
         assertEquals(1, file.erases)
         assertEquals(1, alias.erases)
-        assertEquals("已清除：本机不再保存任何 Key。", r.userCopy())
+        assertEquals("Erased: this device no longer stores any key.", r.userCopy())
     }
 
     @Test

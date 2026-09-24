@@ -23,7 +23,7 @@ class InterruptedRunReportTest {
         val payload = root.getValue("stop_command").jsonObject.getValue("payload").jsonObject
         assertEquals("SERVICE_INTERRUPTED", payload.getValue("stop_code").jsonPrimitive.content)
         assertEquals("Job was cancelled", payload.getValue("stop_reason").jsonPrimitive.content)
-        assertTrue(payload.getValue("note").jsonPrimitive.content.contains("不代表"))
+        assertTrue(payload.getValue("note").jsonPrimitive.content.contains("does not mean"))
     }
 
     @Test

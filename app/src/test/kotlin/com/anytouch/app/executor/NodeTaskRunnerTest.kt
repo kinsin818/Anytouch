@@ -331,7 +331,7 @@ class NodeTaskRunnerTest {
         val recovery = report.results.single().recovery!!
         assertEquals(false, report.results.single().ok)
         assertEquals("EXECUTOR_ERROR", recovery.code)
-        assertTrue("未落字" in recovery.message, "消息必须点破虚报性质: ${recovery.message}")
+        assertTrue("never landed" in recovery.message, "消息必须点破虚报性质: ${recovery.message}")
         assertEquals("set_text_unverified", payloadString(report.stopCommand!!, "stop_reason"))
     }
 
