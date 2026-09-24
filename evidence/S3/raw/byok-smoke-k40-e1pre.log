@@ -174,3 +174,87 @@ byok-smoke: 断言 36 条，跳过 4 条，无失败项
            模拟器与无凭据机器上一律不记 PASS（S3-R5：注入走 byok-credential-inject.sh，本脚本仍不发 Key 字面量）。
 BYOK_SMOKE_RC=0
 END=2026-09-24 08:31:18
+
+================ [K5] 2026-09-24 K40 最终轮（S3-F 构建 37d2e199…，E_WIPE=1 含 E11 老板亲点清除） UTC begin 2026-09-24T06:59Z ≈ ================
+K40 [K5] batch begin UTC=2026-09-24T07:04:33Z
+      | pid 未变（17596）：am kill 没收到（应用仍被视为前台）→ E1n 的空闲档按'可能带旧痕'读，已如实标注
+      | ring buffer main=M（已扩档，-d 判据通道可用）
+      | 靶设备：M2012K11AC（模拟器=0；模拟器上一切结论不得写成「真机已过」）
+      | 整页滚遍：3 屏后到底，屏间无缝=是
+[0;32mPASS[0m E1a 意图框在屏（[ai_intent] 命中=1）
+[0;32mPASS[0m E1b 编译按钮在屏（[ai_compile] 命中=1）
+[0;32mPASS[0m E1c 屏上下文开关在屏（[ai_ctx_switch] 命中=1）
+[0;32mPASS[0m E1d 服务地址框在屏（[byok_base_url] 命中=1）
+[0;32mPASS[0m E1e 模型名框在屏（[byok_model] 命中=1）
+[0;32mPASS[0m E1f Key 输入框在屏（[byok_key] 命中=1）
+[0;32mPASS[0m E1g 保存钮在屏（[byok_save] 命中=1）
+[0;32mPASS[0m E1h 清除钮在屏（[byok_clear] 命中=1）
+[0;32mPASS[0m E1i 凭据状态行在屏（[byok_key_tail] 命中=1）
+[0;32mPASS[0m E1j 折叠线以下滚得到：开始录制（[record_start] 命中=1）
+[0;32mPASS[0m E1k 折叠线以下滚得到：停止并编译（[record_stop] 命中=1）
+[0;32mPASS[0m E1l 凭据状态行已配（屏上只有尾 4 位） :: [本机已保存 Key：***JgYp]
+[0;32mPASS[0m E1m 已配凭据必须有地址回显（裁 §3-4：Key 发往哪儿要先说一次）（[byok_host_notice] 命中=1）
+[0;32mPASS[0m E1o 整页无 Key 形态字面（24+ 连续字母数字段=0）
+[0;33mSKIP[0m E2a~E2f 无凭据即拒六断言（本机已配凭据，由 E5 真编译接管）
+[0;33mSKIP[0m E2b 被拒不写账（同上）
+[0;33mSKIP[0m E3a~E3b 空意图独立档（本轮不做有凭据下的空意图浪费请求；JVM 已锁两档话术互不雷同）
+[0;32mPASS[0m E4a 执行中拒编译（门禁落入口，注入通道不例外） :: 09-24 15:05:12.980 17596 17732 W AnytouchRun: S3SMOKE compile refused gate=RUNNING kind=null stage=null rows=0 detail=有任务正在执行，AI 编译先不跑：编译产物是整本替换步序账的，执行中换账会让正在跑的那一跑和屏上的账变成两套。请先点悬浮球停止，或等这一跑结束。
+[0;32mPASS[0m E4b 执行中的那次编译一个字都没发出去（compile ok 计数=0）
+[0;32mPASS[0m E4c 本轮执行正常收尾 :: 09-24 15:05:24.912 17596 17596 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m E5a 真 HTTPS 编译成功 :: 09-24 15:06:16.948 17596 17732 I AnytouchRun: S3SMOKE compile ok steps=1 replaced=0 rows=30
+[0;32mPASS[0m E5b 产物步数=1（≥1）
+[0;32mPASS[0m E5c 词表真采了几条：rows=30 且已入日志（同一条账要上屏，见 E5d）
+[0;32mPASS[0m E5e AI 产物已进任务框（框里的 type 集合=[click,]，建议流走的就是既有那条）
+[0;32mPASS[0m E5i 产物每一步都在真源支持集内（ExecutorVocabulary，JVM 逐字对拍本行 -e 名单，裁 S31-B3） :: types=[click,]
+[0;32mPASS[0m E5d 词表账上屏（ai_ctx_notice：几条/剔了多少）（[ai_ctx_notice] 命中=1）
+[0;32mPASS[0m E5f 结论上屏（ai_report 非空话术）（[ai_report] 命中=1）
+[0;32mPASS[0m E5g 真凭据在场时整页仍无 Key 形态字面
+[0;32mPASS[0m E5h AI 产物照常放行（没被 V-3 误拒，且真按框跑了 total=1 步；步内类型能否执行见 E5i） :: 09-24 15:06:50.246 17596 17596 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m E8a 编译在跑拒开录 :: 09-24 15:06:54.301 17596 17596 W AnytouchRun: S2SMOKE record start refused gate=COMPILING detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+[0;32mPASS[0m E8b 编译在跑拒停止并编译 :: 09-24 15:06:54.426 17596 17596 W AnytouchRun: S3SMOKE record stop refused gate=COMPILING detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+[0;32mPASS[0m E8c 拒=整条不动：本轮零次成功开录（会话没被起）
+[0;32mPASS[0m E8g 编译在跑拒派发（UI 与注入共用同一入口，门禁落入口不落按钮） :: 09-24 15:06:55.113 17596 17596 W AnytouchRun: S1SMOKE submit refused gate=COMPILING via=adb_inject ledger=1 machineSuggestion=173 detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，期间开录、点「停止并编译」、点「执行任务」、删改步骤都不许动——屏上留下的到底是哪一份产物就说不清了。请等编译结论上屏（成功、失败都会说话）后再操作。
+[0;32mPASS[0m E8g2 被拒=执行真没开始（本轮 S1SMOKE ok= 计数 0）
+[0;32mPASS[0m E8h 编译在跑拒步骤编辑（与执行中禁编辑同一格门禁，RUNNING 之后就是 COMPILING） :: 09-24 15:06:57.717 17596 17596 W AnytouchRun: S2SMOKE step edit refused gate=COMPILING op=remove index=0 ledger=1 detail=AI 编译中，改账与执行此刻不动：这一跑回来会把整本步序账换掉，此刻删改的那几条既不在这份账上、也不在那份账上。请等编译结论上屏后再编辑步骤。
+[0;32mPASS[0m E8h2 被拒=账真没动（本轮零次成功编辑）
+[0;33mSKIP[0m E8i 不判红：task_rejection 未被单屏 dump 命中（视口/折叠可吞；日志侧 E8g 已取正向证据）
+[0;33mSKIP[0m E8j 不判红：step_edit_rejection 未被单屏 dump 命中（同上）
+[0;32mPASS[0m E8d 开录拒因上屏 :: 编译在跑时单屏 dump 正向命中
+[0;32mPASS[0m E8e 停止拒因另起一格 :: 与开录拒因同屏并存（两件事同时红，没互相盖）
+[0;32mPASS[0m E8f 编译归位即撤陈旧拒因（过期边真的在设备上转） :: 09-24 15:08:54.287 17596 17732 I AnytouchRun: S3SMOKE record stop rejection expired gate_was=COMPILING detail=编译已归，陈旧拒因作废
+      | 第二跑结论（E8 的编译窗口）：09-24 15:08:54.288 17596 17732 W AnytouchRun: S3SMOKE compile refused gate=null kind=TIMEOUT stage=transport rows=0 detail=等了很久没等到完整回答。模型可能正排队，或网络太慢。可以稍后重试，或换更快的模型再编一次。（归因：transport·超时 timeout）
+[0;32mPASS[0m E9a 进程被真收走并重来（pid 17596→22205；install -r 保留 /data 与 Keystore）
+[0;32mPASS[0m E9b 重进界面从 Keystore 现读回填 :: 09-24 15:09:32.879 22205 22292 I AnytouchRun: S3SMOKE config loaded tail=***JgYp notice=你的 Key 只发往这一个地址：integrate.api.nvidia.com
+[0;32mPASS[0m E9c 屏上尾 4 位跨进程逐字一致 :: [***JgYp]
+[0;32mPASS[0m E10 off 档上行零条：rows=0 :: 09-24 15:10:52.527 22205 22292 I AnytouchRun: S3SMOKE compile ok steps=1 replaced=0 rows=0
+      | E11 需要人手：请在屏上滚到「清除本机凭据」点一下（脚本不下发 Key、也不模拟手指点自家面板）。
+[0;32mPASS[0m E11a 清除后两槽复查双双消失 :: 09-24 15:12:29.990 22205 22291 I AnytouchRun: S3SMOKE config wipe cleared=true leftover=[]
+[0;32mPASS[0m E11b 屏上回到「本机未保存 Key」（[本机未保存 Key] 命中=1）
+[0;32mPASS[0m E11c 清除后不留地址回显（[byok_host_notice] 命中=0）
+[0;32mPASS[0m E11d 清干净后再编译立刻回到 NO_CREDENTIAL（没留'看起来还配着'） :: 09-24 15:12:57.317 22205 22291 W AnytouchRun: S3SMOKE compile refused gate=NO_CREDENTIAL kind=null stage=null rows=0 detail=本机还没有保存好的凭据（Key / 服务地址 / 模型名三样一起存）。请在下方填好并点「保存」，屏上出现 Key 尾 4 位才算真存上了。
+
+byok-smoke: 断言 44 条，跳过 5 条，无失败项
+诚实边界：跳过的都是'真机真 Key'那四条设备点（真 HTTPS/真 Keystore/词表真采/编译期双拒），
+           模拟器与无凭据机器上一律不记 PASS（S3-R5：注入走 byok-credential-inject.sh，本脚本仍不发 Key 字面量）。
+BYOK_SMOKE_RC=0  end_utc=2026-09-24T07:12:59Z
+
+============ [K5b] 2026-09-24 K40 device-smoke 复验 31-B（S3-F 构建，R3 真机 profile 口径：5 红全部命中已知名单，见上方逐条对表） UTC begin 2026-09-24T07:13:19Z ============
+K40 [K5] device-smoke (31-B reverify) begin UTC=2026-09-24T07:13:19Z
+[0;31mFAIL[0m C1 前置未立：15s 内没读到 scrollable="com.android.settings:id/settings_homepage_container" —— 本条红归因于环境/ROM 词表，不归产品
+[0;31mFAIL[0m C1 混合链(scroll+click Settings) :: 期望含 [ok=2 total=2 stopped=false]，实际 [09-24 15:14:46.792 22205 22205 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"] | 明细: 09-24 15:14:46.793 22205 22205 I AnytouchRun: S1SMOKE-DETAIL code=NODE_NOT_FOUND msg=L1 NO_MATCH resource-id 'com.android.settings:id/settings_homepage_container' 零命中 | L2 NOT_ATTEMPTED 请求未给出 text/contentDescription | L3 NOT_ATTEMPTED 请求未给出层级路径 
+[0;31mFAIL[0m C2 type_text 经典EditText :: 期望含 [ok=2 total=2 stopped=false]，实际 [09-24 15:14:58.803 22205 22205 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="perform_failed"] | 明细: 09-24 15:14:58.803 22205 22205 I AnytouchRun: S1SMOKE-DETAIL code=EXECUTOR_ERROR msg=performAction 失败: type_text @ root/0/0/0/0/0/0/1/0/1/0/0/0/1 
+      | C3 前置自复核：task_input 已在无障碍树里（滚到面板底部）
+[0;32mPASS[0m C3 type_text Compose自目标 :: 09-24 15:15:07.938 22205 22205 I AnytouchRun: S1SMOKE ok=1 total=1 stopped=false stop=-
+[0;32mPASS[0m C4 负例 NODE_NOT_FOUND :: 09-24 15:15:24.478 22205 22205 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;31mFAIL[0m C5 高危超时默认拒绝 :: 期望含 [stop="PASSWORD:password"]，实际 [09-24 15:15:37.369 22205 22205 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="perform_failed"] | 明细: 09-24 15:15:37.369 22205 22205 I AnytouchRun: S1SMOKE-DETAIL code=EXECUTOR_ERROR msg=performAction 失败: type_text @ root/0/0/0/0/0/0/1/0/1/0/0/0/1 
+[0;32mPASS[0m C5x 输入通道洁净（零外部触点）
+[0;32mPASS[0m C6 停止球即时响应 :: 0s :: 09-24 15:15:52.255 22205 22205 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="user_stop"
+[0;31mFAIL[0m C7 面板挂起期点球即停 :: 期望 [stop="user_stop" 且 ≤5s]，实际 [1s, 09-24 15:16:04.957 22205 22205 I AnytouchRun: S1SMOKE ok=1 total=2 stopped=true stop="perform_failed"]（若归因 PASSWORD:password=先看 C7x：外部触点可能已点了确认按钮）
+[0;32mPASS[0m C7x 输入通道洁净（触摸 0 次 = 预算 0）
+[0;32mPASS[0m C8 执行中解绑留 SERVICE_INTERRUPTED 中断回执
+[0;32mPASS[0m C8b 解绑重绑后执行器自愈 :: 09-24 15:16:34.910 22205 22205 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m C9 服务未连时开录被拒（注入通道同判，无空会话）
+[0;32mPASS[0m C10 执行中开录被拒（球收起态不得录制）
+
+device-smoke: 有失败项
+DEVICE_SMOKE_RC=1 end_utc=2026-09-24T07:17:10Z

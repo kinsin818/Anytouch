@@ -163,3 +163,13 @@
 - **S3-F（编译互斥扩到「执行任务/步骤编辑」两入口 + 动作词表收成 `:byok` 单一真源）** — 消费裁决 S31-B2/S31-B3/S31-B5，一次通过、无返工。JVM **384→423**（app 335 / byok 69 / contracts 19，`--rerun-tasks` 单变体分模块求和，**+39 例**全为 F1/F2 新增，0 失败），九线 `ci-local` CI_RC=0、`redline-probe` F/G/H/I PROBE_RC=0；模拟器同构建 device 13/13 + ui 41/0/0 + s2 10/10 ratio=1.00 + **keyed byok-smoke 40 条断言 / 跳过 6 / 0 失败**（E8g/E8g2/E8h/E8h2 当场验"编译在跑拒派发/拒编辑、被拒即执行器零次起跑且账零改动"，E5i 不再间歇=`types=[click,]` 全在真源内）。
   **本批唯一主窗侧动作记在独立重跑账上**（非 worker 返工）：worker 后台代理触顶 150 次工具调用被切断、未干净自检，`ci-local` 首跑 **RC=1 假红**——红线 G 命中的是 `ModelLedgerGate.kt:13` 注释散文里的 `com.anytouch.byok` 字面量（grep 分不清注释与 import）；全树扫六执行目录+`core/` **零真 import**⇒纯假红。守"改选手不改裁判"：只把该行注释包路径换记号 `:byok`（同文件 :15 已用），**不动红线 G 本体**，复跑 CI_RC=0 且 PROBE-G 复证真注入仍 FAIL（撤字没撤松锁）。这条只有"主窗独立重跑"兜得到——纪律第三次兑现。
   两处设备读数假红照"未归因不得判产品"复跑背书：device C5（系统 Settings 折叠节点冷 dump 少读）与 ui 五条首趟 miss，清态/复跑即绿，与 31-A/31-B 同款"装后首趟冷 dump"签名，非本批代码（`device-smoke`/`ui-smoke`/`s2-smoke` 三支本批零改）。**残口如实钉**：E8i/E8j"两入口新红字上屏像素"本轮 dump 未命中（编译在跑禁 dump + 面板在折叠线下），由日志正向 + JVM（`ByokCompileControllerTest`/`AccessibilityGateTest` 锁 userCopy 现算与 `setTaskRejection`）+ 与录制面共用同一 plain-String 渲染槽三方兜，屏上像素复验并入待办 17（K40 byok-smoke）。S3-F 判其范围内 ACCEPTED（编译互斥无雷12 特异边，模拟器设备关对本批范围充分，不像 31-B 需挂 K40）。证据 `evidence/S3/slice-f-mutex-vocab.md` §关1–关5 + `evidence/S3/raw/slice-f-emulator-keyed.log`（四支逐字去色原文，仅 `***尾4` 形态）。
+
+**09-24 午后 · 切片 E 真机收口 + 31-B ACCEPTED（裁决 S31-B8，本批零产品代码）**：K40 USB 调试由老板开启（待办 17 消解）。
+同构建（主树 `72af452` 现出包 md5 `37d2e199…`——盘上 13:39 旧包 mtime 早于末次源码改动，虽差异仅注释仍强制重出包才装机，"同一枚 APK"不靠推断）串行两靶：
+① `byok-smoke E_WIPE=1`：**断言 44 / 跳过 5 / 无失败 / RC=0**——E11a~d 老板亲点「清除本机凭据」当场判过（`wipe cleared=true leftover=[]`，脚本全程未代人点），
+S3-F 断组真机首命中（E8g/g2/h/h2、E5i `types=[click,]` 不再间歇），E8i/E8j 维持诚实 SKIP（折叠线以下不进 dump 的采集物理边界，不冒判）。
+**待办 12 由此真正闭合**并自纠一条：其"已跑并转正"标题写于 E11 尚欠时——措辞先于磁盘，以 raw `[K5]` 段为收口凭。
+② `device-smoke`：**5 红 9 绿 / RC=1**，红项逐条 ⊆ 09-22 首跑已知名单（C1=MIUI RID 不同名；C2/C5/C7=持久拒 SET_TEXT 同族同节点路径，拒答全显式、零假绿），名单外新红=0，
+首轮 C3/C4 队列串读未复现。据此主窗裁 **S31-B8：31-B ACCEPTED**，**#38（A1/A2/A3）清零**；K80 不在位如实记。
+两原文二进制追加 `evidence/S3/raw/byok-smoke-k40-e1pre.log`（`[K5]`+`[K5b]`，前缀哈希自证旧字节零改动、git numstat deletion=0）；
+判据与对表见 `slice-e2-k40-key.md` §6 + 新建 `evidence/S31/stage31-b-k40-reverify.md`；Key 全程不入 git/日志/raw（屏上仅 `***尾4`）。

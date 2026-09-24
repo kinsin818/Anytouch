@@ -135,3 +135,22 @@ ANDROID_SERIAL=7ae4bfee E9_APK="D:/Anytouch-e1w/app/build/outputs/apk/debug/app-
   bash scripts/byok-smoke.sh
 # 3) 只有老板在场且同意真删凭据时才加：E_WIPE=1（会真清双槽，之后需重填一次）
 ```
+
+## §6 [K5] 真机最终轮收口（09-24 午后，K40 `7ae4bfee`，构建=主树 `72af452`，md5 前缀 `37d2e199`）
+
+§5 挂着的"还欠两格"本轮全部清零。靶：`ANDROID_SERIAL=7ae4bfee E9_APK=<同枚 apk> E_WIPE=1 bash scripts/byok-smoke.sh`。
+原文逐字入 `raw/byok-smoke-k40-e1pre.log` 新段 `[K5]`（二进制追加，前缀哈希自证旧字节零改动），汇总行：
+**`byok-smoke: 断言 44 条，跳过 5 条，无失败项` / `BYOK_SMOKE_RC=0`**。
+
+- **E11a~d（§5 点名"需老板的手"那格）**：老板 09-24 午后亲点「清除本机凭据」（脚本按纪律只等人、不代人点）。判据全中：
+  `S3SMOKE config wipe cleared=true leftover=[]`（两槽复查双双消失）→ E11b 屏回"本机未保存 Key" → E11c 不留地址回显 →
+  E11d 清后再编译立刻 `gate=NO_CREDENTIAL`（没留"看起来还配着"）。
+- **S3-F 新断组首次真机命中**：E8g/g2（编译在跑拒派发，执行器零次起跑，`S1SMOKE submit refused gate=COMPILING ledger=1` 全文可见）、
+  E8h/h2（拒步骤编辑，账零改动）、E5i（`types=[click,]` 全在 ExecutorVocabulary 真源内，**不再间歇**）、E8d/e（两格拒因同屏并存，正向命中）。
+- **既有四点半再现**：真 HTTPS（E5a steps=1 rows=30）、真 Keystore 跨进程（E9a pid 17596→22205、E9c 尾4 `***JgYp` 逐字一致）、
+  词表真采（E5c/E5d）、off 档零上行（E10 rows=0）。
+- **诚实边界**：① E8i/E8j 维持 SKIP——折叠线以下拒因文字不进单屏 dump，是采集物理边界（与模拟器同因），不是待补的手；
+  正向证据由日志侧 E8g/E8h 承担，**不冒判 PASS**。② 本轮 E11 把机器凭据真清了：K40 产品态回到 NO_CREDENTIAL，
+  下次 keyed 轮必须重新走注入（`byok-credential-inject.sh`），这是 E11 判据的既定后果不是事故。③ E8 段第二跑遇 `kind=TIMEOUT stage=transport`
+  （模型排队/网慢），脚本按档说话、E9 照常走，不洗掉也不冒算——那格的判据本来就是"失败也要显式"。
+- **自纠**：§5/待办12 标题那句"已跑并转正"写于本 [K5] 之前（E11 尚欠）——措辞先于磁盘，真收口以本段为准。
