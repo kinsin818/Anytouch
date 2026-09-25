@@ -10,8 +10,17 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.anytouch.app.AppState
+import com.anytouch.app.LoopStep
+import com.anytouch.app.RepeatConfirmCache
+import com.anytouch.app.RepeatPlan
+import com.anytouch.app.RepeatPolicy
+import com.anytouch.app.RoundSummary
 import com.anytouch.app.TaskPolicy
 import com.anytouch.app.TaskRequest
+import com.anytouch.app.haltReasonBeforeRound
+import com.anytouch.app.logLine
+import com.anytouch.app.loopReceipt
+import com.anytouch.app.loopStepAfter
 import com.anytouch.app.executor.NodeTaskRunner
 import com.anytouch.app.compile.AccessibilityRootSource
 import com.anytouch.app.platform.AccessibilityDevice
@@ -23,16 +32,19 @@ import com.anytouch.app.recorder.capture.CaptureBridge
 import com.anytouch.app.recorder.session.RecorderStore
 import com.anytouch.app.recorder.session.SessionState
 import com.anytouch.app.safety.KillSwitch
+import com.anytouch.app.safety.SafetyVerdict
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionResult
 import com.anytouch.contracts.Command
 import com.anytouch.contracts.ContractJson
 import com.anytouch.contracts.StopSeverity
 import com.anytouch.pipeline.PipelineStopCode
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -228,6 +240,7 @@ class AnytouchAccessibilityService : AccessibilityService() {
 
     private suspend fun runTask(request: TaskRequest, ui: OverlayUi) {
         val json = request.json
+        val plan = request.plan
         KillSwitch.reset()
         AppState.running.value = true
         // 执行期挂前台服务：cached 进程会被 doze 冻结，定位轮询将停摆（模拟器实测复现）
@@ -246,32 +259,8 @@ class AnytouchAccessibilityService : AccessibilityService() {
                 Log.w(TAG, "S1SMOKE stop ball unavailable, refuse to run receipt=$receipt")
                 return
             }
-            val report = try {
-                val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
-                NodeTaskRunner(
-                    device = AccessibilityDevice(this),
-                    confirmer = { verdict -> ui.awaitSecondConfirm(verdict) },
-                ).run(actions)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                // 取消不是任务失败，不伪造 S1SMOKE 回执——但必须留痕（设备实证：无痕取消曾把
-                // "服务被系统重启"伪装成无事发生，running 悬挂吞掉后续全部任务）。
-                // 回执层同罪：不写中断回执的话，用户界面停留在上一条陈旧报告上，丢单无痕。
-                val receipt = interruptedRunReport(e.message ?: e.javaClass.simpleName)
-                AppState.lastRunReport.value = receipt
-                Log.w(TAG, "S1SMOKE run cancelled by service lifecycle (${e.message ?: e.javaClass.simpleName}), 回执缺席以此行为准 receipt=$receipt")
-                throw e
-            } catch (e: Exception) {
-                invalidTaskReport(e)
-            }
-            AppState.lastRunReport.value = encodeReport(report)
-            Log.i(
-                TAG,
-                "S1SMOKE ok=${report.results.count { it.ok }} total=${report.results.size} " +
-                    "stopped=${report.stopped} stop=${report.stopCommand?.payload?.get("stop_reason") ?: "-"}",
-            )
-            report.results.lastOrNull()?.recovery?.let { rec ->
-                Log.i(TAG, "S1SMOKE-DETAIL code=${rec.code} msg=${rec.message.take(300)}")
-            }
+            // 球在循环**外面**：整个多轮跑期间急停始终在场，收尾也只在全部门次落定之后
+            runRounds(json, plan, ui)
         } finally {
             // 收尾必须无条件执行：悬浮球/前台态/running 头寸/队列消费一个都不能随取消失踪
             ui.hideStopBall()
@@ -279,6 +268,142 @@ class AnytouchAccessibilityService : AccessibilityService() {
             stopForegroundCompat()
             // 消费完毕即清空：StateFlow 重放语义会在服务重绑时把旧任务再执行一次（模拟器实测）
             AppState.consume(request)
+        }
+    }
+
+    /**
+     * 重复执行循环（S5-d，军令 `orders/ANYTOUCH-S5d-repeat-loop-ORDER.md` 第 3/4 条）：
+     * 一轮跑完 → 等间隔（±1 秒抖动，等待期分片查急停）→ 自动开下一轮，直到跑满设定的轮数。
+     *
+     * 这一层只是**外面包的一圈**：安全门禁、执行器、编译链路一行未动，每一轮走的仍是同一条
+     * `NodeTaskRunner.run(actions)`；`KillSwitch` 也刻意不在轮间复位——急停一旦落下，
+     * 剩余轮次一轮都不开（判据全在 `RepeatLoop.kt` 的纯函数里，此处不复写第二份）。
+     */
+    private suspend fun runRounds(json: String, plan: RepeatPlan, ui: OverlayUi) {
+        val confirmCache = RepeatConfirmCache(plan.askEveryRound)
+        val runs = ArrayList<RoundSummary>(plan.repetitions)
+        val random = Random.Default
+        var round = 1
+        var abortedReason: String? = null
+        var lastReport: NodeTaskRunner.Report? = null
+        while (true) {
+            val halt = haltReasonBeforeRound(killStopped = KillSwitch.isStopped())
+            if (halt != null) {
+                abortedReason = halt
+                Log.w(TAG, "S5DSMOKE rounds stopped before round=$round reason=$halt")
+                break
+            }
+            val report = runOneRound(json, ui, confirmCache, round)
+            lastReport = report
+            val summary = RoundSummary(
+                round = round,
+                of = plan.repetitions,
+                ok = report.results.count { it.ok },
+                total = report.results.size,
+                stopped = report.stopped,
+                // 逐字沿用旧口径：payload 里的 JsonElement 直接内插（带引号的形态是既有归因串的一部分）
+                stopReason = report.stopCommand?.payload?.get("stop_reason")?.toString(),
+            )
+            runs += summary
+            AppState.lastRunReport.value = encodeReport(report)
+            Log.i(TAG, "S1SMOKE ${summary.logLine(plan)}")
+            report.results.lastOrNull()?.recovery?.let { rec ->
+                Log.i(TAG, "S1SMOKE-DETAIL code=${rec.code} msg=${rec.message.take(300)}")
+            }
+            when (
+                val step = loopStepAfter(
+                    completedRound = round,
+                    plan = plan,
+                    roundStopped = report.stopped,
+                    killStopped = KillSwitch.isStopped(),
+                    jitterOffsetSec = RepeatPolicy.nextJitterOffset(random),
+                )
+            ) {
+                is LoopStep.WaitThen -> {
+                    Log.i(TAG, "S5DSMOKE waiting ${step.waitMs}ms between round=$round and round=${step.nextRound}")
+                    awaitBetweenRounds(step.waitMs)
+                    round = step.nextRound
+                }
+                is LoopStep.Aborted -> {
+                    abortedReason = step.reason
+                    Log.w(TAG, "S5DSMOKE no further rounds after round=$round reason=${step.reason}")
+                    break
+                }
+                LoopStep.Finished -> break
+            }
+        }
+        val finished = lastReport
+        if (!plan.isSingleShot && finished != null) {
+            val receipt = loopReceipt(runs, plan, abortedReason)
+            // 收口只加在报告的一个新字段上（单发任务连这个字段都不出现=旧字节逐字不变）
+            AppState.lastRunReport.value = encodeReport(finished, receipt)
+            Log.i(TAG, "S5DSMOKE $receipt")
+        }
+    }
+
+    /**
+     * 轮间等待：分片轮询急停（最长一片 [KILL_POLL_MS]），军令第 4 条"点了立刻停"不允许
+     * 把 60 秒的 delay 当成一整块睡觉。等待本身不派发任何动作，也就不碰网络与门禁。
+     */
+    private suspend fun awaitBetweenRounds(waitMs: Long) {
+        var left = waitMs
+        while (left > 0L && !KillSwitch.isStopped()) {
+            val nap = minOf(KILL_POLL_MS, left)
+            delay(nap)
+            left -= nap
+        }
+    }
+
+    /** 一轮：与 S1 起的单发路径同一实现（解码 → NodeTaskRunner → 中断/脏任务两类收尾），未加分支。 */
+    private suspend fun runOneRound(
+        json: String,
+        ui: OverlayUi,
+        confirmCache: RepeatConfirmCache,
+        round: Int,
+    ): NodeTaskRunner.Report = try {
+        val actions = ContractJson.instance.decodeFromString(ListSerializer(Action.serializer()), json)
+        NodeTaskRunner(
+            device = AccessibilityDevice(this),
+            confirmer = { verdict -> confirmWithCache(ui, confirmCache, verdict, round) },
+        ).run(actions)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        // 取消不是任务失败，不伪造 S1SMOKE 回执——但必须留痕（设备实证：无痕取消曾把
+        // "服务被系统重启"伪装成无事发生，running 悬挂吞掉后续全部任务）。
+        // 回执层同罪：不写中断回执的话，用户界面停留在上一条陈旧报告上，丢单无痕。
+        val receipt = interruptedRunReport(e.message ?: e.javaClass.simpleName)
+        AppState.lastRunReport.value = receipt
+        Log.w(TAG, "S1SMOKE run cancelled by service lifecycle (${e.message ?: e.javaClass.simpleName}), 回执缺席以此行为准 receipt=$receipt")
+        throw e
+    } catch (e: Exception) {
+        invalidTaskReport(e)
+    }
+
+    /**
+     * 高危确认在重复轮次里的接线（裁决 S5-R11 补裁 C）：判据在 [RepeatConfirmCache]，
+     * 这里只负责"问谁、记哪一本"——不勾开关时每一次都仍走 `ui.awaitSecondConfirm`，
+     * 面板的超时默认拒、撤面板、留痕三件事一行未改；勾了才可能跳过面板，且跳过必留日志。
+     */
+    private suspend fun confirmWithCache(
+        ui: OverlayUi,
+        confirmCache: RepeatConfirmCache,
+        verdict: SafetyVerdict.RequiresSecondConfirm,
+        round: Int,
+    ): Boolean {
+        val category = verdict.matchedRule.category.name
+        return when (confirmCache.decide(category, round)) {
+            RepeatConfirmCache.Decision.ASK_PANEL -> {
+                val granted = ui.awaitSecondConfirm(verdict)
+                if (granted) confirmCache.onPanelGranted(category)
+                granted
+            }
+            RepeatConfirmCache.Decision.AUTO_CONFIRMED_EARLIER_GRANT -> {
+                Log.i(
+                    TAG,
+                    "S5DSMOKE panel skipped round=$round category=$category " +
+                        "rule=${verdict.matchedRule.ruleId} reason=granted_earlier_in_this_run",
+                )
+                true
+            }
         }
     }
 
@@ -321,7 +446,11 @@ class AnytouchAccessibilityService : AccessibilityService() {
         ),
     )
 
-    private fun encodeReport(report: NodeTaskRunner.Report): String = buildJsonObject {
+    /**
+     * 报告编码。[repeats] 只在多轮跑收口时出现（新增的一个字段）：单发任务的字节与旧口径逐字一致，
+     * 既有设备断言不受影响；多轮时屏上读得到"跑了几轮、为什么停"。
+     */
+    private fun encodeReport(report: NodeTaskRunner.Report, repeats: String? = null): String = buildJsonObject {
         put("stopped", report.stopped)
         put(
             "results",
@@ -330,12 +459,16 @@ class AnytouchAccessibilityService : AccessibilityService() {
         report.stopCommand?.let {
             put("stop_command", ContractJson.instance.encodeToJsonElement(Command.serializer(), it))
         }
+        repeats?.let { put("repeats", it) }
     }.toString()
 
     private companion object {
         const val TAG = "AnytouchRun"
         const val CHANNEL_ID = "executor"
         const val NOTIF_ID = 1
+
+        /** 轮间等待的分片长度：急停在等待期内按下，最多 [KILL_POLL_MS] 毫秒后就再也开不出下一轮。 */
+        const val KILL_POLL_MS = 250L
 
         /** 采集根缺席时的有限重试（转场中原子查询空返回，见 snapshotRoots）。 */
         const val ROOT_RETRY_TIMES = 3

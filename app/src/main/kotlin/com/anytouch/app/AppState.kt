@@ -3,11 +3,17 @@ package com.anytouch.app
 import com.anytouch.app.platform.RecordGate
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/** 一次任务注入请求：id 用纳秒保证同内容重复提交也是新请求。 */
+/**
+ * 一次任务注入请求：id 用纳秒保证同内容重复提交也是新请求。
+ *
+ * [plan] 是 S5-d 的重复执行计划：随请求一起进总线，**不由服务侧再去读界面**（界面随时可变，
+ * 请求一旦派发就得钉死当时用户填的那一份）。缺省 = 单发，与旧口径逐字同义。
+ */
 data class TaskRequest(
     val id: Long,
     val json: String,
     val submittedAtMs: Long = System.currentTimeMillis(),
+    val plan: RepeatPlan = RepeatPlan(),
 )
 
 /** 任务总线策略常量。 */
@@ -71,8 +77,8 @@ object AppState {
         taskRejection.value = copy
     }
 
-    fun submit(json: String) {
-        taskRequests.value = TaskRequest(System.nanoTime(), json)
+    fun submit(json: String, plan: RepeatPlan = RepeatPlan()) {
+        taskRequests.value = TaskRequest(System.nanoTime(), json, plan = plan)
     }
 
     fun isExpired(request: TaskRequest, nowMs: Long = System.currentTimeMillis()): Boolean =

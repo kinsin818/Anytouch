@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.anytouch.app.compile.ByokGateway
 import com.anytouch.app.compile.byokContextFlagOf
@@ -68,6 +71,14 @@ class MainActivity : ComponentActivity() {
                     // （模拟器实测 SET_TEXT/PASTE 的 onValueChange 都触发了，值却在下一帧回到样例——排查两小时的"虚报"实为自家状态丢失）。
                     var taskJson by remember { mutableStateOf(initial) }
                     var targetPkg by remember { mutableStateOf(RecorderStore.targetPkg) }
+                    // 重复执行的屏上默认值与 RepeatPolicy 的默认值同源（写死两处=两套真值）
+                    var repeatCount by remember {
+                        mutableStateOf(RepeatPolicy.DEFAULT_REPETITIONS.toString())
+                    }
+                    var repeatInterval by remember {
+                        mutableStateOf(RepeatPolicy.DEFAULT_INTERVAL_SEC.toString())
+                    }
+                    var repeatNoAsk by remember { mutableStateOf(false) }
                     // 进程内单例：面板与 adb 注入通道必须看见同一格意图、同一个"编译中"（两套=两套真值）
                     val byok = remember { ByokGateway.of(applicationContext) }
                     val recording by RecorderStore.activeSession.collectAsState()
@@ -215,8 +226,54 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxWidth().weight(1f, fill = false).testTag("task_input"),
                             minLines = 8,
                         )
+                        // 重复执行（S5-d 军令第 1 条）：两框一勾。这里的值**只进 RepeatPolicy.parse**，
+                        // UI 不自带第二份判据；解析坏了走 task_rejection 那格红字，不静默按默认跑。
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = repeatCount,
+                                onValueChange = { repeatCount = it },
+                                modifier = Modifier.weight(1f, fill = false).testTag("repeat_count"),
+                                label = { Text("Repetitions (1-100)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                            )
+                            OutlinedTextField(
+                                value = repeatInterval,
+                                onValueChange = { repeatInterval = it },
+                                modifier = Modifier.weight(1f, fill = false).testTag("repeat_interval"),
+                                label = { Text("Interval seconds (1-60)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Checkbox(
+                                checked = repeatNoAsk,
+                                onCheckedChange = { repeatNoAsk = it },
+                                modifier = Modifier.testTag("repeat_no_ask"),
+                            )
+                            Text("Repeat without asking", style = MaterialTheme.typography.bodySmall)
+                        }
+                        // 这一勾改的是高危确认的语义，必须把"勾了什么会少问一次"写在屏上（裁决 S5-R11 补裁 C）
+                        Text(
+                            "Every round asks for confirmation by default. \"Repeat without asking\" only skips " +
+                                "the panel for a risk you already approved during this run; a new kind of risk " +
+                                "still asks.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         Button(
-                            onClick = { submitTask(taskJson, "ui_button") },
+                            onClick = {
+                                submitTask(
+                                    taskJson,
+                                    "ui_button",
+                                    repeatCount,
+                                    repeatInterval,
+                                    repeatNoAsk,
+                                )
+                            },
                             // 编译在跑即置灰（裁 S31-B2，与上面两个录制按钮同一形态）。灰只是提示：
                             // 真门禁在 submitTask 入口，adb 注入绕过按钮同样被拒（下面 task_rejection 那格就是它的红字）。
                             enabled = connected && !compileBusy,
@@ -306,7 +363,15 @@ class MainActivity : ComponentActivity() {
             handled = true
         }
         intent.getStringExtra(EXTRA_TASK_JSON)?.let { json ->
-            submitTask(json, "adb_inject")
+            // 重复执行的三枚注入参数与界面两框一勾**同一解析口**（RepeatPolicy.parse）：
+            // 缺省即单发、即每轮都问（fail-closed）；脏值由 submitTask 拒派发并上屏，不在通道里猜意图。
+            submitTask(
+                json,
+                "adb_inject",
+                intent.getStringExtra(EXTRA_REPEAT_COUNT),
+                intent.getStringExtra(EXTRA_REPEAT_INTERVAL),
+                intent.getBooleanExtra(EXTRA_REPEAT_NO_ASK, false),
+            )
             handled = true
         }
         if (handled && !intent.getBooleanExtra(EXTRA_KEEP_FG, false)) moveTaskToBack(true)
@@ -385,7 +450,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun submitTask(json: String, via: String) {
+    private fun submitTask(
+        json: String,
+        via: String,
+        repetitionsRaw: String?,
+        intervalRaw: String?,
+        askWithoutPrompt: Boolean,
+    ) {
         val ledger = RecorderStore.compiledActions.value
         // 编译档排在 V-3 之前：编译在跑时"框里的文本与账是否一致"根本没有意义——那一跑回来整本都要换。
         val runGate = runGateOf(running = AppState.running.value, compileBusy = AppState.compileBusy.value)
@@ -399,6 +470,19 @@ class MainActivity : ComponentActivity() {
             )
             return
         }
+        // 重复执行的数字在这一格把关（军令第 1 条的 1-100 / 1-60 两条范围）：判据住 RepeatPolicy，
+        // 界外一律**不派发**并上屏——静默夹取到 100 或退回默认 1 都是把用户填的数字换掉。
+        val repeatVerdict = RepeatPolicy.parse(repetitionsRaw, intervalRaw, askWithoutPrompt)
+        if (repeatVerdict is RepeatVerdict.Rejected) {
+            AppState.setTaskRejection(null, repeatVerdict.copy)
+            Log.w(
+                TAG,
+                "S5DSMOKE submit refused gate=REPEAT_FIELD field=${repeatVerdict.field} via=$via " +
+                    "repetitions=$repetitionsRaw interval=$intervalRaw noAsk=$askWithoutPrompt",
+            )
+            return
+        }
+        val plan = (repeatVerdict as RepeatVerdict.Accepted).plan
         // RUNNING 不在派发口拒：既有语义是"执行中新注入排在当前这一跑之后串行执行"
         // （见 `AnytouchAccessibilityService` 总线那头的 busy 防线注释）。本批只扩编译面，不动这条；
         // 真要在派发口拒 RUNNING 得另裁一刀——那时改的是上面那一个 when，不是再加一份判据。
@@ -419,7 +503,12 @@ class MainActivity : ComponentActivity() {
             return
         }
         AppState.setTaskRejection(null, null)
-        AppState.submit(json)
+        Log.i(
+            TAG,
+            "S5DSMOKE submit accepted via=$via reps=${plan.repetitions} interval=${plan.intervalSec}s " +
+                "askEveryRound=${plan.askEveryRound}",
+        )
+        AppState.submit(json, plan)
     }
 
     companion object {
@@ -427,6 +516,13 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "AnytouchRun"
 
         const val EXTRA_TASK_JSON = "task_json"
+        /**
+         * 重复执行注入通道（S5-d）：与界面两框一勾同一解析口、同一判据（`RepeatPolicy`）。
+         * 三枚都可缺省——缺省=单发+每轮都问，与旧口径逐字同义（不注入就等于本批之前的行为）。
+         */
+        const val EXTRA_REPEAT_COUNT = "repeat_count"
+        const val EXTRA_REPEAT_INTERVAL = "repeat_interval"
+        const val EXTRA_REPEAT_NO_ASK = "repeat_no_ask"
         const val EXTRA_KEEP_FG = "keep_fg"
         const val EXTRA_RECORD_START = "record_start"
         const val EXTRA_RECORD_STOP = "record_stop"
