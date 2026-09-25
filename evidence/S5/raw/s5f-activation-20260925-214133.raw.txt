@@ -1,0 +1,12 @@
+# s5f-activation 预检 ok · api=34 1080x2400 vc=6
+# 靶机=sdk_gphone64_x86_64 · E9_APK=app/build/outputs/apk/debug/app-debug.apk · md5=5c1e60a2811e457b0bbd6434f698ff39（机上 pull 回来逐字同值）
+# [tap] activate 命中（中心 172 350，偏移 0 px）
+# [tap] activation_confirm 命中（中心 293 1062，偏移 0 px）
+# [tap] activation_cancel 命中（中心 553 1472，偏移 0 px）
+# 收尾 :: passed=36 · fail=1 · apk md5=5c1e60a2811e457b0bbd6434f698ff39 vc=6 · 屏上拒因 4 条 · UNLOCKED 末态=0
+# 拒因| An activation code is exactly 18 characters: ANY, then three groups of four, with a dash between each group. A missing or extra character won't pass. Nothing was unlocked.
+# 拒因| Activation codes start with ANY followed by a dash. Check the first letters against your receipt. Nothing was unlocked.
+# 拒因| Put a dash after ANY and after each group of four characters, like ANY-XXXX-XXXX-XXXX. Nothing was unlocked.
+# 拒因| Codes use capital letters A-Z and digits 0-9 only (lowercase you type is fine, we switch it). A symbol or a space inside a group won't do. Nothing was unlocked.
+# 判据 6（安全面不变）不在本脚本另写一套：以 s5d L4/L5、ui-smoke C 系列、Photos 全链在同一枚 v1.0.5 字节上复绿为凭
+# 判据 7（全英文含对话框层）由 ui-english-sweep 段4 在同一枚字节上扫

@@ -149,9 +149,12 @@ object RecorderStore {
      */
     fun applyEdit(edit: StepEdit): Boolean {
         val actions = compiledActions.value
-        // 四参真值表：RUNNING 与 COMPILING 两档都在同一张表里（编译档转调 AccessibilityGate 那一格，
+        // 五参真值表：RUNNING / COMPILING / 付费墙三档都在同一张表里（编译档转调 AccessibilityGate 那一格，
         // 本处不写 `if (compileBusy)`——两个入口各写一份就是串状态，见 `runGateOf` 的注释）。
-        val gate = stepEditGateOf(actions, edit, AppState.running.value, AppState.compileBusy.value)
+        val gate = stepEditGateOf(
+            actions, edit,
+            AppState.running.value, AppState.compileBusy.value, AppState.activated.value,
+        )
         if (gate != StepEditGate.READY) {
             val copy = gate.userCopy()
             rejectEdit(gate)
@@ -290,14 +293,20 @@ object RecorderStore {
 
     /**
      * 状态跃迁后复核**编辑**拒因（编辑面纯状态档的过期边，判据在纯函数 [editRejectionAfterStateChange]）：
-     * 与开录面同一条纪律——RUNNING 与 COMPILING 两档都说的是"此刻"，状态一归位还挂着红字就是假红
-     * （S3-F/F1-3 把 COMPILING 并进来，裁决 S31-B2）。
+     * 与开录面同一条纪律——RUNNING、COMPILING 与 NOT_ACTIVATED 三档都说的是"此刻"，状态一归位还挂着红字就是假红
+     * （S3-F/F1-3 把 COMPILING 并进来，裁决 S31-B2；S5-f 军令 §3 把"未激活"并进来，
+     * 因为激活成功那一瞬它就失去依据——还挂着 "Upgrade to Pro" 等于拿陈旧话术骗人）。
      * 请求绑定的那三档（空账/越界/空名）不在此列，由下一次请求覆盖。
      * @return true=本次复核作废了一条陈旧话术。
      */
     fun revalidateEditRejection(): Boolean {
         val current = editRejectionGate
-        val next = editRejectionAfterStateChange(current, AppState.running.value, AppState.compileBusy.value)
+        val next = editRejectionAfterStateChange(
+            current = current,
+            running = AppState.running.value,
+            compileBusy = AppState.compileBusy.value,
+            activated = AppState.activated.value,
+        )
         if (current != null && next == null) {
             clearEditRejection()
             Log.i(TAG, "S2SMOKE edit rejection expired gate_was=$current detail=状态已变，陈旧拒因作废")

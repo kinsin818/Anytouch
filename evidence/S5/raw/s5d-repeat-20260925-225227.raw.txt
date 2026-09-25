@@ -1,0 +1,8 @@
+# s5d-repeat-loop 预检 ok · api=34 1080x2400 vc=6
+# [L4] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L4-panel-try1-225337.png 焦点=  mCurrentFocus=Window{faf7cc5 u0 com.anytouch.app}
+# panel rect x 120..958 y 912..1316 | band y 1318..1412 center 1365 | left (170, 529) right (551, 909) | screen 1080x2400 | dark-panel-px 100978
+# [L4] 面板按钮按屏定位=(730,1365) 量自 s5d-L4-panel-try1-225337.png（第 1 拍命中）
+# [L5] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L5-panel-try1-225409.png 焦点=  mCurrentFocus=Window{e4a9607 u0 com.anytouch.app}
+# panel rect x 120..958 y 912..1316 | band y 1318..1412 center 1365 | left (170, 529) right (551, 909) | screen 1080x2400 | dark-panel-px 100978
+# [L5] 面板按钮按屏定位=(730,1365) 量自 s5d-L5-panel-try1-225409.png（第 1 拍命中）
+# RAW 结束 fail=0 passed=15

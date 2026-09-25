@@ -76,6 +76,11 @@ wait_bound() {
 VC=$($ADB shell dumpsys package com.anytouch.app 2>/dev/null | tr -d '\r' | grep -m1 versionCode | sed 's/.*versionCode=//; s/[^0-9].*//')
 [ "$VC" = "$EXPECTED_VC" ] || { bad "预检 :: 机上 versionCode=$VC 与本轮应有 $EXPECTED_VC 不符——装错包，跑了也是白跑"; exit 2; }
 wait_bound || { bad "预检 :: 无障碍服务未绑定"; exit 2; }
+# S5-f 判据 10：三格（插步/我的任务/补步骤面板）全在付费墙里，未激活态本就该拒——不激活就是假红。
+# 前置经注入通道输合法码（同一个校验器，不开旁路）；不成立当场停手。
+AP=$(bash "$(dirname "$0")/activation-preflight.sh" 2>&1) || { bad "预检 :: 激活前置未过（判据 10）—— $AP"; exit 2; }
+log "激活前置 :: $AP"
+wait_bound || { bad "预检 :: 激活前置自己 dump 后服务未复绑"; exit 2; }
 SIZE=$($ADB shell wm size | tail -1 | tr -d '\r' | sed 's/.*: *//')
 W=${SIZE%x*}; H=${SIZE#*x}
 BALL_X=$(( W * 1002 / 1080 )); BALL_Y=$(( H * 1272 / 2400 ))
@@ -170,15 +175,39 @@ T0CELL=$(date +%s); cell_start() { T0CELL=$(date +%s); }; cell_elapsed() { echo 
 # 先按实测偏量点，命中一律用**产品自己的状态变化**验（面板那一格的 testTag 上屏才算点亮），
 # 未命中就重新 dump 再换一档；四档内点不亮由调用方记红，红的是通道，绝不记成"屏上没画"。
 tap_open() { # $1=锚点（tap_node 正则）$2=命中判据（grep -E）→ 0=点亮且命中
-    local anchor="$1" hit="$2" xy x y off
+    local anchor="$1" hit="$2" xy x y off ime n anch j _b
+    # 先收键盘再点：上一格往输入框里打过字，IME 还挂着时整页布局被压扁，dump 报的 y 与真实命中区
+    # 对不上（v1.0.5 批 F14b 假红的一号嫌疑；同格手工探针在无键盘态第 3 档即命中）。
+    # 有条件才发 BACK——无条件 BACK 退掉的是应用自己（byok 注入第二枪血账）。
+    $ADB shell dumpsys input_method 2>/dev/null | grep -qa 'mInputShown=true' && { $ADB shell input keyevent 4 >/dev/null 2>&1; sleep 1; }
+    # 逐档进 RAW（v1.0.5 批两连红的账）：光一句"四档没点亮"归不了因——缺席类红必须先有逐档读数。
+    anch=$(printf '%s' "$anchor" | tr -d '\\')
     for off in 85 0 45 130; do
         dump_idle || return 1
         xy=$(python scripts/tap_node.py "$XHOST" "$anchor" 2>>"$RAW")
-        [ -n "$xy" ] || return 1
+        [ -n "$xy" ] || { echo "# [tap_open] 档 $off :: 锚 [$anch] 压根不在当前 dump（走位未到，不疑产品）" >> "$RAW"; return 1; }
         x=${xy% *}; y=${xy#* }
+        n=$(tr '<' '\n' < "$XHOST" | grep -cE "$hit" || true)
+        ime=$($ADB shell dumpsys input_method 2>/dev/null | grep -ao 'mInputShown=[a-z]*' | head -1)
+        echo "# [tap_open] 档 $off :: 锚($x,$y)→点($x,$((y - off))) · 命中格已见 $n · $ime · 锚界=$(tr '<' '\n' < "$XHOST" | grep -aF "$anch" | head -1 | grep -o 'bounds="[^"]*"')" >> "$RAW"
         $ADB shell input tap "$x" "$((y - off))" >/dev/null 2>&1; sleep 2
         dump_idle || return 1
         grep -qE "$hit" "$XHOST" && return 0
+        # 原地换档之前先**往下走位找它**（v1.0.5 批 run1/run2 F14b 的根因，run3 逐档读数为凭：锚落在 y=2069，
+        # 面板开在它下面整块出屏——折叠线以下的节点压根不进无障碍树）。不这么做的后果不是"读不到"而是
+        # **换档那一 tap 落在同一格上=把它关掉**：奇数档跑完停在"开着但看不见"，四档全记 miss（假红）。
+        j=0
+        while [ "$j" -lt 3 ]; do
+            $ADB shell input swipe "$((W / 2))" 1800 "$((W / 2))" 1100 300 >/dev/null 2>&1; sleep 1
+            dump_idle || return 1
+            if grep -qE "$hit" "$XHOST"; then
+                echo "# [tap_open] 档 $off :: 往下走 $((j + 1)) 格后面板进树（它一直开着，只是开在折叠线以下）" >> "$RAW"
+                return 0
+            fi
+            j=$((j + 1))
+        done
+        echo "# [tap_open] 档 $off :: 往下走满 3 格仍不见面板 → 退回起点换档" >> "$RAW"
+        for _b in 1 2 3; do $ADB shell input swipe "$((W / 2))" 1100 "$((W / 2))" 1800 300 >/dev/null 2>&1; sleep 1; done
     done
     return 1
 }

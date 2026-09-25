@@ -1,5 +1,6 @@
 package com.anytouch.app.recorder
 
+import com.anytouch.app.activation.UPGRADE_MARK
 import com.anytouch.app.platform.COMPILE_HOLD_HEADLINE
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionSafety
@@ -221,14 +222,15 @@ class SavedTasksTest {
         assertEquals(0, disk.writeCalls)
     }
 
-    // ---- 4. 红字过期边（三档纯状态档 + 请求绑定档） ----
+    // ---- 4. 红字过期边（四档纯状态档 + 请求绑定档） ----
 
     private fun expiry(
         current: SavedTaskGate?,
         outcome: ReadOutcome,
         running: Boolean = false,
         compileBusy: Boolean = false,
-    ): SavedTaskGate? = savedRejectionAfterChange(current, outcome, running, compileBusy)
+        activated: Boolean = true,
+    ): SavedTaskGate? = savedRejectionAfterChange(current, outcome, running, compileBusy, activated)
 
     @Test
     fun `盘读不出盖过一切陈旧话术`() {
@@ -254,6 +256,29 @@ class SavedTasksTest {
     fun `RUNNING 只在确实有任务在跑时留着`() {
         assertEquals(SavedTaskGate.RUNNING, expiry(SavedTaskGate.RUNNING, ReadOutcome.Empty, running = true))
         assertNull(expiry(SavedTaskGate.RUNNING, ReadOutcome.Empty, running = false))
+    }
+
+    @Test
+    fun `NOT_ACTIVATED 是纯状态档 解锁那一瞬作废`() {
+        // S5-f 军令 §3「我的任务」进墙：那一句话说的是"此刻这台机器还没解锁"
+        assertEquals(
+            SavedTaskGate.NOT_ACTIVATED,
+            expiry(SavedTaskGate.NOT_ACTIVATED, ReadOutcome.Empty, activated = false),
+            "没解锁就把红字撤了=假绿：未激活的人以为存档放行了",
+        )
+        assertNull(
+            expiry(SavedTaskGate.NOT_ACTIVATED, ReadOutcome.Empty, activated = true),
+            "解锁成功还挂着 Upgrade to Pro=假红：付了钱的人被陈旧话术骗",
+        )
+        // 墙管不着别的档：读盘故障优先于一切，执行/编译归位也不顺手撤未激活那一档
+        assertEquals(
+            SavedTaskGate.READ_FAILED,
+            expiry(SavedTaskGate.NOT_ACTIVATED, ReadOutcome.Corrupt("x"), activated = true),
+        )
+        assertEquals(
+            SavedTaskGate.NOT_ACTIVATED,
+            expiry(SavedTaskGate.NOT_ACTIVATED, ReadOutcome.Empty, running = true, activated = false),
+        )
     }
 
     @Test
@@ -292,6 +317,14 @@ class SavedTasksTest {
         assertTrue(SavedTaskGate.RUNNING.userCopy().startsWith(ledgerRunningCopy("saved task")))
         // 主语换掉就是另一句话：模板那一条来路只共用"为什么暂停"，不共用"哪一条被拒"
         assertFalse(SavedTaskGate.RUNNING.userCopy().contains("template"))
+    }
+
+    @Test
+    fun `未激活档的话术转调 activation 那一份单源 不在此处抄第二份`() {
+        // 军令 §3 指定字样只有一处定义（activation/ActivationGate.kt），三处入口各自转调：
+        // 抄三份就是三套真值，改一处漏两处正是 v1.0.2 面板那次"同义不同句"的成因。
+        assertTrue(SavedTaskGate.NOT_ACTIVATED.userCopy().startsWith(UPGRADE_MARK))
+        assertTrue(SavedTaskGate.NOT_ACTIVATED.userCopy().contains("Nothing was"))
     }
 
     // ---- 6. 结构锁：没有第二条通道、没有凭据、没有网络 ----

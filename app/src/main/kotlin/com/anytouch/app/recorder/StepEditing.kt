@@ -1,5 +1,8 @@
 package com.anytouch.app.recorder
 
+import com.anytouch.app.activation.ProFeature
+import com.anytouch.app.activation.ProGate
+import com.anytouch.app.activation.userCopy
 import com.anytouch.app.platform.COMPILE_HOLD_HEADLINE
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.stopCompileGateOf
@@ -38,7 +41,7 @@ sealed class StepEdit {
  * 各档拒因对应的都是"静默蒸发"形态，故一律 fail-closed 而非容错继续：
  * - [RUNNING]：执行中改账本=回放依据与执行现场脱节，且改完的那份账再也不是刚跑过的那份（老板 09-23 裁决落地）。
  * - [COMPILING]：AI 编译那一跑还在路上（裁决 S31-B2，S3-F/F1）。编译回来是**整本换账**的，
- *   期间删改一条就是在一份即将被覆写的账上动笔——与 [RUNNING] 同族，判据同一格（见 [stepEditGateOf] 四参版）。
+ *   期间删改一条就是在一份即将被覆写的账上动笔——与 [RUNNING] 同族，判据同一格（见 [stepEditGateOf] 五参版）。
  * - [EMPTY_LEDGER]：无编译产物即无步骤可编。放行=用户点了删，任务却照常可放（空任务假绿）。
  *   手动插步同样吃这一档：三裁③给的是"**补**步骤"，账还空着就从零手搓一整本任务不在第一版边界内
  *   （编辑页因此只在有步骤时给 "+"，注入通道送进空账同样落这一档）。
@@ -51,7 +54,7 @@ sealed class StepEdit {
 enum class StepEditGate {
     READY,
 
-    /** 执行中禁编辑（老板 09-23 裁决 2：以禁编辑消解停止球与"改名"钮的重叠区，不挪球）：见四参 [stepEditGateOf]。 */
+    /** 执行中禁编辑（老板 09-23 裁决 2：以禁编辑消解停止球与"改名"钮的重叠区，不挪球）：见带状态的 [stepEditGateOf]。 */
     RUNNING,
 
     /** 编译中禁编辑（裁决 S31-B2 把编译互斥从录制两面扩到改账面）：话术头一句与录制面共用一格。 */
@@ -71,6 +74,13 @@ enum class StepEditGate {
 
     /** `instance`／`ms` 不是"0 或更大的整数"：数字字段容错=账上写的与跑的不是同一件事。 */
     INSERT_BAD_NUMBER,
+
+    /**
+     * 手动补步骤是进阶功能、本机还没激活（S5-f 军令 §3 三枚进墙功能之一）。
+     * 话术**不在本文件复制**：转调 `activation/ActivationGate.kt` 那一份单源（三处入口共用一句
+     * "Upgrade to Pro"，抄三份就是三套真值）。
+     */
+    NOT_ACTIVATED,
 }
 
 /**
@@ -106,7 +116,7 @@ fun stepEditGateOf(actions: List<Action>, edit: StepEdit): StepEditGate {
 }
 
 /**
- * 带两条状态的真值表（唯一写口用这一条）。RUNNING 排在最前：执行中账本不许动，
+ * 带三条状态的真值表（唯一写口用这一条）。RUNNING 排在最前：执行中账本不许动，
  * 至于"账是不是空、下标越不越界"都是次一级问题，先拒了再说；COMPILING 紧随其后，同一条理由。
  *
  * 编译档**不在此处写 `if (compileBusy)`**：它转调 `AccessibilityGate` 那一格
@@ -114,16 +124,26 @@ fun stepEditGateOf(actions: List<Action>, edit: StepEdit): StepEditGate {
  * 不存在"编辑面拒了、执行面放了"的串状态（母单 §2-4 与 `AccessibilityGate.kt` 注释同一条纪律）。
  *
  * 为什么没有"少一个 compileBusy 参数"的三参重载：那个重载能编译、能过全部旧用例，
- * 却静默少判一档——漏调的那一面就是假门禁。故四参是**唯一**带状态的入口（S3-F 自述偏差登记在此）。
+ * 却静默少判一档——漏调的那一面就是假门禁。故带状态的那一条入口**只此一家**（S3-F 自述偏差登记在此）。
+ * S5-f 给这一家再加第五参 `activated`（付费墙），同一道理不开"少传一个参数也能过"的口子：
+ * 所有调用点因此必须显式表态自己看见的是哪一格激活态，旧用例则一律编译不过而非静默放行。
  */
 fun stepEditGateOf(
     actions: List<Action>,
     edit: StepEdit,
     running: Boolean,
     compileBusy: Boolean,
+    activated: Boolean,
 ): StepEditGate = when {
     running -> StepEditGate.RUNNING
     stopCompileGateOf(compileBusy) == RecordGate.COMPILING -> StepEditGate.COMPILING
+    // 付费墙排在两条状态档之后、形状判据之前。两条排序各有其故，都不许反过来：
+    // ① 状态档在先——RUNNING/COMPILING 说的是"安全与互斥此刻不让动账"，这一层与买没买无关，
+    //    把它排在墙后等于让付费状态改写既有的安全话术（主窗自钉：墙不许改变任何一条安全语义）。
+    // ② 形状档排在墙之后——形状缺陷（越界/缺线索/空账）要修好才谈得上进账，但对未激活用户来说
+    //    "补一步"这一整条路根本不通：他照提示把线索补齐，仍然进不去。先给他那句**唯一能解锁下一步动作**
+    //    的拒因，才不浪费一次点击（话术可执行性优先于缺陷描述的精细度）。
+    edit is StepEdit.Insert && !activated -> StepEditGate.NOT_ACTIVATED
     else -> stepEditGateOf(actions, edit)
 }
 
@@ -131,15 +151,19 @@ fun stepEditGateOf(
  * 编辑拒因的过期边（与 [startRejectionAfterStateChange] 同一条纪律）：RUNNING 与 COMPILING 这两档是
  * **纯状态档**——它们说的是"此刻正在执行 / 此刻编译在跑"，状态一归位话术就失去依据，
  * 留在屏上就是假红（S3-F/F1-3 扩了 COMPILING 这一半；裁决 S31-B2）。
+ * [StepEditGate.NOT_ACTIVATED] 同族（S5-f）：它说的是"本机此刻还没激活"，激活一成功这句话就失去依据，
+ * 挂着就是假红——用户已经解锁了还看见"Upgrade to Pro"。
  * 其余三档（空账/越界/空名）都绑在用户那一次请求上，由下一次请求覆盖，不许被状态跃迁悄悄抹掉。
  */
 fun editRejectionAfterStateChange(
     current: StepEditGate?,
     running: Boolean,
     compileBusy: Boolean,
+    activated: Boolean,
 ): StepEditGate? = when {
     current == StepEditGate.RUNNING && !running -> null
     current == StepEditGate.COMPILING && !compileBusy -> null
+    current == StepEditGate.NOT_ACTIVATED && activated -> null
     else -> current
 }
 
@@ -173,6 +197,8 @@ fun StepEditGate.userCopy(): String? = when (this) {
     StepEditGate.INSERT_BAD_NUMBER -> "Those numbers have to be whole numbers of 0 or more - the wait time " +
         "is counted in milliseconds and “which match” counts matches starting from 0. A value that is " +
         "not a number would be replayed as something else than what the ledger says."
+    // 付费墙那句不在本文件抄：三处入口共用 `activation/ActivationGate.kt` 一份单源
+    StepEditGate.NOT_ACTIVATED -> ProGate.NOT_ACTIVATED.userCopy(ProFeature.MANUAL_STEP_INSERT)
 }
 
 /** 编辑后生效的步序账（供展示与序列化）。 */

@@ -106,14 +106,14 @@ class StepEditingTest {
         ).forEach { (actions, edit) ->
             assertEquals(
                 StepEditGate.RUNNING,
-                stepEditGateOf(actions, edit, running = true, compileBusy = false),
+                stepEditGateOf(actions, edit, running = true, compileBusy = false, activated = true),
                 "$edit 执行中不得放行",
             )
         }
     }
 
     @Test
-    fun `非执行中四参判定与两参逐档同果（禁编辑不得顺手改坏旧判据）`() {
+    fun `非执行中五参判定与两参逐档同果 禁编辑不得顺手改坏旧判据`() {
         val s = steps(2)
         listOf(
             s to StepEdit.Remove(0),
@@ -123,7 +123,7 @@ class StepEditingTest {
         ).forEach { (actions, edit) ->
             assertEquals(
                 stepEditGateOf(actions, edit),
-                stepEditGateOf(actions, edit, running = false, compileBusy = false),
+                stepEditGateOf(actions, edit, running = false, compileBusy = false, activated = true),
                 "两条状态都为假时必须与两参判定一字不差（同一判据，不许两份账）",
             )
         }
@@ -133,8 +133,8 @@ class StepEditingTest {
     fun `跑完即可编 同一请求由 RUNNING 转 READY`() {
         val s = steps()
         val edit = StepEdit.Remove(0)
-        assertEquals(StepEditGate.RUNNING, stepEditGateOf(s, edit, running = true, compileBusy = false))
-        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false))
+        assertEquals(StepEditGate.RUNNING, stepEditGateOf(s, edit, running = true, compileBusy = false, activated = true))
+        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false, activated = true))
     }
 
     // ---------- 编译中禁编辑（S3-F/F1，裁决 S31-B2：编译互斥从录制两面扩到改账面） ----------
@@ -152,7 +152,7 @@ class StepEditingTest {
         ).forEach { (actions, edit) ->
             assertEquals(
                 StepEditGate.COMPILING,
-                stepEditGateOf(actions, edit, running = false, compileBusy = true),
+                stepEditGateOf(actions, edit, running = false, compileBusy = true, activated = true),
                 "$edit 编译中不得放行",
             )
         }
@@ -165,7 +165,7 @@ class StepEditingTest {
         val s = steps()
         assertEquals(
             StepEditGate.RUNNING,
-            stepEditGateOf(s, StepEdit.Remove(0), running = true, compileBusy = true),
+            stepEditGateOf(s, StepEdit.Remove(0), running = true, compileBusy = true, activated = true),
         )
     }
 
@@ -173,8 +173,8 @@ class StepEditingTest {
     fun `编译归位即可编 同一请求由 COMPILING 转 READY`() {
         val s = steps()
         val edit = StepEdit.Remove(0)
-        assertEquals(StepEditGate.COMPILING, stepEditGateOf(s, edit, running = false, compileBusy = true))
-        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false))
+        assertEquals(StepEditGate.COMPILING, stepEditGateOf(s, edit, running = false, compileBusy = true, activated = true))
+        assertEquals(StepEditGate.READY, stepEditGateOf(s, edit, running = false, compileBusy = false, activated = true))
     }
 
     @Test
@@ -194,43 +194,167 @@ class StepEditingTest {
         )
     }
 
+    /**
+     * 过期边的测试转调壳：本文件那条旧用例只谈执行/编译两根轴，激活轴恒置『已激活』
+     * （S5-f 的第五参因此不必在每一格里重复出现；激活轴自己的断言在下一条用例里）。
+     */
+    private fun expiry(
+        current: StepEditGate?,
+        running: Boolean,
+        compileBusy: Boolean,
+        activated: Boolean = true,
+    ): StepEditGate? = editRejectionAfterStateChange(current, running, compileBusy, activated)
+
     @Test
     fun `过期边只作废纯状态档 请求档不得被状态跃迁顺手抹掉`() {
         assertNull(
-            editRejectionAfterStateChange(StepEditGate.RUNNING, running = false, compileBusy = false),
+            expiry(StepEditGate.RUNNING, running = false, compileBusy = false),
             "执行结束还挂着 RUNNING=假红",
         )
         assertEquals(
             StepEditGate.RUNNING,
-            editRejectionAfterStateChange(StepEditGate.RUNNING, running = true, compileBusy = false),
+            expiry(StepEditGate.RUNNING, running = true, compileBusy = false),
         )
         // S3-F/F1-3：COMPILING 同为纯状态档，编译归位即撤（不撤就是假红），且必须按**各自那一路**状态撤
         assertNull(
-            editRejectionAfterStateChange(StepEditGate.COMPILING, running = false, compileBusy = false),
+            expiry(StepEditGate.COMPILING, running = false, compileBusy = false),
             "编译都回来了还挂着 COMPILING=假红（S31-B2 扩面的另一半）",
         )
         assertEquals(
             StepEditGate.COMPILING,
-            editRejectionAfterStateChange(StepEditGate.COMPILING, running = false, compileBusy = true),
+            expiry(StepEditGate.COMPILING, running = false, compileBusy = true),
         )
         assertEquals(
             StepEditGate.COMPILING,
-            editRejectionAfterStateChange(StepEditGate.COMPILING, running = true, compileBusy = true),
+            expiry(StepEditGate.COMPILING, running = true, compileBusy = true),
             "执行归位不影响编译档：两条状态各管各的撤字边",
         )
         assertEquals(
             StepEditGate.RUNNING,
-            editRejectionAfterStateChange(StepEditGate.RUNNING, running = true, compileBusy = true),
+            expiry(StepEditGate.RUNNING, running = true, compileBusy = true),
             "编译归位不影响执行档：同上",
         )
         listOf(StepEditGate.EMPTY_LEDGER, StepEditGate.OUT_OF_RANGE, StepEditGate.BLANK_NAME).forEach {
             assertEquals(
                 it,
-                editRejectionAfterStateChange(it, running = false, compileBusy = false),
+                expiry(it, running = false, compileBusy = false),
                 "$it 绑在那次请求上，不该随状态消失",
             )
         }
-        assertNull(editRejectionAfterStateChange(null, running = false, compileBusy = false), "无拒因时不得凭空造一条")
+        assertNull(expiry(null, running = false, compileBusy = false), "无拒因时不得凭空造一条")
+    }
+
+    /**
+     * S5-f 激活轴（军令 §3 手动补步骤进墙）：NOT_ACTIVATED 是**纯状态档**，与 RUNNING/COMPILING 同一条纪律。
+     * 上面那条旧用例刻意不加第三根轴：它讲的是"执行/编译两路状态各管各的"，混进激活轴就把变量从 2 个
+     * 变成 3 个、结论却仍写成 2 个（口径混淆）。新轴自己谈自己这一格，两格才各自可比。
+     */
+    @Test
+    fun `未激活档在激活成功那一瞬作废 没激活就留着`() {
+        assertEquals(
+            StepEditGate.NOT_ACTIVATED,
+            editRejectionAfterStateChange(StepEditGate.NOT_ACTIVATED, false, false, activated = false),
+            "还没解锁就把那句 Upgrade to Pro 撤了=假绿：让未激活用户以为已经放行",
+        )
+        assertNull(
+            editRejectionAfterStateChange(StepEditGate.NOT_ACTIVATED, false, false, activated = true),
+            "输完码还挂着 Upgrade to Pro=假红：拿陈旧话术骗已经付了钱的人",
+        )
+        // 三根轴互不越权：激活态管不着执行/编译那两档，执行/编译归位也管不着未激活那一档
+        assertEquals(
+            StepEditGate.RUNNING,
+            editRejectionAfterStateChange(StepEditGate.RUNNING, true, false, activated = true),
+        )
+        assertEquals(
+            StepEditGate.COMPILING,
+            editRejectionAfterStateChange(StepEditGate.COMPILING, false, true, activated = true),
+        )
+        assertEquals(
+            StepEditGate.RUNNING,
+            editRejectionAfterStateChange(StepEditGate.RUNNING, true, false, activated = false),
+            "未激活那一档不得顺手撤掉 RUNNING：三条撤字边各认各的轴",
+        )
+        // 请求绑定档在两根新轴上同样纹丝不动
+        listOf(
+            StepEditGate.EMPTY_LEDGER,
+            StepEditGate.OUT_OF_RANGE,
+            StepEditGate.BLANK_NAME,
+            StepEditGate.INSERT_TYPE,
+            StepEditGate.INSERT_CLUE,
+            StepEditGate.INSERT_EMPTY_INPUT,
+            StepEditGate.INSERT_BAD_NUMBER,
+        ).forEach {
+            assertEquals(it, editRejectionAfterStateChange(it, false, false, activated = true), "$it 不是状态档")
+            assertEquals(it, editRejectionAfterStateChange(it, false, false, activated = false), "$it 不是状态档")
+        }
+    }
+
+    @Test
+    fun `插步未激活时门禁拦下 其余编辑操作一律不受激活影响`() {
+        val s = steps(2)
+        val insertClick = StepEdit.Insert(1, ManualStep(ActionType.CLICK, "n", text = "x"))
+        assertEquals(
+            StepEditGate.NOT_ACTIVATED,
+            stepEditGateOf(s, insertClick, running = false, compileBusy = false, activated = false),
+            "未激活用户手动补一步必须被拦（军令 §3 进墙第三枚）",
+        )
+        assertEquals(
+            StepEditGate.READY,
+            stepEditGateOf(s, insertClick, running = false, compileBusy = false, activated = true),
+            "对照格：墙只圈住『补一步』这一个动作，激活后同一请求逐字放行",
+        )
+        // 两条状态档排在墙之前：执行中/编译中该说什么先说什么——安全与互斥不认买没买
+        assertEquals(
+            StepEditGate.RUNNING,
+            stepEditGateOf(s, insertClick, running = true, compileBusy = false, activated = false),
+        )
+        assertEquals(
+            StepEditGate.COMPILING,
+            stepEditGateOf(s, insertClick, running = false, compileBusy = true, activated = false),
+        )
+        // 形状档排在墙之后：未激活用户先把"这条路通不通"听明白，再谈修哪一格
+        assertEquals(
+            StepEditGate.NOT_ACTIVATED,
+            stepEditGateOf(
+                s,
+                StepEdit.Insert(1, ManualStep(ActionType.CLICK, "n")),
+                running = false,
+                compileBusy = false,
+                activated = false,
+            ),
+            "缺线索的步在未激活态仍报墙：让他补完线索再撞第二次墙=白挨一次点击（可执行拒因优先）",
+        )
+        assertEquals(
+            StepEditGate.INSERT_CLUE,
+            stepEditGateOf(
+                s,
+                StepEdit.Insert(1, ManualStep(ActionType.CLICK, "n")),
+                running = false,
+                compileBusy = false,
+                activated = true,
+            ),
+            "同一格输入激活后立刻回到形状判据：墙只在它该出现的时候出现，不吞掉原判据",
+        )
+        listOf<StepEdit>(
+            StepEdit.Remove(0),
+            StepEdit.Rename(0, "renamed"),
+            StepEdit.Move(0, 1),
+        ).forEach {
+            assertEquals(
+                StepEditGate.READY,
+                stepEditGateOf(s, it, running = false, compileBusy = false, activated = false),
+                "$it 不在进墙清单里：付费墙不许动步序账的删/改名/移序（绝不进墙清单）",
+            )
+        }
+        assertEquals(
+            StepEditGate.NOT_ACTIVATED,
+            stepEditGateOf(emptyList(), insertClick, running = false, compileBusy = false, activated = false),
+            "空账也在墙之后：未激活的人补不了步，先告诉他补不了（'先录一条'那句修不出一个解锁）",
+        )
+        assertEquals(
+            StepEditGate.EMPTY_LEDGER,
+            stepEditGateOf(emptyList(), insertClick, running = false, compileBusy = false, activated = true),
+        )
     }
 
     // ---------- 门禁与原语严格对齐 ----------

@@ -1,5 +1,6 @@
 package com.anytouch.app.recorder
 
+import com.anytouch.app.activation.UPGRADE_MARK
 import com.anytouch.byok.executorSupportedActionTypes
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ActionSafety
@@ -153,9 +154,28 @@ class StepInsertionTest {
     @Test
     fun `执行中与编译中排在手动四档之前`() {
         val bad = insert(9, ManualStep(ActionType.SCROLL, ""))
-        assertEquals(StepEditGate.RUNNING, stepEditGateOf(steps(), bad, running = true, compileBusy = true))
-        assertEquals(StepEditGate.COMPILING, stepEditGateOf(steps(), bad, running = false, compileBusy = true))
-        assertEquals(StepEditGate.OUT_OF_RANGE, stepEditGateOf(steps(), bad, running = false, compileBusy = false))
+        assertEquals(
+            StepEditGate.RUNNING,
+            stepEditGateOf(steps(), bad, running = true, compileBusy = true, activated = true),
+        )
+        assertEquals(
+            StepEditGate.COMPILING,
+            stepEditGateOf(steps(), bad, running = false, compileBusy = true, activated = true),
+        )
+        assertEquals(
+            StepEditGate.OUT_OF_RANGE,
+            stepEditGateOf(steps(), bad, running = false, compileBusy = false, activated = true),
+        )
+        // 排序对照格（S5-f）：三条档各按自己的轴生效，墙只插在最里层——未激活时越界一律先报墙
+        assertEquals(
+            StepEditGate.NOT_ACTIVATED,
+            stepEditGateOf(steps(), bad, running = false, compileBusy = false, activated = false),
+        )
+        assertEquals(
+            StepEditGate.RUNNING,
+            stepEditGateOf(steps(), bad, running = true, compileBusy = false, activated = false),
+            "执行中优先于墙：安全话术不因付费状态而变（主窗自钉：墙不许改安全语义）",
+        )
     }
 
     @Test
@@ -168,7 +188,7 @@ class StepInsertionTest {
         ).forEach {
             assertEquals(
                 it,
-                editRejectionAfterStateChange(it, running = false, compileBusy = false),
+                editRejectionAfterStateChange(it, running = false, compileBusy = false, activated = true),
                 "$it 绑在那一次插入请求上，不该随状态消失",
             )
         }
@@ -352,9 +372,9 @@ class StepInsertionTest {
 
     // ---------- 话术与标题 ----------
     @Test
-    fun `九档拒因话术互不雷同 手动四档各说各的因`() {
+    fun `十档拒因话术互不雷同 手动四档各说各的因`() {
         val gates = StepEditGate.values().filter { it != StepEditGate.READY }
-        assertEquals(9, gates.size, "门禁加档请同时加话术与用例（这里数的是拒因档总数）")
+        assertEquals(10, gates.size, "门禁加档请同时加话术与用例（这里数的是拒因档总数）")
         val copies = gates.map { assertNotNull(it.userCopy(), "$it 必须给用户话术（L2-③ 禁静默禁用）") }
         assertEquals(copies.size, copies.distinct().size, "两档共用一句=用户不知道该改哪一格")
         assertTrue(StepEditGate.INSERT_TYPE.userCopy()!!.contains("click"))
@@ -363,10 +383,15 @@ class StepInsertionTest {
         assertTrue(StepEditGate.INSERT_EMPTY_INPUT.userCopy()!!.contains("empty"))
         assertTrue(StepEditGate.INSERT_BAD_NUMBER.userCopy()!!.contains("milliseconds"))
         assertTrue(StepEditGate.RUNNING.userCopy()!!.contains("adding"), "执行中禁编辑现在也管插步，话术须点到")
+        // 付费档不抄第二份真源：这句话一律转调 activation/ 那一份（S5-f 三处入口共用一句）
+        assertTrue(
+            StepEditGate.NOT_ACTIVATED.userCopy()!!.startsWith(UPGRADE_MARK),
+            "未激活档的话术没走单源：那三处入口就成了三套真值",
+        )
     }
 
     @Test
-    fun `九档拒因话术零中文`() {
+    fun `十档拒因话术零中文`() {
         // 与 scripts/ui-english-sweep.sh 同一段码位（CJK + 假名 + 全角标点），两侧同一口径才叫一条判据
         val cjk = Regex("[\\u3000-\\u303F\\u3040-\\u9FFF\\uF900-\\uFAFF\\uFF00-\\uFFEF]")
         StepEditGate.values().mapNotNull { it.userCopy() }.forEach {

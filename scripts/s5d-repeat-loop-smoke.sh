@@ -66,6 +66,11 @@ wait_bound() {
 VC=$($ADB shell dumpsys package com.anytouch.app 2>/dev/null | tr -d '\r' | grep -m1 versionCode | sed 's/.*versionCode=//; s/[^0-9].*//')
 [ "$VC" = "$EXPECTED_VC" ] || { bad "预检 :: 机上 versionCode=$VC 与本轮应有 $EXPECTED_VC 不符——装错包，跑了也是白跑"; exit 2; }
 wait_bound || { bad "预检 :: 无障碍服务未绑定"; exit 2; }
+# S5-f 付费墙前置（附页 §3 判据 10）：本脚本每一格都要真动用轮数（L2/L4/L5/L7 全是 repetitions≥2 或跑满 N 轮），
+# v1.0.5 起未激活一律被墙拦下——红字看着像产品坏了，实际是前置少一步。激活走**注入通道输入合法码**，
+# 与真人同一条校验路径（同一个 ActivationStore.submit，不开旁路）；判据与话术单源在 helper 里，五份脚本不各抄一份。
+AP=$(bash "$(dirname "$0")/activation-preflight.sh" 2>&1) || { bad "预检 :: 激活前置未过（判据 10）—— $AP"; exit 2; }
+log "激活前置 :: $AP"
 SIZE=$($ADB shell wm size | tail -1 | tr -d '\r' | sed 's/.*: *//')
 W=${SIZE%x*}; H=${SIZE#*x}
 # 停止球默认停靠位（END|CENTER_VERTICAL，device-smoke C6 标定 1002,1272@1080x2400）按分辨率线性缩放
@@ -152,7 +157,9 @@ answer_panel_once() { # $1=格名
 }
 
 # 高危格前置：停在 Settings 搜索页，搜索框文本置为 "password"（测试通道 input text，与点球同类豁免）
-to_search_with_password() { # $1=格名
+# 一次进入的完整走位（冷启 Settings → 点搜索入口 → 送字），送到"执行器将要定位的那一枚节点"真长出
+# text="password" 为止；送不进去返回 1，由外层整段重来（v1.0.5 批实测：同一函数 L4 红、L5 绿＝偶发）。
+search_entry_once() { # $1=格名
     local tag="$1" xy i=0
     $ADB shell am force-stop com.android.settings >/dev/null 2>&1
     $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1; sleep 6
@@ -174,8 +181,17 @@ to_search_with_password() { # $1=格名
         fi
         sleep 1; i=$((i + 1))
     done
-    bad "[$tag] :: 没读到 resource-id=$RID_SEARCH 且 text=\"password\" 的那一枚节点（高危前置未就位＝面板永远不会弹，本格不成立）"
     grep -o '<node[^>]*password[^>]*>' "$XHOST" | head -5 >> "$RAW"
+    return 1
+}
+to_search_with_password() { # $1=格名 —— 整段重来最多三次：送字这一发落在没焦点的框里就是空写，
+    local tag="$1" attempt=1                   # 原地重 dump 十次也读不到（红的是通道不是产品，但也不许记绿）
+    while [ "$attempt" -le 3 ]; do
+        search_entry_once "$tag" && return 0
+        log "[$tag] :: 第 $attempt 次进入搜索页没让目标节点长出 text=\"password\"（整段重来，不在原地赌下一帧）"
+        attempt=$((attempt + 1))
+    done
+    bad "[$tag] :: 三整段进入都没读到 resource-id=$RID_SEARCH 且 text=\"password\" 的那一枚节点（高危前置未就位＝面板永远不会弹，本格不成立）"
     wait_bound
     return 1
 }

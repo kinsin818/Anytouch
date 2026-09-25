@@ -1,0 +1,2 @@
+# s5f-activation 预检 ok · api=34 1080x2400 vc=6
+# 靶机=sdk_gphone64_x86_64 · E9_APK=app/build/outputs/apk/debug/app-debug.apk · md5=5c1e60a2811e457b0bbd6434f698ff39（机上 pull 回来逐字同值）

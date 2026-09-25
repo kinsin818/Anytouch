@@ -1,0 +1,92 @@
+#0 click · Connected devices
+#0 click · Show Navigation Drawer
+#1 click · Connection preferences
+#1 wait · 800ms
+#2 click · Bluetooth
+#2 click · Trash
+#3 wait · 1500ms
+#4 click · More options
+#5 wait · 800ms
+#6 click · Empty trash
+#7 wait · 800ms
+#8 click · confirmation_button
++ Step
+1
+5
+AI compile
+AI compile (bring your own key — network is used only when creating a task)
+API key (after saving, only its last 4 digits stay on screen)
+Accessibility service is not connected: please open Settings → Accessibility → Downloaded services and turn Anytouch on right away. Until it is on, recording and execution cannot start.
+Activate
+Activation code (ANY-XXXX-XXXX-XXXX)
+Add step
+Adds one step at position #1
+Anytouch executor
+Attach the visible text of the current screen (only on-screen labels and control ids are sent; text-field contents, password fields and screenshots never are)
+BYOK configuration (kept encrypted on this device in the Keystore, never sent anywhere else)
+Cancel
+Cancel +
+Click
+Content description
+Delete
+Discord check-in
+Down
+Enter your activation code
+Erase device credentials
+Every round asks for confirmation by default. "Repeat without asking" only skips the panel for a risk you already approved during this run; a new kind of risk still asks.
+Gmail cleanup
+Gmail cleanup and Discord check-in require you to sign in to the app yourself first. Anytouch only automates the interface after you are signed in; it never performs logins and never reads or stores your account credentials.
+Hierarchy path
+Idle
+Interval seconds (1-60)
+Key saved on this device: ***JgYp
+Load
+Model name
+My tasks
+Name for this task
+Not recording
+Package to record
+Photo cleanup
+Pro features unlocked on this device (code ending …-B1CE).
+Rename
+Repeat without asking
+Repetitions (1-100)
+Resource id
+Run
+Run task
+Save
+Save this task
+Say what to do in one sentence (e.g. open the Bluetooth page)
+Service URL (OpenAI-compatible endpoint, https only)
+Start recording
+Step name
+Steps 3 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps 9 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps find their target on the accessibility node tree, so there is no x/y to fill in here.
+Stop & compile
+Text on screen
+Type text
+Unlock
+Unlocking adds three things: repeating a task over several rounds, your own saved task list, and hand-added steps. The code is checked on this device only - it never goes online.
+Up
+Wait
+Which match (0 = first)
+Your key is sent to exactly this one address: integrate.api.nvidia.com
+[{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+com.android.settings
+deepseek-ai/deepseek-v4.1-flash
+f5_probe
+https://integrate.api.nvidia.com/v1
+open_drawer
+open_trash
+pause_confirm
+pause_drawer
+pause_menu
+pause_trash
+rec-0001
+rec-0002
+rec-0003
+tap_delete_permanently
+tap_empty_trash
+trash_overflow

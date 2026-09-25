@@ -86,8 +86,12 @@ inject() {
 #  ④ 每次扫视先坐实"读的是自家窗"（缓冲里至少一条 package="com.anytouch.app" 节点）：
 #     一条都没有时 SWEEP_OK 直接压回 0，命中类断言记 SKIP 而非红（09-24 实测：同一构建同一脚本
 #     两轮读数 0↔1 翻转，产品代码未动——那一轮的"0"是"没在读自家窗"，不许判产品的罪）。
-TOP_TRIES=6
-SCREEN_MAX=6
+TOP_TRIES=8
+# 6→8（09-25 S5-f 判据 10 实测）：首页多了激活那一行之后，六屏翻不到底——run3 逐字记着
+# "自顶起共翻 6 屏仍无连续两屏签名相同"，于是 U15c 这类**缺席**判据只能记 SKIP（不记红也不记绿），
+# 相对 v1.0.4 的 51/0 是覆盖率丢了。这里加的是**扫视容量**（回顶与翻页两处）不是判据：阈值、判据、
+# 缺席一侧的 SKIP 纪律一字未动，容量大了只会让"缺席"更早拿到到底证据；仍扫不到底时照旧 SKIP。
+SCREEN_MAX=8
 SWEEP_BUF=""
 SWEEP_OK=0
 SWEEP_DIRTY=1
@@ -218,6 +222,10 @@ fi
 if ! MSYS_NO_PATHCONV=1 $ADB shell dumpsys accessibility | grep -q "com.anytouch.app"; then
     echo "前置失败：无障碍服务未绑定"; exit 2
 fi
+# S5-f 判据 10：受付费墙圈的格子（手动补步骤/我的任务/轮数）在未激活态本就该拒，脚本按"已解锁"写断言，
+# 所以先经**注入通道输合法码**（与真人同一条校验路径，不开旁路）；前置不成立就当场停手，不烧轮次赌运气。
+AP=$(bash "$(dirname "$0")/activation-preflight.sh" 2>&1) || { echo "前置失败：激活前置未过—— $AP"; exit 2; }
+echo "前置 :: $AP"
 MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
 
 # ---------- U1 编译产物上屏：3 行 + 行内三操作齐（不 dump 就不知道"账上有、屏上没有"） ----------

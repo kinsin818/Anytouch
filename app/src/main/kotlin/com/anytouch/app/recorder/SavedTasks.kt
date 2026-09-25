@@ -1,5 +1,8 @@
 package com.anytouch.app.recorder
 
+import com.anytouch.app.activation.ProFeature
+import com.anytouch.app.activation.ProGate
+import com.anytouch.app.activation.userCopy
 import com.anytouch.app.platform.COMPILE_HOLD_HEADLINE
 import com.anytouch.contracts.Action
 import com.anytouch.contracts.ContractJson
@@ -76,6 +79,13 @@ enum class SavedTaskGate {
      * 话术与模板来路共用 [ledgerRunningCopy] 那一份。
      */
     RUNNING,
+
+    /**
+     * 「我的任务」是进阶功能而本机还没激活（S5-f 军令 §3 三枚进墙功能之一）。
+     * 与 [COMPILING]、[RUNNING] 同族——**纯状态档**：激活一成功这句话就失去依据，挂着就是假红。
+     * 话术不在本文件复制，转调 `activation/ActivationGate.kt` 那一份单源（三处入口共用一句）。
+     */
+    NOT_ACTIVATED,
 }
 
 /** 存一条的结果。[Rejected] 不带任何写副作用。 */
@@ -141,6 +151,8 @@ fun SavedTaskGate.userCopy(): String = when (this) {
             "(both success and failure speak up)."
     // 与「模板装载」那条来路共用 [ledgerRunningCopy] 那一份文字（主语不同而已）：同一句判据抄两处=雷 18。
     SavedTaskGate.RUNNING -> ledgerRunningCopy("saved task")
+    // 付费墙那句不在此抄一份：三处入口共用 activation 层那一份单源
+    SavedTaskGate.NOT_ACTIVATED -> ProGate.NOT_ACTIVATED.userCopy(ProFeature.SAVED_TASKS)
 }
 
 /**
@@ -264,26 +276,30 @@ private fun ReadOutcome.tasksOrNull(): List<SavedTask> = when (this) {
 
 /**
  * 存档红字的过期边（与 `AccessibilityGate` / `StepEditing` 那三条 `*AfterStateChange` 同一条纪律，
- * 判据住纯函数、接线只转调）。三条规则、一个函数，共同点：这三档说的都是"**此刻**的状态"，
+ * 判据住纯函数、接线只转调）。四条规则、一个函数，共同点：这四档说的都是"**此刻**的状态"，
  * 状态一归位，这句话就成了假红（V-2 那颗雷的形态：门禁说可以、话术说不行）。
  * - [SavedTaskGate.READ_FAILED]：盘恢复可读之后仍在红 = 谎报；反过来，读不出这件事此刻最要紧，
  *   它必须盖过任何陈旧话术（所以排第一，不看 `current` 是谁）；
  * - [SavedTaskGate.COMPILING]：编译一归位即作废；
- * - [SavedTaskGate.RUNNING]：这一跑一结束即作废（作废的是那句"现在有人在跑"，不是那条存档）。
+ * - [SavedTaskGate.RUNNING]：这一跑一结束即作废（作废的是那句"现在有人在跑"，不是那条存档）；
+ * - [SavedTaskGate.NOT_ACTIVATED]：激活成功那一瞬即作废（S5-f 军令 §3；那句 "Upgrade to Pro" 说的是
+ *   "这台机器还没买"，买完了还挂着就是拿陈旧话术骗已经付了钱的人）。
  *
  * 其余各档（空名／重名／太长／空账／找不到／写不进）都是**请求绑定**的：说的是"你刚才那一次点击没成"，
  * 状态跃迁（执行归位、编译回来）不会让它失去依据，所以原样保留、由下一次操作覆盖，不许悄悄抹掉。
- * 这里刻意只列这三档而不逐档列白名单：多写一档等于把"哪些算状态档"交给接线侧自由发挥。
+ * 这里刻意只列这四档而不逐档列白名单：多写一档等于把"哪些算状态档"交给接线侧自由发挥。
  */
 fun savedRejectionAfterChange(
     current: SavedTaskGate?,
     outcome: ReadOutcome,
     running: Boolean,
     compileBusy: Boolean,
+    activated: Boolean,
 ): SavedTaskGate? = when {
     outcome is ReadOutcome.Corrupt -> SavedTaskGate.READ_FAILED
     current == SavedTaskGate.READ_FAILED -> null
     current == SavedTaskGate.COMPILING && !compileBusy -> null
     current == SavedTaskGate.RUNNING && !running -> null
+    current == SavedTaskGate.NOT_ACTIVATED && activated -> null
     else -> current
 }

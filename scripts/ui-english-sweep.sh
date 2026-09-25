@@ -44,6 +44,11 @@ esac
 VER=$($ADB shell dumpsys package com.anytouch.app | grep -m1 versionName | tr -d '\r')
 log "靶机=$MODEL $VER"
 $ADB shell dumpsys accessibility | grep -q "Bound services:{Service\[label=Anytouch" || { bad "预检 :: 无障碍服务未绑定"; exit 2; }
+# S5-f 判据 10：段 3 要点开的 "+ Step" 在未激活态是灰的（enabled=false，点不动），不激活就扫不到那一层。
+# 前置经注入通道输合法码（同一个校验器，不开旁路）；不成立当场停手。
+AP=$(bash "$(dirname "$0")/activation-preflight.sh" 2>&1) || { bad "预检 :: 激活前置未过（判据 10）—— $AP"; exit 2; }
+log "激活前置 :: $AP"
+$ADB shell dumpsys accessibility | grep -q "Bound services:{Service\[label=Anytouch" || { bad "预检 :: 激活前置 dump 后服务未复绑"; exit 2; }
 mkdir -p "$OUT"
 
 dump_to() { # $1=目标文件名（不带目录）
@@ -153,6 +158,43 @@ if [ -n "$xy3" ]; then
 else
     # 进不去面板就明写这一段没扫：整页两段全绿不等于第三段没漏（假绿血账同族）
     bad "段3 :: 从页顶逐屏翻 8 屏仍没读到 + Step 那一格（面板没展开，这一层的上屏文案本次未扫）"
+fi
+
+# ---- 段 4：激活对话框那一层（S5-f 判据 7 要求"全英文"覆盖到框内，不只主页） ----
+# 对话框是独立 window：段 1~3 走主页永远扫不到框内那三句（与"折叠线以下不进树"同族——不在同一棵树里同样不进树）。
+# 只开一扇窗再收起，不改任何产品资产（不输码、不点 Unlock），点亮判据仍只认产品自己的状态变化：框自己的 tag 上屏。
+to_top
+idx4=0; xy4=""
+while [ $idx4 -lt 8 ]; do
+    idx4=$((idx4 + 1))
+    dump_to activate-probe-$idx4.xml
+    xy4=$(python scripts/tap_node.py "$OUT/activate-probe-$idx4.xml" "Activate" 2>/dev/null)
+    [ -n "$xy4" ] && break
+    swipe 500 1800 500
+done
+if [ -n "$xy4" ]; then
+    x4=${xy4% *}; y4=${xy4#* }; d4=0; name4=""
+    for off in 85 0 45 130; do
+        $ADB shell input tap "$x4" "$((y4 - off))" >/dev/null 2>&1; sleep 2
+        name4="dialog-off$off"
+        dump_to "$name4.xml"
+        grep -q 'resource-id="activation_input"' "$OUT/$name4.xml" && { d4=1; break; }
+    done
+    if [ "$d4" = "1" ]; then
+        # 这一层就一屏，两锚必须在**同一张** dump 里都出现（换段名沿用整页两锚=假绿同族）
+        grep -q "Enter your activation code" "$OUT/$name4.xml" && grep -q "never goes online" "$OUT/$name4.xml" \
+            && ok "段4 :: 激活对话框进了 dump，标题与那句'不联网'同屏俱在" \
+            || bad "段4 :: 对话框进了 dump 但两锚不齐（这一层文案没扫全，不算过）"
+        $ADB shell input keyevent 4 >/dev/null 2>&1; sleep 1
+        dump_to dialog-closed.xml
+        grep -q 'resource-id="activation_input"' "$OUT/dialog-closed.xml" \
+            && log "段4 :: BACK 后框仍在树上（读数器按实记，不改判据：本段只扫文案）" \
+            || log "段4 :: 框已收起，设备留给下一支脚本可读"
+    else
+        bad "段4 :: Activate 在树里却四档内点不开框（注入通道与 Compose 命中层对不上，测试通道红，不是产品）"
+    fi
+else
+    bad "段4 :: 从页顶逐屏翻 8 屏仍没读到 Activate 那一格（对话框那层本次未扫，不算扫过）"
 fi
 
 out=$(cjk_scan_all); rc=$?

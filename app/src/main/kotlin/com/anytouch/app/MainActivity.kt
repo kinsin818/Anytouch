@@ -17,10 +17,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,10 +34,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.anytouch.app.activation.ActivationCopy
+import com.anytouch.app.activation.ActivationState
+import com.anytouch.app.activation.ActivationVerdict
+import com.anytouch.app.activation.ProFeature
+import com.anytouch.app.activation.ProGate
+import com.anytouch.app.activation.UPGRADE_MARK
+import com.anytouch.app.activation.lockedHint
+import com.anytouch.app.activation.maskedTail
+import com.anytouch.app.activation.proGateOf
+import com.anytouch.app.activation.proRejectionAfterChange
+import com.anytouch.app.activation.userCopy
 import com.anytouch.app.compile.ByokGateway
 import com.anytouch.app.compile.byokContextFlagOf
+import com.anytouch.app.platform.AndroidActivationDisk
 import com.anytouch.app.platform.AndroidSavedTaskDisk
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.runGateOf
@@ -81,6 +97,16 @@ class MainActivity : ComponentActivity() {
     private val savedStore by lazy { AndroidSavedTaskDisk.of(applicationContext) }
 
     /**
+     * 本机激活态磁盘件（S5-f 军令 §3；进程内单例，界面对话框与 adb 注入两条通道共用同一个文件）。
+     *
+     * **本件的读写走主线程，与 [savedStore] 那条串行线刻意不同**，理由记在这里而不是藏在注释里：
+     * 镜像必须在"第一帧"和 `handleTrigger` 之前就位——否则冷启动注入的那一跑（`--es step_insert_at`
+     * 与 `--es activation_code` 同一条 intent）会先读镜像再刷镜像，解锁成功却仍被判未解锁。
+     * 量的口径：一枚四字节私有文件（不是整本存档），与 `loadTemplate` 在本线程读预制模板资产同形态。
+     */
+    private val activationStore by lazy { AndroidActivationDisk.of(applicationContext) }
+
+    /**
      * 存档读写专用的**串行**调度线。两件事各自的理由：
      * - 离开主线程：文件 IO 一律不上 UI 线程（与 Keystore 同一口径）；
      * - 只要一个 worker：UI 通道、注入通道、每次操作后的重读、状态跃迁后的重读都碰同一件文件，
@@ -94,6 +120,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 冷启动第一帧之前把本机激活态读进镜像（判据 3"上次解锁、重启仍在"的前半格；
+        // 为什么在本线程读而非排到串行线上，见 [activationStore] 的注释）。
+        publishActivation(activationStore.state())
         var initial by mutableStateOf(SAMPLE_TASK)
         setContent {
             MaterialTheme {
@@ -128,6 +157,14 @@ class MainActivity : ComponentActivity() {
                     val templateRejection by AppState.templateRejection.collectAsState()
                     val savedTasks by AppState.savedTasks.collectAsState()
                     val savedRejection by AppState.savedRejection.collectAsState()
+                    // 付费墙三格（S5-f）：镜像与另两格同源（activated 是磁盘件的镜像，见 AppState 注释）
+                    val activated by AppState.activated.collectAsState()
+                    val activationTail by AppState.activationTail.collectAsState()
+                    val proRejection by AppState.proRejection.collectAsState()
+                    val activationMessage by AppState.activationMessage.collectAsState()
+                    // 激活对话框：只在点「Activate」时开，成功/取消都收（解锁态本身常驻下面那格回显，不靠对话框）
+                    var showActivation by remember { mutableStateOf(false) }
+                    var activationDraft by remember { mutableStateOf("") }
                     // `running` 从 Column 里提到这一层：存档红字的过期边要按它作废 RUNNING 档（下面那条
                     // LaunchedEffect），而过期判据只认状态、不认文本——两处各 collect 一次才是两套真值。
                     val running by AppState.running.collectAsState()
@@ -142,9 +179,9 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) { byok.refreshFromVault() }
                     // 首进界面（本 effect 的键在首次组合也会触发一次）把存档列表摆上屏——判据 3
                     // "冷启（进程重进）仍在"的前半格；此后每次执行/编译归位都以盘为准重读一次，
-                    // 顺带让纯函数复核红字（RUNNING／COMPILING 是**纯状态档**，状态走了话术必须跟着走，
-                    // 留着就是假红）。
-                    LaunchedEffect(running, compileBusy) { refreshSaved() }
+                    // 顺带让纯函数复核红字（RUNNING／COMPILING／NOT_ACTIVATED 是**纯状态档**，状态走了话术必须跟着走，
+                    // 留着就是假红——S5-f 把 activated 并进来：用户刚解锁还看见"Upgrade to Pro"就是那一形态）。
+                    LaunchedEffect(running, compileBusy, activated) { refreshSaved() }
                     Column(
                         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -153,6 +190,42 @@ class MainActivity : ComponentActivity() {
                         val connected by AppState.serviceConnected.collectAsState()
                         val report by AppState.lastRunReport.collectAsState()
                         Text("Anytouch executor", style = MaterialTheme.typography.headlineSmall)
+                        // 激活面（S5-f 军令 §1「首页加 Activate 按钮，点开弹出激活码输入框」）。
+                        // 这一钮**永不置灰**：未激活要点得开、已激活也点得开（改码/复核同一条通道），
+                        // 解锁态常驻下面那格，不靠对话框活着。
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = {
+                                    // 打开输码框=开始新的一次尝试：上一次的结论先撤（它绑的是那一次输码）
+                                    activationDraft = ""
+                                    AppState.activationMessage.value = null
+                                    showActivation = true
+                                },
+                                modifier = Modifier.testTag("activate"),
+                            ) { Text(ActivationCopy.BUTTON) }
+                            Text(
+                                if (activated) {
+                                    ActivationCopy.unlocked(maskedTail(activationTail))
+                                } else {
+                                    "${UPGRADE_MARK}: not activated on this device. " +
+                                        "Recording, compiling and running tasks stay free."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("activation_state"),
+                            )
+                        }
+                        // 同一句输码结论：框开着在框里说（[ActivationDialog]），框关着在这里说。
+                        // 只留一份文字、两处按互斥呈现——冷启动走注入通道时框是关的，没这一格那句拒因就永不上屏。
+                        if (!showActivation) {
+                            activationMessage?.let {
+                                Text(
+                                    it,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("activation_rejection"),
+                                )
+                            }
+                        }
                         // L2-①：未连接即首启引导必现（同一话术单源于 AccessibilityGate，UI 不各写一份）
                         Text(
                             if (connected) "Accessibility service: connected"
@@ -221,6 +294,8 @@ class MainActivity : ComponentActivity() {
                             // 执行中置灰（老板 09-23 裁决：禁编辑门禁，停止球位置因此不动）。
                             // 编译在跑同样置灰（裁 S31-B2）——灰只是提示，门禁在 applyEdit，注入绕过按钮照样被拒。
                             editable = !running && !compileBusy,
+                            // 未激活只灰"补一步"那一枚（删/改名/移序是录制面本来就有的能力，圈进墙里=越界）
+                            proUnlocked = activated,
                             modifier = Modifier.fillMaxWidth().testTag("step_list"),
                         )
                         // 编辑被拒同样必现（与开录拒绝同律：置灰/无回执=黑洞，用户要知道"没删掉"为什么）
@@ -230,6 +305,13 @@ class MainActivity : ComponentActivity() {
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.testTag("step_edit_rejection"),
+                            )
+                        }
+                        if (!activated) {
+                            Text(
+                                lockedHint(ProFeature.MANUAL_STEP_INSERT),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("pro_hint_step_insert"),
                             )
                         }
                         // 预制模板装载（S5-a，军令 R3-1 三模板）：与 AI 编译同一落账口、同一拒因上屏律。
@@ -270,6 +352,13 @@ class MainActivity : ComponentActivity() {
                         // （`acceptModelActions(origin="saved")`），"载入即执行"仍走同一个派发口（`submitTask`）。
                         // 屏上不出现第二条通道：RUNNING 档、词表档、编译互斥、V-3 框账比对一条都不因"这是存档"而绕开。
                         Text("My tasks", style = MaterialTheme.typography.titleSmall)
+                        if (!activated) {
+                            Text(
+                                lockedHint(ProFeature.SAVED_TASKS),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("pro_hint_saved_tasks"),
+                            )
+                        }
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -281,14 +370,16 @@ class MainActivity : ComponentActivity() {
                                 label = { Text("Name for this task") },
                                 singleLine = true,
                             )
-                            // 存一条**不置灰**：它读此刻屏上那本账、写进自己的文件，不动账本本身，
+                            // 存一条**不置灰编译**：它读此刻屏上那本账、写进自己的文件，不动账本本身，
                             // 因此不属于编译互斥要拦的那四个入口（改账/换账才拦）。编译回来换的是账，不是已存的文件。
+                            // 未激活即置灰（S5-f 军令 §3 三入口之一）：灰只是提示，门禁在 saveCurrentTask 入口，
+                            // `--es task_save` 绕过按钮同样落 NOT_ACTIVATED 档（同 step_insert 那条先例）。
                             Button(
                                 onClick = { saveCurrentTask(saveName, "ui_button") },
+                                enabled = activated,
                                 modifier = Modifier.testTag("save_task"),
                             ) { Text("Save this task") }
-                        }
-                        // 空表提示只在"确实读到了空表"时说：读不出时这句"No saved tasks yet"就是假陈述，
+                        }                        // 空表提示只在"确实读到了空表"时说：读不出时这句"No saved tasks yet"就是假陈述，
                         // 那时该说的是下面那格红字（盘读不出）。
                         if (savedTasks.isEmpty() && savedRejection == null) {
                             Text(
@@ -313,7 +404,8 @@ class MainActivity : ComponentActivity() {
                                 // adb 注入绕过按钮同样被拒（下面 saved_rejection 那格就是它的红字）。
                                 Button(
                                     onClick = { loadSavedTask(task.name, "ui_button") },
-                                    enabled = !compileBusy,
+                                    // 未激活即置灰（S5-f 军令 §3 三入口之一）：门禁在 loadIntoLedger 入口
+                                    enabled = activated && !compileBusy,
                                     modifier = Modifier.testTag("saved_load_$index"),
                                 ) { Text("Load") }
                                 Button(
@@ -326,12 +418,16 @@ class MainActivity : ComponentActivity() {
                                             repeatNoAsk,
                                         )
                                     },
-                                    // 与「Run task」同一档前置：服务不在场放了也不动（派发口那头的判据不变）
-                                    enabled = connected && !compileBusy,
+                                    // 与「Run task」同一档前置：服务不在场放了也不动（派发口那头的判据不变）。
+                                    // 未激活即置灰：这一枚在墙内（存档直跑=我的任务那一枚功能），
+                                    // 而下面那枚「Run task」在墙外——两者不是一个入口，别顺手一起灰。
+                                    enabled = connected && !compileBusy && activated,
                                     modifier = Modifier.testTag("saved_run_$index"),
                                 ) { Text("Run") }
                                 Button(
                                     onClick = { deleteSavedTask(task.name, "ui_button") },
+                                    // 未激活即置灰：门禁在 deleteSavedTask 入口（删的是自己的存档，属墙内）
+                                    enabled = activated,
                                     modifier = Modifier.testTag("saved_delete_$index"),
                                 ) { Text("Delete") }
                             }
@@ -352,10 +448,22 @@ class MainActivity : ComponentActivity() {
                         )
                         // 重复执行（S5-d 军令第 1 条）：两框一勾。这里的值**只进 RepeatPolicy.parse**，
                         // UI 不自带第二份判据；解析坏了走 task_rejection 那格红字，不静默按默认跑。
+                        // 未激活即置灰（S5-f 军令 §3）：两框灰、**那一勾不灰**——勾改的是高危确认语义，
+                        // 属"绝不进墙"清单（附页 §2）：付费墙不许改变任何一条安全语义。
+                        // 灰只是提示：默认值就是 1（单发），未激活用户照样能跑单发；真门禁在 submitTask 入口，
+                        // `--es repeat_count 2` 绕过界面同样被拒。
+                        if (!activated) {
+                            Text(
+                                lockedHint(ProFeature.REPEAT_LOOP),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("pro_hint_repeat_loop"),
+                            )
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = repeatCount,
                                 onValueChange = { repeatCount = it },
+                                enabled = activated,
                                 modifier = Modifier.weight(1f, fill = false).testTag("repeat_count"),
                                 label = { Text("Repetitions (1-100)") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -364,6 +472,7 @@ class MainActivity : ComponentActivity() {
                             OutlinedTextField(
                                 value = repeatInterval,
                                 onValueChange = { repeatInterval = it },
+                                enabled = activated,
                                 modifier = Modifier.weight(1f, fill = false).testTag("repeat_interval"),
                                 label = { Text("Interval seconds (1-60)") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -414,6 +523,16 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.testTag("task_rejection"),
                             )
                         }
+                        // 付费墙拦下"带轮数的派发"另开一格（同 record/record_stop 分格那条律：
+                        // 两件事同时红时不许互相盖——V-3 的框账不符与这一句完全可以同框）
+                        proRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("pro_rejection"),
+                            )
+                        }
                         report?.let {
                             Text(
                                 it,
@@ -422,6 +541,16 @@ class MainActivity : ComponentActivity() {
                                 // 挂 tag 的唯一理由：设备面要能**证伪**"报告上屏了没有"——没有 tag，
                                 // 任何"屏上没有 repeats 字段"的断言都能在看不见报告的情况下恒真通过（假绿）。
                                 modifier = Modifier.testTag("run_report"),
+                            )
+                        }
+                        // 激活码输入框（军令 §1"点开弹出激活码输入框"）
+                        if (showActivation) {
+                            ActivationDialog(
+                                draft = activationDraft,
+                                onDraft = { activationDraft = it },
+                                message = activationMessage,
+                                onConfirm = { submitActivation(activationDraft, "ui_button") },
+                                onDismiss = { showActivation = false },
                             )
                         }
                     }
@@ -446,6 +575,17 @@ class MainActivity : ComponentActivity() {
     private fun handleTrigger(intent: Intent?) {
         intent ?: return
         var handled = false
+        // 激活注入通道排在**所有**被门禁圈的通道之前：同一条 intent 里既给码又派发时，
+        // 判据必须看见"已经激活"——反过来就成了"注入永远进不了墙"的假绿（测试通道与真人同一条校验路径）。
+        // 先复位再输码：两个 extra 同时给出时语义是"从零重解一次"。
+        if (intent.getBooleanExtra(EXTRA_ACTIVATION_RESET, false)) {
+            resetActivation("adb_inject")
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_ACTIVATION_CODE)?.let { code ->
+            submitActivation(code, "adb_inject")
+            handled = true
+        }
         intent.getStringExtra(EXTRA_RECORD_START)?.takeIf { it.isNotBlank() }?.let { pkg ->
             RecorderStore.start(pkg)
             handled = true
@@ -651,6 +791,7 @@ class MainActivity : ComponentActivity() {
      * `S5ESMOKE saved task` 那一行回执、再读屏——反过来就是把上一格的旧镜像当成这一格的结果（假绿形态）。
      */
     private fun saveCurrentTask(name: String, via: String) {
+        if (proBlockedSaved("save", name, via)) return
         savedScope.launch {
             // 存的是**屏上那本步序账**，不是任务框文本：框里可能已被用户手改（那正是 V-3 要拦的两套真值），
             // 账本才是"录出来／编出来／装载进来"的那一份。
@@ -677,6 +818,7 @@ class MainActivity : ComponentActivity() {
      * （与「载入」相对：那一件是整本换账，必须暂停）。
      */
     private fun deleteSavedTask(name: String, via: String) {
+        if (proBlockedSaved("delete", name, via)) return
         savedScope.launch {
             when (val outcome = savedStore.delete(name)) {
                 is DeleteOutcome.Deleted -> {
@@ -701,8 +843,12 @@ class MainActivity : ComponentActivity() {
      * 编译互斥在**入口**把关——落账口刻意不看 `compileBusy`（它要接编译那一跑的产物，看了就自锁死），
      * 所以"换账本的来路"必须在入口自己拒，与 `loadTemplate` 同一分工；RUNNING 档与词表档不在此处复制，
      * 由落账口那两档返回（本函数只转述话术）。
+     *
+     * 付费墙排在最前（[proBlockedSaved]）：载入与"存档直跑"两条通道共用本函数，一句判据两处生效；
+     * 而"这台机器没解锁"比"编译在跑"更前置——未激活用户根本不该走到读盘那一步。
      */
     private fun loadIntoLedger(name: String, via: String): String? {
+        if (proBlockedSaved("load", name, via)) return null
         if (AppState.compileBusy.value) {
             rejectSaved("load", SavedTaskGate.COMPILING, name, via, "running=${AppState.running.value}")
             return null
@@ -793,6 +939,7 @@ class MainActivity : ComponentActivity() {
             outcome,
             AppState.running.value,
             AppState.compileBusy.value,
+            AppState.activated.value,
         )
         if (next != AppState.savedRejectionGate) AppState.setSavedRejection(next, next?.userCopy())
     }
@@ -835,6 +982,9 @@ class MainActivity : ComponentActivity() {
             return
         }
         val plan = (repeatVerdict as RepeatVerdict.Accepted).plan
+        // 付费墙只圈"真动用了轮数"的那一次派发（判据住 `proGateOf`，排在这里是因为要先读懂数字）：
+        // 未激活用户跑单发必须逐字放行——那是判据 5 的对照格，也是"付费墙不许改变免费面语义"那条自钉。
+        if (proGateForRepeat(plan, via)) return
         // RUNNING 不在派发口拒：既有语义是"执行中新注入排在当前这一跑之后串行执行"
         // （见 `AnytouchAccessibilityService` 总线那头的 busy 防线注释）。本批只扩编译面，不动这条；
         // 真要在派发口拒 RUNNING 得另裁一刀——那时改的是上面那一个 when，不是再加一份判据。
@@ -861,6 +1011,150 @@ class MainActivity : ComponentActivity() {
                 "askEveryRound=${plan.askEveryRound}",
         )
         AppState.submit(json, plan)
+    }
+
+    /**
+     * 一次输码（对话框「Unlock」与 adb 注入 `--es activation_code` **同一入口、同一校验器**）：
+     * 判据住 `ActivationStore`/`ActivationCode`，此处只做三件事——分流、上屏、留痕。
+     * 测试通道**没有旁路**：这一枚 extra 不接受"直接置位"，它送的还是那 18 个字符，
+     * 脏码在这里同样落拒因档（与真人逐字同一条路径，附页 §3 判据 10）。
+     *
+     * @return true=已解锁且已落盘（对话框据此收起；被拒时框留着，让人改那一位错的字）。
+     */
+    private fun submitActivation(rawCode: String, via: String): Boolean {
+        val verdict = activationStore.submit(rawCode)
+        val unlocked = verdict == ActivationVerdict.UNLOCKED
+        publishActivation(activationStore.state())
+        if (unlocked) {
+            AppState.activationMessage.value = null
+            // 只回显尾四位：整枚能解锁的串不进日志（与 API Key 同律，红线 H 的精神面）
+            Log.i(TAG, "S5FSMOKE activation ok tail=${activationStore.state().tail} via=$via")
+        } else {
+            val copy = ActivationCopy.refusal(verdict)
+            AppState.activationMessage.value = copy
+            Log.w(TAG, "S5FSMOKE activation refused gate=$verdict via=$via detail=$copy")
+        }
+        return unlocked
+    }
+
+    /**
+     * 复位本机激活态（**只给测试通道**：判据 5 的"未激活那一态"要能在同一枚 apk 上被证伪，
+     * 而用户侧的等价动作是"清除应用数据"，本批不做取消激活的界面，附页 §4）。
+     * 撤flag 之后仍走 [publishActivation]：三处入口的解锁态与那三句提示必须一起翻回"未激活"。
+     */
+    private fun resetActivation(via: String) {
+        val done = activationStore.reset()
+        publishActivation(activationStore.state())
+        AppState.activationMessage.value = null
+        Log.i(TAG, "S5FSMOKE activation reset ok=$done via=$via")
+    }
+
+    /**
+     * 磁盘态 → 屏面镜像的**唯一写处**（四条来路：冷启动 / 对话框解锁 / 注入解锁 / 注入复位）。
+     * 顺序在此钉死：**先翻镜像，再复核付费墙红字**——过期边读的就是 [AppState.activated] 这一格，
+     * 反过来那条 "Upgrade to Pro" 就成了撤不掉的假红（假红与假绿同罪）。
+     * 存档格那一句不在这里撤：它由 `LaunchedEffect(running, compileBusy, activated)` 那一条
+     * 顺带重读盘时复核（撤红字与刷新列表是同一次采样，不许两份结论）。
+     */
+    private fun publishActivation(state: ActivationState) {
+        AppState.activated.value = state.activated
+        AppState.activationTail.value = state.tail
+        RecorderStore.revalidateEditRejection()
+        val next = proRejectionAfterChange(AppState.proRejectionGate, state.activated)
+        if (next != AppState.proRejectionGate) {
+            AppState.setProRejection(next, next?.userCopy(ProFeature.REPEAT_LOOP))
+            Log.i(TAG, "S5FSMOKE pro rejection expired activated=${state.activated}")
+        }
+    }
+
+    /**
+     * 付费墙拦下派发那一格（三枚进墙功能里唯一住在派发口的：重复循环）。
+     * **排在 `RepeatPolicy.parse` 之后**：只有把用户填的数字读懂了，才知道这一次到底"动用"没动用轮数
+     * （[RepeatPlan.isSingleShot]）——未激活用户跑单发必须逐字放行，那是判据 5 的对照格。
+     * 也排在 V-3 框账比对之前：那一句说的是"这一次根本不该派发"，比"框与账对不对得上"更前置。
+     */
+    private fun proGateForRepeat(plan: RepeatPlan, via: String): Boolean {
+        val gate = proGateOf(
+            ProFeature.REPEAT_LOOP,
+            exercised = !plan.isSingleShot,
+            activated = AppState.activated.value,
+        ) ?: return false
+        val copy = gate.userCopy(ProFeature.REPEAT_LOOP)
+        AppState.setProRejection(gate, copy)
+        Log.w(
+            TAG,
+            "S5FSMOKE pro refused feature=REPEAT_LOOP gate=$gate via=$via " +
+                "reps=${plan.repetitions} interval=${plan.intervalSec}s detail=$copy",
+        )
+        return true
+    }
+
+    /**
+     * 付费墙拦下存档那一格（军令 §3 三枚进墙功能之一）：**四条通道（存/载/删/存档直跑）在各自入口判**，
+     * 判据住 [proGateOf]，档位与话术成对写进 `saved_rejection` 那一格（[rejectSaved] 那条纪律一字不改）。
+     *
+     * 为什么判在 MainActivity 而不在 `SavedTaskStore`：磁盘件那一侧管的是重名/空账/脏文件，
+     * 它不该知道"这台机器买没买"；而四条通道在这里已经收口成三处（载入与直跑共用 [loadIntoLedger]），
+     * 一句判据三处转调，按钮与 `--es task_save` 都绕不过去。
+     */
+    private fun proBlockedSaved(op: String, name: String, via: String): Boolean {
+        val gate = proGateOf(ProFeature.SAVED_TASKS, exercised = true, activated = AppState.activated.value)
+            ?: return false
+        rejectSaved(op, SavedTaskGate.NOT_ACTIVATED, name, via, "activated=false feature=$gate")
+        return true
+    }
+
+    /**
+     * 激活码输入框（军令 §1"点开弹出输入框"）。
+     *
+     * **整棵子树自己带一次 `testTagsAsResourceId`**：对话框是另一个窗口，首页 `Surface` 上那层语义
+     * 配置不会跨窗传播——不在这里再带一次，设备面 uiautomator 就看不见这三枚 tag，
+     * "框上了屏"那条断言会在**根本看不见框**的情况下恒真通过（假绿形态，判据 1 就废了）。
+     */
+    @Composable
+    private fun ActivationDialog(
+        draft: String,
+        onDraft: (String) -> Unit,
+        message: String?,
+        onConfirm: () -> Unit,
+        onDismiss: () -> Unit,
+    ) {
+        Dialog(onDismissRequest = onDismiss) {
+            Column(
+                Modifier.fillMaxWidth().padding(20.dp).semantics { testTagsAsResourceId = true },
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(ActivationCopy.TITLE, style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = onDraft,
+                    label = { Text(ActivationCopy.FIELD_LABEL) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                    modifier = Modifier.fillMaxWidth().testTag("activation_input"),
+                )
+                Text(ActivationCopy.SCOPE, style = MaterialTheme.typography.bodySmall)
+                // 同一句结论在框内说时，首页那一格让位（`if (!showActivation)`）：一句话两处呈现，只留一份文字
+                message?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("activation_rejection"),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.testTag("activation_confirm"),
+                    ) { Text(ActivationCopy.CONFIRM) }
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("activation_cancel"),
+                    ) { Text(ActivationCopy.CANCEL) }
+                }
+            }
+        }
     }
 
     companion object {
@@ -912,6 +1206,14 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_STEP_INSERT_INSTANCE = "step_insert_instance"
         const val EXTRA_STEP_INSERT_INPUT = "step_insert_input"
         const val EXTRA_STEP_INSERT_MS = "step_insert_ms"
+
+        /**
+         * 激活码注入通道（S5-f 判据 10）：`activation_code` 送的还是那 18 个字符，走的是**同一个**
+         * 校验器（`ActivationCode.classify`）——测试通道没有"直接置位"这扇后门，脏码同样落拒因档。
+         * `activation_reset` 只把本机激活态清掉（用于证伪"未激活那一态"），不参与校验路径。
+         */
+        const val EXTRA_ACTIVATION_CODE = "activation_code"
+        const val EXTRA_ACTIVATION_RESET = "activation_reset"
 
         /** 冒烟任务：Connected devices → Connection preferences → Bluetooth（模拟器实测可三级钻取；真机口径属 T3）。门禁显式放行。 */
         const val SAMPLE_TASK =

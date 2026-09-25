@@ -1,0 +1,11 @@
+5c1e60a2811e457b0bbd6434f698ff39
+9451294ab13b17bb4d35de8bc1ca7fb68c74a085
+# ↑ 前两行＝旧字节 5c1e60a2…（9,389,205B，git hash-object 9451294a…）：run3/run4/run5 跑在它上面，
+#   之后一处 KDoc 措辞改动使重建产物与之不等价（体积差 143,214B）， 两枚字节是否等价已无法证明 ⇒ 那三轮只作过程账，
+#   不作发布字节的判据凭。原件留此不删。
+# 以下＝发布字节（v1.0.5 / versionCode 6）
+3128921ab9a1a0ee78db2c7338e4f1a8
+9532419 app/build/outputs/apk/debug/app-debug.apk
+# 构建 09-25 22:22:44 · s5f run6 46/0 装的是这一枚（raw 头部 md5 逐字同值）
+# 复核：此后两处改动均为注释/禁词字面（ActivationStore.kt KDoc、ActivationCodeTest.kt 禁词清单），
+#   CI 重跑 compileDebugKotlin 产物重写后 APK md5 仍逐字 = 3128921ab9a1a0ee78db2c7338e4f1a8（实测，非推理）

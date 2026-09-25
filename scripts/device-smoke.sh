@@ -65,6 +65,10 @@ fi
 if ! MSYS_NO_PATHCONV=1 $ADB shell dumpsys accessibility | grep -q "com.anytouch.app"; then
     echo "前置失败：无障碍服务未绑定（设置→无障碍→Anytouch 执行器 开启，或重装 APK）"; exit 2
 fi
+# S5-f 判据 10：C3 那一格往 repeat_count 里打字，而该框在未激活态 enabled=false（付费墙），
+# 不激活就是"读不到→判红"的假红；前置走注入通道输合法码（同一条校验路径，无旁路）。
+AP=$(bash "$(dirname "$0")/activation-preflight.sh" 2>&1) || { echo "前置失败：激活前置未过—— $AP"; exit 2; }
+echo "前置 :: $AP"
 
 SAFE='"safety":{"viewport_ok":true,"click_enabled":true}'
 

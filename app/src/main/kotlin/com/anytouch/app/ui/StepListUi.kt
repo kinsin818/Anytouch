@@ -39,6 +39,11 @@ import com.anytouch.contracts.ActionType
  *
  * [onEdit] 返回写口的结论：插步面板要按它决定"收起来还是留在屏上让人改"——
  * 拒了却自动收起=用户填的东西蒸发（"点了没反应"那条黑洞律）。
+ *
+ * [proUnlocked]=false（本机未激活，S5-f 军令 §3）时**只有"补一步"那一枚钮置灰**，删/改名/移序照旧可点：
+ * 进墙的是"手动补步骤"这一枚，其余三档编辑是录制面本来就有的能力，一起灰掉等于把免费面圈进墙里。
+ * 与其余置灰同一条口径：灰只是提示，门禁在 `applyEdit`（判据住 `stepEditGateOf` 五参版），
+ * adb 注入绕过按钮同样落 [com.anytouch.app.recorder.StepEditGate.NOT_ACTIVATED]。
  */
 @Composable
 fun StepListEditor(
@@ -46,6 +51,7 @@ fun StepListEditor(
     onEdit: (StepEdit) -> Boolean,
     modifier: Modifier = Modifier,
     editable: Boolean = true,
+    proUnlocked: Boolean = true,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -66,7 +72,9 @@ fun StepListEditor(
                 modifier = Modifier.testTag("step_edit_locked_hint"),
             )
         }
-        actions.forEachIndexed { i, action -> StepRow(i, action, actions.size, onEdit, editable) }
+        actions.forEachIndexed { i, action ->
+            StepRow(i, action, actions.size, onEdit, editable, proUnlocked)
+        }
     }
 }
 
@@ -77,6 +85,7 @@ private fun StepRow(
     total: Int,
     onEdit: (StepEdit) -> Boolean,
     editable: Boolean,
+    proUnlocked: Boolean,
 ) {
     var insertOpen by remember(action.actionId) { mutableStateOf(false) }
     Column(
@@ -120,8 +129,11 @@ private fun StepRow(
             ) { Text("Delete") }
             // 军令原句"每一步后面加个+按钮"：这一行的 "+" 插在本步**之后**（插入位 = index+1），
             // 于是最后一步的 "+" 就是追加。想插在最前面：先插再 Up（移序本来就管这个）。
+            // 未激活即置灰（S5-f 军令 §3）：只有这一枚钮灰，上面三枚（Up/Down/Delete）照旧——
+            // 进墙的是"手动补步骤"，把其余三档一起灰就等于把免费面圈进了墙（附页 §2 那条清单）。
             OutlinedButton(
                 onClick = { insertOpen = !insertOpen },
+                enabled = proUnlocked,
                 modifier = Modifier.testTag("step_insert_toggle_$index"),
             ) { Text(if (insertOpen) "Cancel +" else "+ Step") }
         }

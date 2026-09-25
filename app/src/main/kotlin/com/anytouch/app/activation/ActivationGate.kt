@@ -1,0 +1,122 @@
+package com.anytouch.app.activation
+
+/**
+ * 付费墙面貌：哪三枚功能进墙、墙外一律是什么，以及**全部**上屏英文话术的唯一来源
+ * （S5-f 军令 §3；口径见 `orders/ANYTOUCH-S5f-activation-code-APPENDIX.md` §2）。
+ *
+ * 与其余门禁同一分工：判据与话术住在这里（纯函数，JVM 锁得住），UI 与 adb 注入两条通道只转调，
+ * 任何一处自己抄一句就是第二份真值（`HIGH_RISK` 面板、录制面拒因同一条先例）。
+ *
+ * **主窗自钉、老板可覆的一条**：付费墙只圈"进阶功能"，绝不圈安全面——
+ * 高危二次确认与超时默认拒、停止球急停、无障碍服务门禁、执行期零网络、失败重试判据一律在墙外。
+ * 把"要不要问用户"绑进"买没买"是拿用户安全换营收，军令没有授权这个取舍。
+ * 这条不是口头承诺，由 `ActivationGateTest` 里那份"绝不进墙清单"逐条锁住。
+ */
+enum class ProFeature {
+    /** 重复循环（S5-d 那两框一勾）：只有真动用（轮数 ≥2）才拦。 */
+    REPEAT_LOOP,
+
+    /** 我的任务：存/载/删/存档直跑四条通道。 */
+    SAVED_TASKS,
+
+    /** 手动补步骤：唯一写口 `applyEdit(StepEdit.Insert)`。 */
+    MANUAL_STEP_INSERT,
+}
+
+/** 被付费墙拦下的档（只有一档：本功能没有试用期、没有分级、没有倒计时）。 */
+enum class ProGate {
+    NOT_ACTIVATED,
+}
+
+/**
+ * 付费墙判据（纯函数）：`exercised` 表达"这一次请求真的用到了那枚进阶功能吗"。
+ * 不用到的请求一律放行——未激活用户点"Run task"跑单发任务、录一段、装个模板，
+ * 行为与 v1.0.4 逐字相同（判据 5 的对照格就靠这一条成立）。
+ */
+fun proGateOf(feature: ProFeature, exercised: Boolean, activated: Boolean): ProGate? =
+    if (exercised && !activated) ProGate.NOT_ACTIVATED else null
+
+/**
+ * 付费墙拒因的过期边（与 `*AfterStateChange` 那一族同一条律）：[ProGate.NOT_ACTIVATED] 是**纯状态档**——
+ * 那一句话说的是"输码的那一刻还没解锁"，用户随后解锁成功还挂着红字就是假红（假红与假绿同罪）。
+ * 判据不许抄进 UI：这里一份、那里一份就是第二套真值。
+ * @return 本次状态跃迁后仍成立的那一档；null = 该撤。
+ */
+fun proRejectionAfterChange(current: ProGate?, activated: Boolean): ProGate? =
+    if (current == ProGate.NOT_ACTIVATED && activated) null else current
+
+/** 军令 §3 指定的那句提示的字面（三处入口共用同一句头，末尾才补各入口自己的下一步）。 */
+const val UPGRADE_MARK = "Upgrade to Pro"
+
+fun ProGate.userCopy(feature: ProFeature): String = when (this) {
+    ProGate.NOT_ACTIVATED -> when (feature) {
+        ProFeature.REPEAT_LOOP ->
+            "$UPGRADE_MARK to repeat a task over several rounds. Nothing was dispatched and nothing on this " +
+                "device changed — set Repetitions back to 1 to run it once, or tap Activate and enter your code."
+        ProFeature.SAVED_TASKS ->
+            "$UPGRADE_MARK to keep your own task list on this device. Nothing was saved, loaded or deleted — " +
+                "you can still run the steps on screen right now. Tap Activate and enter your code."
+        ProFeature.MANUAL_STEP_INSERT ->
+            "$UPGRADE_MARK to add a step by hand. No step was inserted — recording steps and running them " +
+                "stays free. Tap Activate and enter your code."
+    }
+}
+
+/**
+ * 激活面全部文案（首页钮 + 对话框 + 解锁态 + 七档拒因）。
+ * 三条纪律：① 全英文；② 每档拒因**互不相同**且都说清"改哪儿"与"什么都没发生"；
+ * ③ 不出现内部档名/枚举名（与 v1.0.2 面板去黑话同一条律，`ActivationGateTest` 逐条断言）。
+ */
+object ActivationCopy {
+    const val BUTTON = "Activate"
+    const val TITLE = "Enter your activation code"
+    const val FIELD_LABEL = "Activation code (ANY-XXXX-XXXX-XXXX)"
+    const val CONFIRM = "Unlock"
+    const val CANCEL = "Cancel"
+
+    /** 对话框里那句"这能解锁什么 + 它怎么验"——"不联网"是一句真话，也是隐私面的一部分。 */
+    const val SCOPE =
+        "Unlocking adds three things: repeating a task over several rounds, your own saved task list, and " +
+            "hand-added steps. The code is checked on this device only - it never goes online."
+
+    fun unlocked(tail: String): String = "Pro features unlocked on this device (code ending $tail)."
+
+    fun refusal(verdict: ActivationVerdict): String = when (verdict) {
+        ActivationVerdict.UNLOCKED ->
+            "Pro features unlocked on this device. Nothing was sent anywhere - the code was checked here."
+        ActivationVerdict.EMPTY ->
+            "Type the activation code you received with your purchase (it looks like ANY-XXXX-XXXX-XXXX). " +
+                "Nothing was unlocked."
+        ActivationVerdict.BAD_PREFIX ->
+            "Activation codes start with ANY followed by a dash. Check the first letters against your receipt. " +
+                "Nothing was unlocked."
+        ActivationVerdict.BAD_LENGTH ->
+            "An activation code is exactly 18 characters: ANY, then three groups of four, with a dash between " +
+                "each group. A missing or extra character won't pass. Nothing was unlocked."
+        ActivationVerdict.BAD_SEPARATOR ->
+            "Put a dash after ANY and after each group of four characters, like ANY-XXXX-XXXX-XXXX. " +
+                "Nothing was unlocked."
+        ActivationVerdict.BAD_CHARSET ->
+            "Codes use capital letters A-Z and digits 0-9 only (lowercase you type is fine, we switch it). " +
+                "A symbol or a space inside a group won't do. Nothing was unlocked."
+        ActivationVerdict.CHECKSUM ->
+            "That code has the right shape but its last two letters don't match the first two, so it looks " +
+                "mistyped. Copy it again from your receipt. Nothing was unlocked."
+        ActivationVerdict.WRITE_FAILED ->
+            "The code is right, but this device refused to write the unlocked flag to its own storage, so " +
+                "nothing was unlocked. Retry, and if it keeps failing report this with the build number."
+    }
+}
+
+/** 未激活时挂在三处入口旁边的那句短提示（军令 §3"提示 Upgrade to Pro"）。 */
+fun lockedHint(feature: ProFeature): String = when (feature) {
+    ProFeature.REPEAT_LOOP -> "$UPGRADE_MARK to repeat rounds."
+    ProFeature.SAVED_TASKS -> "$UPGRADE_MARK to save and reuse your own tasks."
+    ProFeature.MANUAL_STEP_INSERT -> "$UPGRADE_MARK to add steps by hand."
+}
+
+/**
+ * 屏上/日志能出现的唯一形态：尾四位（`…-NX`）。
+ * 与凭据面同律——能解锁的串不整条上屏、不进日志（红线 H 的精神面）。
+ */
+fun maskedTail(tail: String): String = if (tail.isEmpty()) "-" else "…-$tail"
