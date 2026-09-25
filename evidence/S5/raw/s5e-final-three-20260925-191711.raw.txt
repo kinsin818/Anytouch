@@ -1,0 +1,23 @@
+# s5e-final-three 预检 ok · api=34 1080x2400 vc=5
+# 靶机=sdk_gphone64_x86_64 · SAVED=s5eprobe · E9_APK=app/build/outputs/apk/debug/app-debug.apk
+# [F1] receipt=09-25 11:17:34.460 12628 12628 I AnytouchRun: S1SMOKE ok=4 total=4 stopped=false stop=- elapsed=24s
+# [F2] task=[{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"f1_wait","type":"wait","target":null,"value":{"ms":1200},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+# [F3] receipt=09-25 11:18:36.601 12628 12628 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="PASSWORD:password" retry_lines=0
+# [F6] 09-25 11:20:06.222 12628 12628 I AnytouchRun: S5ESMOKE step retry round=1 action=m1 index=0 retry=1/2 failure=LocatorMiss
+# [F6] 09-25 11:20:21.999 12628 12628 I AnytouchRun: S5ESMOKE step retry round=1 action=m1 index=0 retry=2/2 failure=LocatorMiss
+# [F9] saved_tasks.json=[{"name":"s5eprobe","actions":[{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"f9_wait","type":"wait","target":null,"value":{"ms":300},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]}]
+# [F14] 面板格: step_insert_cancel_0
+# [F14] 面板格: step_insert_content_desc_0
+# [F14] 面板格: step_insert_instance_0
+# [F14] 面板格: step_insert_name_0
+# [F14] 面板格: step_insert_no_coordinate_hint
+# [F14] 面板格: step_insert_panel_0
+# [F14] 面板格: step_insert_path_0
+# [F14] 面板格: step_insert_resource_id_0
+# [F14] 面板格: step_insert_text_0
+# [F14] 面板格: step_insert_toggle_0
+# [F14] 面板格: step_insert_toggle_1
+# [F14] 面板格: step_insert_type_click
+# [F14] 面板格: step_insert_type_type_text
+# [F14] 面板格: step_insert_type_wait
+# [F16] 脏存档=[{"name":"f16dirty","actions":[{"action_id":"d1","type":"swipe","target":null,"value":{"dir":"up"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]}]

@@ -61,3 +61,16 @@ STR = re.compile(r'"(?:[^"\\\n]|\\.)*"')
 ```
 本轮输出 99 行，逐行归族见 §2 表（45/3/1/21/8/21）。
 
+
+## 7. S5-e（v1.0.4）增量账（09-25 晚追加，只追加不改上文）
+
+**结论：本批新增中文字面量 0 处**——§2 的 99 处口径原样沿用，不重跑、不改数。
+
+| 腿 | 本批读数 |
+|---|---|
+| 静态（增量口径） | 对 `git diff v1.0.3 -- app/src/main byok/src/main core` 逐行剥注释后抽 `"..."` 字面量：**命中 0 条**（本批新写的判据层／接线层话术全英文：`SavedTaskGate` 九档、`manualStepGateOf` 四档、`StepEdit` 门禁九档拒因）。新增/改动的五个文件（`SavedTasks.kt`／`StepInsertion.kt`／`StepRetryPolicy.kt`／`AndroidSavedTaskDisk.kt`／`StepListUi.kt`）内 **无 `"""` 原始字符串**，故"逐行抽字面量"这一把尺子对本批增量成立（不会因为跨行串漏读）。 |
+| 动态（上屏走位） | `scripts/ui-english-sweep.sh` 在 v1.0.4 字节上 PASS：段1 home 4 屏／段2 ledger 7 屏／**段3 insert 面板层 8 屏（本批新增的一段）**，去重上屏 85 串，**CJK=0**。原文 `evidence/S5/raw/v104-regress-ui-english-sweep-20260925-192412.raw.txt`，dump+截图 `evidence/S5/raw/english-sweep/20260925-192412/`。 |
+
+**两处必须如实说的口径边界**：
+1. §1 那条静态腿的一次性扫描器 `python /d/tmp/cjk/scan.py` **现在已不在盘**（`/d/tmp/cjk/` 只剩 `scan-out.txt`（99 行清单本体）与 `inventory.txt` 两份产物）。所以本批**没有**、也**不去**重算那个 99——主窗自写的第一版近似扫描器整树只数出 70，差在跨行/原始字符串的切法不同，**那是尺子不同不是数不同**，拿它去改 §2 的旧数正是"拿错口径纠别人"那一类难看事（协作记忆在册）。增量一律用上面表里那条 diff 口径。
+2. §2 的行号**一律按 S5-c（v1.0.1）快照读**，它们此后一直在漂：`AnytouchAccessibilityService` 那两枚（§2 记 `:190/261`）在 v1.0.3 时就已是 `:202/:375`，S5-e-1 给该文件加了 9 行之后现在是 `:202/:384`——**条数 2→2，本批一条未增、一条未减**，只是行号随接线改动下移。指认内容请以字面量文本为准（现值：`:202` = `S2SMOKE record ball refused: 执行中不开录（见 watchRecordBall）`；`:384` = `S1SMOKE run cancelled by service lifecycle … 回执缺席以此行为准`）。

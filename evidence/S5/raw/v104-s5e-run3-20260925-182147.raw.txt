@@ -1,0 +1,45 @@
+# target=emulator-5554 md5=eb4a1504b5373357a0773f838fee3da6 vc=5 vn=1.0.4 E9_APK=本机apk run3=可引用轮（修 F3c 字面/F14 逐屏找锚）
+      | 靶机 34 号 API · 1080x2400 · vc=5 · 球(1002,1272)
+[0;32mPASS[0m F1a :: 插步入账留痕（09-25 10:21:52.493  1041  1041 I AnytouchRun: S2SMOKE step edit ok=insert index=3 before=3 after=4）
+[0;32mPASS[0m F1b :: 发布建议含插进去那一步（账与框同数=4，V-3 才逐字放行）
+[0;32mPASS[0m F1c :: 手动步真进回放并按 4 步收口（09-25 10:22:09.699  1041  1041 I AnytouchRun: S1SMOKE ok=4 total=4 stopped=false stop=- · 本格墙钟 23s）
+[0;32mPASS[0m F2 :: 四条 target 全为 null、坐标样键零个（禁坐标落在产物字节上，不在注释里）
+[0;32mPASS[0m F3a :: 手填的定位线索命中高危面板（门禁不认来路只认节点=判据 6）
+[0;32mPASS[0m F3b :: 高危步零重试行（三裁①：失败可能其实已落地，二触=同动作跑第二遍）
+[0;32mPASS[0m F3c :: 未获确认按现行停下（09-25 10:22:55.490  1041  1041 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="PASSWORD:password"）
+[0;32mPASS[0m F4a :: 五档拒因各有一条（归因分明，用户知道改哪一格）
+[0;32mPASS[0m F4b :: 五条脏请求零放行（ok=insert 计数恒 0）
+[0;32mPASS[0m F5 :: 执行中插步被拒 RUNNING（账不许在跑动的路上动笔）
+[0;32mPASS[0m F6a :: 重试留痕恰 2 条（retry=1/2、2/2，额度封顶不外溢=军令要求 1）
+[0;32mPASS[0m F6b :: 三次尝试仍失败按现行停下报错（09-25 10:24:21.517  1041  1041 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"）
+[0;32mPASS[0m F6c :: 整步重跑真发生（本格墙钟 47s ≥ 3×15s 定位窗，计数不是空转）
+[0;32mPASS[0m F7 :: 跑通的步不写重试账（留痕只在发生处报，F6 那 2 条才读得出真失败）
+[0;32mPASS[0m F8a :: 重试途中按球即停（09-25 10:24:32.972  1041  1041 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="user_stop"）
+[0;32mPASS[0m F8b :: 急停后额度当场归零（本跑 step retry=0 条，未跑满 2 次）
+[0;32mPASS[0m F9a :: 存档成功且存的正是那本账（steps=4 与屏上同数，09-25 10:24:40.774  1041  1144 I AnytouchRun: S5ESMOKE saved task op=save ok name="s5eprobe" steps=4 total=1 via=adb_inject）
+[0;32mPASS[0m F9b :: 盘上件在 filesDir/saved_tasks/tasks.json、target 全 null、零坐标键（红线 I：不碰 SharedPreferences/外存）
+      | F9 :: filesDir 清单=[byok profileInstalled saved_tasks ]
+[0;32mPASS[0m F9c :: 进程真被收走并重来（pid 1041→3271；install -r 保 /data，非 force-stop）
+[0;32mPASS[0m F9d :: 冷启后仍能载入 4 步（每写一次现读盘，不养内存第二本=真持久化）
+[0;32mPASS[0m F10a :: 载入走落账口（origin=saved，与预制模板同一条 acceptModelActions，09-25 10:25:02.124  3271  3349 I AnytouchRun: S5ESMOKE saved task op=load ok name="s5eprobe" steps=4 replaced=4 via=adb_inject）
+[0;32mPASS[0m F10b :: 点一次就载入并跑起来，按存档步数收口（09-25 10:25:08.584  3271  3271 I AnytouchRun: S1SMOKE ok=4 total=4 stopped=false stop=-，派发口没第三条）
+[0;32mPASS[0m F11a :: 删除回执（09-25 10:25:10.277  3271  3349 I AnytouchRun: S5ESMOKE saved task op=delete ok name="s5eprobe" remaining=0 via=adb_inject）
+[0;32mPASS[0m F11b :: 删后再载必拒 NOT_FOUND（没有半删状态）
+[0;32mPASS[0m F11c :: 盘上件里这条真没了
+[0;32mPASS[0m F12a :: 空名拒 BLANK_NAME（注入通道允许送空串，正是为了让这一档在设备面可证伪）
+[0;32mPASS[0m F12b :: 重名拒 DUPLICATE_NAME（不静默覆写用户存过的任务）
+[0;32mPASS[0m F12c :: 未知名载入拒 NOT_FOUND
+[0;32mPASS[0m F13 :: 换进来的那本账仍可插步（同一写口·同一区间口径，没有第二本只读账）
+[0;32mPASS[0m F14a :: 每步后面的 + Step 钮在无障碍树里（军令要求 3 的入口上了屏）
+[0;31mFAIL[0m F14b :: 面板展开后往下走 6 屏仍读不到那句英文（看不出是不给还是没画出来）
+      | SKIP F14c :: 面板没走到位，坐标格这条缺席读不出证据
+[0;32mPASS[0m F15 :: 执行中点载入被落账口按 RUNNING 拒（存档来路不豁免任何一档）
+[0;32mPASS[0m F15b :: 拒而未放行（本轮零条 op=load ok）
+      | F15 :: 在跑窗口收口=09-25 10:27:21.004  3271  3271 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="NODE_NOT_FOUND"
+[0;32mPASS[0m F16 :: 含不支持类型的存档被词表档整本拒（09-25 10:27:25.241  3271  3349 W AnytouchRun: S5ESMOKE saved task op=load refused gate=UNSUPPORTED_TYPE name="f16dirty" via=adb_inject index=0 type=swipe）
+[0;32mPASS[0m F16b :: 拒的整半本一条没落账（clr 之后落账口零条 written，屏上账没被动过）
+
+汇总：通过 34 / 跳过 1（跳过=前置未立，不记绿也不记红）
+原始读数：evidence/S5/raw/s5e-final-three-20260925-182147.raw.txt
+s5e-final-three: 有失败项
+SCRIPT_RC=1

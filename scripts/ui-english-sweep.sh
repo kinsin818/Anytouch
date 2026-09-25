@@ -10,6 +10,8 @@
 #           （同屏里"Run task"按钮本来就常驻，靠单张含锚=假绿）。
 #   每段先清键盘+退桌面重进（起手态一致），再"上滚一屏→dump"交替最多 14 次；顶锚 "Anytouch executor"、
 #   底锚 "Run task" 缺一即判红。到底后停在原地重复 dump 是设计内行为，重复帧在走位计数里忽略。
+#   段 3（S5-e 起）另走"手动补步骤面板展开态"：两锚换成面板自己那两句（顶="Adds one step at position"、
+#   底="node tree, so there is"）——段名换了还沿用整页两锚，就只能证明整页扫过，证明不了这一层进过 dump。
 # 用法：ANDROID_SERIAL=emulator-5554 bash scripts/ui-english-sweep.sh
 # 前置：恰好 1 台靶机在线且装了本轮 APK、无障碍已绑。
 # 洁净纪律：全程无在跑任务（执行期禁 dump 的雷天然不触发）；只读屏 + 模拟手指滑动，不改任何产品资产。
@@ -79,8 +81,11 @@ PY
 swipe() { $ADB shell input swipe "$1" "$2" "$1" "$3" 400 >/dev/null 2>&1; sleep 1; }
 to_top() { for _ in 1 2 3 4 5 6; do swipe 500 500 1800; done; }
 
-walk() { # $1=段名 → 从顶到底逐屏 dump，返回 0=走位合格
-    local seg="$1" idx=0 prev="" cur states=0 top_ok=0 bottom_ok=0
+walk() { # $1=段名 [$2=顶锚（默认全局顶锚）] [$3=底锚（默认全局底锚）]
+    # 两锚可换：整页段认"Anytouch executor / Run task"，面板段认面板自己那两句（不然"走位合格"只证明
+    # 走完了整页，却证明不了这一屏面板真被扫进过 dump——段名换、闸门口径不换，才是同一把尺子）。
+    local seg="$1" top_a="${2:-$TOP_ANCHOR}" bot_a="${3:-$BOTTOM_ANCHOR}"
+    local idx=0 prev="" cur states=0 top_ok=0 bottom_ok=0
     to_top
     while [ $idx -lt 12 ]; do
         idx=$((idx + 1))
@@ -89,8 +94,8 @@ walk() { # $1=段名 → 从顶到底逐屏 dump，返回 0=走位合格
         name=$(printf '%s-%02d' "$seg" "$idx")
         dump_to "$name.xml"
         cur=$(md5sum "$OUT/$name.xml" | cut -d' ' -f1)
-        grep -q "$TOP_ANCHOR" "$OUT/$name.xml" && top_ok=1
-        grep -q "$BOTTOM_ANCHOR" "$OUT/$name.xml" && bottom_ok=1
+        grep -q "$top_a" "$OUT/$name.xml" && top_ok=1
+        grep -q "$bot_a" "$OUT/$name.xml" && bottom_ok=1
         if [ "$cur" = "$prev" ]; then
             # 到底判据：与上一屏逐字节相同。这张重复图留着（证据只追加不改），统计里按并集去重
             break
@@ -113,6 +118,42 @@ sleep 3
 $ADB shell am start -f 536870912 -n com.anytouch.app/.MainActivity --ez keep_fg true >/dev/null 2>&1
 sleep 2
 walk ledger || fail=1
+
+# ---- 段 3：手动补步骤面板展开态（S5-e 要求 3 / 三裁③那一层的上屏文案） ----
+# 面板只能由屏上那一枚 "+ Step" 点开（注入通道不开面板，它是编辑入口不是判据通道），
+# 而"折叠线以下不进无障碍树"这条在这里同样成立：页顶那一屏只有意图框，账本行要到再往下一屏。
+# 所以先"从顶逐屏找那一格"，找到了才模拟手指点它——只在页顶 dump 一次就判"屏上没有"，
+# 红的是读数器（s5e 首/二轮 F14a 正是这么假红的，同批一起修）。
+$ADB shell am start -f 536870912 -n com.anytouch.app/.MainActivity --ez keep_fg true --es template_load photos_cleanup >/dev/null 2>&1
+sleep 3
+to_top
+idx3=0; xy3=""
+while [ $idx3 -lt 8 ]; do
+    idx3=$((idx3 + 1))
+    dump_to insert-probe-$idx3.xml
+    xy3=$(python scripts/tap_node.py "$OUT/insert-probe-$idx3.xml" "\+ Step" 2>/dev/null)
+    [ -n "$xy3" ] && break
+    swipe 500 1800 500
+done
+if [ -n "$xy3" ]; then
+    # 点亮判据不认"我点了"，只认产品自己的状态变化：面板那一格的 testTag 上屏才算开。
+    # 与 s5e 的 tap_open 同源（run3 F14b 血账）：`input tap` 在自家 Compose 面比 dump 报的格心
+    # 低约 85px，裸点报的坐标永远开不了面板——四档内点不亮记的是通道红，绝不记成"屏上没有"。
+    x3=${xy3% *}; y3=${xy3#* }; panel_on=0
+    for off in 85 0 45 130; do
+        $ADB shell input tap "$x3" "$((y3 - off))" >/dev/null 2>&1; sleep 2
+        dump_to panel-check-off$off.xml
+        if grep -q "step_insert_panel_" "$OUT/panel-check-off$off.xml"; then panel_on=1; break; fi
+    done
+    if [ "$panel_on" = "1" ]; then
+        walk insert "Adds one step at position" "node tree, so there is" || fail=1
+    else
+        bad "段3 :: + Step 在树里却四档内点不亮面板（注入通道与 Compose 命中层对不上，测试通道红，不是产品）"
+    fi
+else
+    # 进不去面板就明写这一段没扫：整页两段全绿不等于第三段没漏（假绿血账同族）
+    bad "段3 :: 从页顶逐屏翻 8 屏仍没读到 + Step 那一格（面板没展开，这一层的上屏文案本次未扫）"
+fi
 
 out=$(cjk_scan_all); rc=$?
 if [ $rc -ne 0 ]; then bad "上屏出现中文节点"; printf '%s\n' "$out" | sed 's/^/          /';

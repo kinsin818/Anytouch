@@ -1,0 +1,21 @@
+# target=emulator-5554 md5=eb4a1504b5373357a0773f838fee3da6 vc=5 vn=1.0.4 EXPECTED_VC=5 E9_APK=本机apk
+      | 靶机 34 号 API · 1080x2400 · vc=5 · 球(1002,1272)
+[0;32mPASS[0m L1 :: 无注入参数=单发旧口径逐字不变（09-25 09:59:24.235 20562 20562 I AnytouchRun: S1SMOKE ok=2 total=2 stopped=false stop=-）
+[0;32mPASS[0m L1 :: 单发不产出 repeats 收口（既有断言零回归）
+      | L1 :: 屏上未见 run_report（报告在折叠线以下）→ 屏幕面交 ui-smoke 判，本格不记这条绿
+[0;32mPASS[0m L2 :: 跑满 3 轮 · 轮间等待 3000/2000/ms（3±1 档）· 墙钟 12s
+[0;32mPASS[0m L2 :: 未勾选时计划钉为 askEveryRound=true（安全默认）
+[0;32mPASS[0m L3 :: 等待期点球 1s 内停下，剩余 4 轮一轮没开（09-25 09:59:44.904 20562 20562 I AnytouchRun: S5DSMOKE repeats: 1 of 5 round(s) ran, stopped early (stop_ball), asked for confirmation every round）
+[0;32mPASS[0m L4 :: 面板 1 次 / 跳过 2 次 / 跑满 3 轮（授权不放大：跳过只吃已在面板上放行过的类别）
+[0;32mPASS[0m L4 :: 勾选真落到计划（askEveryRound=false）
+[0;32mPASS[0m L4 :: 自动放行留痕 2 条=跳过 2 条，逐字含授权来源字样（钉 3）
+[0;32mPASS[0m L5 :: 不勾=第二轮照旧弹面板（共 2 次），零跳过（开关没有被默认打开）
+[0;32mPASS[0m L5 :: 超时默认拒中止本轮后剩余轮不开（09-25 10:01:02.058 20562 20562 W AnytouchRun: S5DSMOKE no further rounds after round=2 reason=round_stopped）
+[0;32mPASS[0m L6 :: reps=101 interval=5 拒派发（field=repetitions）且零执行行
+[0;32mPASS[0m L6 :: reps=3 interval=61 拒派发（field=interval）且零执行行
+[0;32mPASS[0m L6 :: reps=1e2 interval=5 拒派发（field=repetitions）且零执行行
+[0;32mPASS[0m L6 :: reps=3 interval=0 拒派发（field=interval）且零执行行
+[0;32mPASS[0m L7 :: 1 秒档等待=0/1000/ms（下夹 0 生效，无负延时）
+      | 收尾：服务在绑=1；总用时 125s
+RESULT fail=0 passed=15
+      | raw → evidence/S5/raw/s5d-repeat-20260925-175922.raw.txt

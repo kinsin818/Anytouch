@@ -1,0 +1,12 @@
+==> [1/4][2/4] gradle SKIPPED (SKIP_GRADLE=1, 只验红线)
+==> [3/4] 红线 grep
+  redline A clean (no network-call keywords under core/)
+  redline B clean (no teammate-workspace references)
+  redline C clean (no network-call keywords under app/src/main)
+  redline D clean (no gesture/coordinate injection)
+  redline E clean (manifest free of SYSTEM_ALERT_WINDOW)
+  redline F clean (network code confined to byok/ and tools/)
+  redline G clean (execution path cannot see the compiler module)
+  redline H clean (no key-bearing log statements)
+  redline I clean (no plaintext credential storage channel in app)
+==> [4/4] ci-local PASS

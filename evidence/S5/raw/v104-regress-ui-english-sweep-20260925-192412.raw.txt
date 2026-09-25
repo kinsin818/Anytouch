@@ -1,0 +1,8 @@
+      | 靶机=sdk_gphone64_x86_64     versionName=1.0.4
+[0;32mPASS[0m home :: 顶到底走位完成，不同状态 4 屏
+[0;32mPASS[0m ledger :: 顶到底走位完成，不同状态 7 屏
+[0;32mPASS[0m insert :: 顶到底走位完成，不同状态 8 屏
+[0;32mPASS[0m 上屏 CJK 扫描 distinct on-screen strings = 85
+      | 上屏文案去重清单（供人工通读）：evidence/S5/raw/english-sweep/20260925-192412/on-screen-strings.txt
+      | 原始 dump 与截图：evidence/S5/raw/english-sweep/20260925-192412
+UI-ENGLISH-SWEEP PASS (0 CJK on screen)
