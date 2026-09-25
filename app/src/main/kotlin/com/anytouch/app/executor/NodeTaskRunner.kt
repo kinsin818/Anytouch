@@ -55,6 +55,12 @@ class NodeTaskRunner(
     private val settleMs: Long = 350,
     private val landedTimeoutMs: Long = 4_000,
     private val focusSettleMs: Long = 800,
+    /**
+     * 每次自动重试的留痕口（S5-R12 要求 1 的"重试全程可被急停打断、每次都记账"）：
+     * 本类零 Android import，日志由接线侧写；缺省=不记（JVM 用例自己收）。
+     */
+    private val retryReporter: (actionId: String, index: Int, retryNo: Int, retryMax: Int, failure: StepFailure) -> Unit =
+        { _, _, _, _, _ -> },
 ) {
 
     data class Report(
@@ -146,19 +152,72 @@ class NodeTaskRunner(
     private class StepOutcome(val result: ActionResult, val stopCommand: Command? = null)
 
     private suspend fun runNodeStep(action: Action, index: Int): StepOutcome {
+        // 一本账住在这里：retriesUsed 是本步**已消耗的重试次数**（含 A1 重派与 type_text 整步兜底那两次），
+        // 额度由 StepRetryPolicy 下发，两个内层兜底与这一层整步重试共用它（钉 9：不许叠成 1+1+2）。
+        var retriesUsed = 0
+        while (true) {
+            val attempt = runNodeStepAttempt(action, index, retriesUsed)
+            val failure = attempt.retryClass
+            val used = retriesUsed + attempt.retriesConsumed
+            if (failure == null || !StepRetryPolicy.shouldRetry(failure, attempt.riskMatched, used)) {
+                return attempt.outcome
+            }
+            // 重试之前先查急停：用户按过球就不再自动重试（军令"2 次都失败再停"不含"叫停后继续"）。
+            killSwitch.snapshot()?.let { kill ->
+                return StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = StopCode.USER_STOP,
+                            severity = StopSeverity.STOP,
+                            message = "the user pressed stop before this step was retried",
+                            evidence = buildJsonObject {
+                                put("stop_reason", kill.reason)
+                                put("stop_source", kill.source)
+                                put("interrupted_failure", failure.name)
+                            },
+                        ),
+                    ),
+                    killReceipt(action, index, kill).toCommand(),
+                )
+            }
+            retriesUsed = used + 1
+            retryReporter(action.actionId, index, retriesUsed, StepRetryPolicy.MAX_STEP_RETRIES, failure)
+            delay(settleMs * 2)
+        }
+    }
+
+    /** 本步还能不能自动重试（额度视角）。急停先于额度：按过球＝额度当场归零，
+     *  内层那两处"自增 attempt 再派一次"的兜底同样吃这一格（判据 §3-1：重试全程可被急停打断）。 */
+    private fun retriesUsable(riskMatched: Boolean, retriesUsed: Int): Int {
+        if (killSwitch.isStopped()) return 0
+        return StepRetryPolicy.retriesLeft(riskMatched, retriesUsed)
+    }
+
+    /** 一次尝试的结论：要不要重试、这一趟消耗了几次额度、这一步是否命中过高危词表。 */
+    private class AttemptOutcome(
+        val outcome: StepOutcome,
+        val retryClass: StepFailure? = null,
+        val retriesConsumed: Int = 0,
+        val riskMatched: Boolean = false,
+    )
+
+    private suspend fun runNodeStepAttempt(action: Action, index: Int, retriesUsed: Int): AttemptOutcome {
         val request = action.value.toLocatorRequest()
         if (request == null) {
-            return StepOutcome(
-                failure(
-                    action,
-                    StopReason(
-                        code = PipelineStopCode.INVALID_INPUT,
-                        severity = StopSeverity.STOP,
-                        message = "action ${action.actionId} has no locator clue (value must carry one of " +
-                            "resource_id / text / content_desc / path)",
+            return AttemptOutcome(
+                StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = PipelineStopCode.INVALID_INPUT,
+                            severity = StopSeverity.STOP,
+                            message = "action ${action.actionId} has no locator clue (value must carry one of " +
+                                "resource_id / text / content_desc / path)",
+                        ),
                     ),
+                    gateReceipt(action, index, "missing_locator", PipelineStopCode.INVALID_INPUT).toCommand(),
                 ),
-                gateReceipt(action, index, "missing_locator", PipelineStopCode.INVALID_INPUT).toCommand(),
             )
         }
 
@@ -166,49 +225,55 @@ class NodeTaskRunner(
         if (located == null) {
             val kill = killSwitch.snapshot()
                 ?: KillSwitch.KillSignal(reason = "user_stop", source = "kill_switch", sequence = 0)
-            return StepOutcome(
-                failure(
-                    action,
-                    StopReason(
-                        code = StopCode.USER_STOP,
-                        severity = StopSeverity.STOP,
-                        message = "the user pressed stop while locating",
-                        evidence = buildJsonObject {
-                            put("stop_reason", kill.reason)
-                            put("stop_source", kill.source)
-                        },
+            return AttemptOutcome(
+                StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = StopCode.USER_STOP,
+                            severity = StopSeverity.STOP,
+                            message = "the user pressed stop while locating",
+                            evidence = buildJsonObject {
+                                put("stop_reason", kill.reason)
+                                put("stop_source", kill.source)
+                            },
+                        ),
                     ),
+                    killReceipt(action, index, kill).toCommand(),
                 ),
-                killReceipt(action, index, kill).toCommand(),
             )
         }
         val hit = located as? LocatorHit
         if (hit == null) {
             val miss = located as LocatorMiss
-            return StepOutcome(
-                failure(
-                    action,
-                    StopReason(
-                        code = miss.code,
-                        severity = StopSeverity.STOP,
-                        message = miss.summary,
-                        evidence = buildJsonObject {
-                            put("action_id", action.actionId)
-                            putJsonArray("attempts") {
-                                miss.attempts.forEach { a ->
-                                    add(
-                                        buildJsonObject {
-                                            put("level", a.level.order)
-                                            put("outcome", a.outcome.name)
-                                            put("detail", a.detail)
-                                        },
-                                    )
+            return AttemptOutcome(
+                StepOutcome(
+                    failure(
+                        action,
+                        StopReason(
+                            code = miss.code,
+                            severity = StopSeverity.STOP,
+                            message = miss.summary,
+                            evidence = buildJsonObject {
+                                put("action_id", action.actionId)
+                                putJsonArray("attempts") {
+                                    miss.attempts.forEach { a ->
+                                        add(
+                                            buildJsonObject {
+                                                put("level", a.level.order)
+                                                put("outcome", a.outcome.name)
+                                                put("detail", a.detail)
+                                            },
+                                        )
+                                    }
                                 }
-                            }
-                        },
+                            },
+                        ),
                     ),
+                    gateReceipt(action, index, miss.code).toCommand(),
                 ),
-                gateReceipt(action, index, miss.code).toCommand(),
+                // 节点没找到=这一步什么都没做，重试是安全的（可重试白名单见 StepRetryPolicy）
+                retryClass = StepFailure.LocatorMiss,
             )
         }
 
@@ -218,10 +283,13 @@ class NodeTaskRunner(
             contentDesc = hit.node.contentDesc,
         )
         var secondConfirmed = false
+        // 命中过高危词表这一步，此后一律不自动重试（三裁 ②：失败可能其实已经落地，二触=同动作跑两遍）
+        var riskMatched = false
         when (val verdict = matcher.inspect(probe)) {
             SafetyVerdict.Clear -> Unit
 
             is SafetyVerdict.RequiresSecondConfirm -> {
+                riskMatched = true
                 // 等确认期间必须响应全局停止：轮询 KillSwitch 抢先取消确认等待，
                 // 停止信号到回执的延迟 ≤ locatePollMs（悬浮球点了就停，不再拖满 15s 超时）。
                 val confirmed: Boolean? = coroutineScope {
@@ -244,49 +312,60 @@ class NodeTaskRunner(
                 } else {
                     val kill = killSwitch.snapshot()
                     if (kill != null) {
-                        return StepOutcome(
+                        return AttemptOutcome(
+                            StepOutcome(
+                                failure(
+                                    action,
+                                    StopReason(
+                                        code = StopCode.USER_STOP,
+                                        severity = StopSeverity.STOP,
+                                        message = "the user pressed stop while waiting for the second confirmation",
+                                        evidence = buildJsonObject {
+                                            put("stop_reason", kill.reason)
+                                            put("stop_source", kill.source)
+                                        },
+                                    ),
+                                ),
+                                killReceipt(action, index, kill).toCommand(),
+                            ),
+                            riskMatched = true,
+                        )
+                    }
+                    // 未获确认（含 15s 默认拒）：这一步什么都没派发，重试也无从谈起——按现行口径停下报错
+                    return AttemptOutcome(
+                        StepOutcome(
                             failure(
                                 action,
                                 StopReason(
-                                    code = StopCode.USER_STOP,
+                                    code = PipelineStopCode.SAFETY_GATE_BLOCKED,
                                     severity = StopSeverity.STOP,
-                                    message = "the user pressed stop while waiting for the second confirmation",
-                                    evidence = buildJsonObject {
-                                        put("stop_reason", kill.reason)
-                                        put("stop_source", kill.source)
-                                    },
+                                    message = "high-risk match never got the second confirmation: ${verdict.matchedRule.ruleId}",
+                                    evidence = buildJsonObject { put("rule", verdict.matchedRule.ruleId) },
                                 ),
                             ),
-                            killReceipt(action, index, kill).toCommand(),
-                        )
-                    }
-                    return StepOutcome(
-                        failure(
-                            action,
-                            StopReason(
-                                code = PipelineStopCode.SAFETY_GATE_BLOCKED,
-                                severity = StopSeverity.STOP,
-                                message = "high-risk match never got the second confirmation: ${verdict.matchedRule.ruleId}",
-                                evidence = buildJsonObject { put("rule", verdict.matchedRule.ruleId) },
-                            ),
+                            gateReceipt(action, index, verdict.matchedRule.ruleId).toCommand(),
                         ),
-                        gateReceipt(action, index, verdict.matchedRule.ruleId).toCommand(),
+                        retryClass = StepFailure.HighRiskConfirmation,
+                        riskMatched = true,
                     )
                 }
             }
 
             is SafetyVerdict.Denied -> {
-                return StepOutcome(
-                    failure(
-                        action,
-                        StopReason(
-                            code = PipelineStopCode.SAFETY_GATE_BLOCKED,
-                            severity = StopSeverity.STOP,
-                            message = "safety valve refused: ${verdict.reason.name}",
-                            evidence = buildJsonObject { put("reason", verdict.reason.name) },
+                return AttemptOutcome(
+                    StepOutcome(
+                        failure(
+                            action,
+                            StopReason(
+                                code = PipelineStopCode.SAFETY_GATE_BLOCKED,
+                                severity = StopSeverity.STOP,
+                                message = "safety valve refused: ${verdict.reason.name}",
+                                evidence = buildJsonObject { put("reason", verdict.reason.name) },
+                            ),
                         ),
+                        gateReceipt(action, index, "denied:${verdict.reason.name}").toCommand(),
                     ),
-                    gateReceipt(action, index, "denied:${verdict.reason.name}").toCommand(),
+                    riskMatched = true,
                 )
             }
         }
@@ -320,18 +399,28 @@ class NodeTaskRunner(
             else -> false
         }
         // A1：原判据「明示拒 → 沉降 settleMs*2 → 按原线索重定位 → 重派一次 → 仍 false 才收
-        // perform_failed」的"该不该重派 + 派到第几次"整体住在 redispatchPlan（三档落点互不相同）。
-        // 平台侧这里只剩三档的**动作**：沉降与设备调用是取数，attempt 只做自增（无循环由纯函数的封顶给出，
-        // 不在这里再数一遍轮数）。动作派发本身绝不进纯函数（那是假下沉）。
+        // perform_failed」的"该不该重派"整体住在 redispatchPlan（三档落点互不相同）。
+        // **额度自 S5-R12 起改由 StepRetryPolicy 下发**：attempt 是本趟已消耗的重试次数（与外层整步重试
+        // 同一本账），retriesLeft 因此可能一进来就是 0（高危步、或额度已被外层用掉），那时首派即 GiveUp。
+        // 平台侧这里只剩三档的**动作**：沉降与设备调用是取数，attempt 只做自增。动作派发本身绝不进纯函数。
         var dispatched = performed
         var attempt = 0
         while (true) {
-            when (redispatchPlan(dispatched, action.type, attempt)) {
+            when (redispatchPlan(dispatched, action.type, retriesUsable(riskMatched, retriesUsed + attempt))) {
                 // 派发已被接收（或该类型不参与重派）：出环，走下方落字复核
                 Redispatch.Skip -> break
 
                 Redispatch.RetryOnce -> {
                     attempt += 1
+                    // 这一次重派占的就是那本唯一额度的第 N 次：留痕必须在**发生处**报，不能等外层补报
+                    // （外层只在整步重试那一层记账，两处旧兜底各自吃掉额度时它是看不见的）。
+                    retryReporter(
+                        action.actionId,
+                        index,
+                        retriesUsed + attempt,
+                        StepRetryPolicy.MAX_STEP_RETRIES,
+                        StepFailure.ExplicitRefusal,
+                    )
                     // 句柄陈旧假红（AVD 三档矩阵收口轮 C1/C7 + MarvisPhone 重启后 C7 设备实证）：定位命中后
                     // 异步卡片/索引重排整棵树，performAction 打在死句柄上被明示拒绝（type_text 亦同：SET_TEXT
                     // 与 PASTE 双双 false 可能只是派发瞬间字段在重建）。false=动作根本没执行过、无线索被消耗、
@@ -361,18 +450,27 @@ class NodeTaskRunner(
                     }
                 }
 
-                // 封顶已过仍明示拒：这一次重派的机会已经用掉了，收 perform_failed（绝不第三派）
-                Redispatch.GiveUp -> return StepOutcome(
-                    failure(
-                        action,
-                        StopReason(
-                            code = StopCode.EXECUTOR_ERROR,
-                            severity = StopSeverity.STOP,
-                            message = "performAction failed: ${action.type} @ ${hit.nodeRef.indexPath}",
-                            evidence = buildJsonObject { put("index_path", hit.nodeRef.indexPath) },
+                // 额度已空仍明示拒：收 perform_failed。retryClass 交回外层，由同一本账决定
+                // 是否还有整步重试的机会（高危步在此处即止——三裁 ②）。
+                Redispatch.GiveUp -> return AttemptOutcome(
+                    StepOutcome(
+                        failure(
+                            action,
+                            StopReason(
+                                code = StopCode.EXECUTOR_ERROR,
+                                severity = StopSeverity.STOP,
+                                message = "performAction failed: ${action.type} @ ${hit.nodeRef.indexPath}",
+                                evidence = buildJsonObject {
+                                    put("index_path", hit.nodeRef.indexPath)
+                                    put("retries_used", retriesUsed + attempt)
+                                },
+                            ),
                         ),
+                        gateReceipt(action, index, "perform_failed").toCommand(),
                     ),
-                    gateReceipt(action, index, "perform_failed").toCommand(),
+                    retryClass = StepFailure.ExplicitRefusal,
+                    retriesConsumed = attempt,
+                    riskMatched = riskMatched,
                 )
             }
         }
@@ -397,11 +495,22 @@ class NodeTaskRunner(
                     delay(settleMs)
                     landedText = awaitLanded(target, input)
                 }
-                if (input.isNotBlank() && landedText?.contains(input.trim()) != true) {
-                    // 整步重试一次（AVD 矩阵实测，API 35 搜索页）：过渡动画中途 SET_TEXT 派发给将被重建的
+                if (input.isNotBlank() && landedText?.contains(input.trim()) != true &&
+                    retriesUsable(riskMatched, retriesUsed + attempt) > 0
+                ) {
+                    // 整步重试（AVD 矩阵实测，API 35 搜索页）：过渡动画中途 SET_TEXT 派发给将被重建的
                     // 输入框→谎 true 不落字、paste 同拒。此时输入未落、线索未被消耗，按原线索重定位是安全的
                     // （与"复核禁重定位"不冲突——那条防的是线索已被输入改掉）。先多沉一拍：过渡未终时
                     // 单发定位会零命中、重试直接空转（avd35 实测 fresh==null 形态）。
+                    // S5-R12 钉 9：这一次**占同一本重试账**（旧判据自带"再试一次"是第二份额度）。
+                    attempt += 1
+                    retryReporter(
+                        action.actionId,
+                        index,
+                        retriesUsed + attempt,
+                        StepRetryPolicy.MAX_STEP_RETRIES,
+                        StepFailure.TextNotLanded,
+                    )
                     delay(settleMs * 2)
                     val fresh = (locator.locate(device.root(), request) as? LocatorHit)?.node
                     if (fresh != null) {
@@ -418,37 +527,47 @@ class NodeTaskRunner(
                 }
                 if (landedText?.contains(input.trim()) != true) {
                     killSwitch.snapshot()?.let { kill ->
-                        return StepOutcome(
+                        return AttemptOutcome(
+                            StepOutcome(
+                                failure(
+                                    action,
+                                    StopReason(
+                                        code = StopCode.USER_STOP,
+                                        severity = StopSeverity.STOP,
+                                        message = "the user pressed stop during the landed-text re-check",
+                                        evidence = buildJsonObject {
+                                            put("stop_reason", kill.reason)
+                                            put("stop_source", kill.source)
+                                        },
+                                    ),
+                                ),
+                                killReceipt(action, index, kill).toCommand(),
+                            ),
+                            retriesConsumed = attempt,
+                            riskMatched = riskMatched,
+                        )
+                    }
+                    return AttemptOutcome(
+                        StepOutcome(
                             failure(
                                 action,
                                 StopReason(
-                                    code = StopCode.USER_STOP,
+                                    code = StopCode.EXECUTOR_ERROR,
                                     severity = StopSeverity.STOP,
-                                    message = "the user pressed stop during the landed-text re-check",
+                                    message = "SET_TEXT${if (usedPasteRoute) "/PASTE" else ""} never landed " +
+                                        "(performAction=true was a false report): expected to contain \"$input\"",
                                     evidence = buildJsonObject {
-                                        put("stop_reason", kill.reason)
-                                        put("stop_source", kill.source)
+                                        put("expected", input)
+                                        put("actual", landedText ?: "<handle dead or no text>")
+                                        put("retries_used", retriesUsed + attempt)
                                     },
                                 ),
                             ),
-                            killReceipt(action, index, kill).toCommand(),
-                        )
-                    }
-                    return StepOutcome(
-                        failure(
-                            action,
-                            StopReason(
-                                code = StopCode.EXECUTOR_ERROR,
-                                severity = StopSeverity.STOP,
-                                message = "SET_TEXT${if (usedPasteRoute) "/PASTE" else ""} never landed " +
-                                    "(performAction=true was a false report): expected to contain \"$input\"",
-                                evidence = buildJsonObject {
-                                    put("expected", input)
-                                    put("actual", landedText ?: "<handle dead or no text>")
-                                },
-                            ),
+                            gateReceipt(action, index, "set_text_unverified", StopCode.EXECUTOR_ERROR).toCommand(),
                         ),
-                        gateReceipt(action, index, "set_text_unverified", StopCode.EXECUTOR_ERROR).toCommand(),
+                        retryClass = StepFailure.TextNotLanded,
+                        retriesConsumed = attempt,
+                        riskMatched = riskMatched,
                     )
                 }
             }
@@ -456,15 +575,20 @@ class NodeTaskRunner(
         if (action.type == ActionType.CLICK || action.type == ActionType.SCROLL) {
             delay(settleMs) // 页面切换沉降；下一次定位自带轮询，不在此等待特定节点
         }
-        return StepOutcome(
-            success(action) {
-                put("mock", false)
-                put("level", hit.level.name)
-                put("matched_by", hit.matchedBy)
-                put("index_path", hit.nodeRef.indexPath)
-                if (secondConfirmed) put("second_confirmed", true)
-                if (usedPasteRoute) put("route", "paste_fallback")
-            },
+        return AttemptOutcome(
+            StepOutcome(
+                success(action) {
+                    put("mock", false)
+                    put("level", hit.level.name)
+                    put("matched_by", hit.matchedBy)
+                    put("index_path", hit.nodeRef.indexPath)
+                    if (secondConfirmed) put("second_confirmed", true)
+                    if (usedPasteRoute) put("route", "paste_fallback")
+                    if (retriesUsed + attempt > 0) put("retries_used", retriesUsed + attempt)
+                },
+            ),
+            retriesConsumed = attempt,
+            riskMatched = riskMatched,
         )
     }
 

@@ -26,56 +26,68 @@ class ExecutorDecisionsTest {
     private fun text(text: String?) = LandedNodeFact("android.widget.TextView", text)
 
     // ==========================================================================================
-    // A1：redispatchPlan —— 明示拒绝才重派、封顶恰好一次、true/WAIT 一律不派
+    // A1：redispatchPlan —— 明示拒绝才重派、封顶认额度、true/WAIT 一律不派
+    //
+    // S5-R12 钉 9 之后这里**不再写死次数**：第三个入参是 [StepRetryPolicy] 下发的剩余重试额度
+    // （非高危 2、高危 0）。判据只回答"额度还有没有"，额度本身由 `StepRetryPolicyTest` 锁。
     // ==========================================================================================
 
     @Test
-    fun `明示拒绝且非WAIT 首派后判为重派一次`() {
+    fun `明示拒绝且额度未尽 非WAIT 该按原线索重派`() {
         for (type in listOf(ActionType.CLICK, ActionType.SCROLL, ActionType.TYPE_TEXT)) {
             assertEquals(
-                "performAction 明示拒（false=动作根本没执行过）时 $type 该按原线索重派一次",
+                "performAction 明示拒（false=动作根本没执行过）时 $type 该按原线索重派",
                 Redispatch.RetryOnce,
-                redispatchPlan(performed = false, type = type, attempt = 0),
+                redispatchPlan(performed = false, type = type, retriesLeft = 2),
             )
+            assertEquals(Redispatch.RetryOnce, redispatchPlan(performed = false, type = type, retriesLeft = 1))
         }
     }
 
     @Test
-    fun `attempt到1即GiveUp 封顶恰好一次`() {
+    fun `额度归零即GiveUp 负数也不给`() {
         for (type in listOf(ActionType.CLICK, ActionType.SCROLL, ActionType.TYPE_TEXT)) {
             assertEquals(
-                "$type 第二次仍明示拒必须收 perform_failed，不许开第三轮",
+                "$type 额度用尽后必须收 perform_failed，不许自己再翻额度",
                 Redispatch.GiveUp,
-                redispatchPlan(performed = false, type = type, attempt = 1),
+                redispatchPlan(performed = false, type = type, retriesLeft = 0),
             )
-            assertEquals(Redispatch.GiveUp, redispatchPlan(false, type, 2))
-            assertEquals(Redispatch.GiveUp, redispatchPlan(false, type, 9))
+            assertEquals(Redispatch.GiveUp, redispatchPlan(false, type, -1))
+            assertEquals(Redispatch.GiveUp, redispatchPlan(false, type, -9))
         }
     }
 
     @Test
-    fun `第二次仍false绝不第三派`() {
+    fun `最坏输入下重派次数恰好等于额度 不越界`() {
         // 把平台侧那个 while(true) 的推进规则原样演一遍：设备对每次派发都明示拒绝（最坏输入），
         // 统计实际发生的重派次数，以及出环时是"以 perform_failed 收官"（返回负数）还是"被接收"（正数）。
-        // 判据被放宽（attempt > MAX / 去掉封顶）时这里会变成 2、3 或直接不收敛——用例即红。
-        val rounds = observedRedispatchRounds(ActionType.TYPE_TEXT)
-        assertEquals("重派机会恰好一次：第二轮 false 之后只能是 GiveUp", -1, rounds)
-        assertEquals("click 同理", -1, observedRedispatchRounds(ActionType.CLICK))
-        assertEquals("scroll 同理", -1, observedRedispatchRounds(ActionType.SCROLL))
+        // 判据被放宽（去掉额度判断）时这里会变多或直接不收敛——用例即红。
+        assertEquals(
+            "非高危：额度 2 就用满 2 次，第三派不给",
+            -StepRetryPolicy.MAX_STEP_RETRIES,
+            observedRedispatchRounds(ActionType.TYPE_TEXT, riskMatched = false),
+        )
+        assertEquals("click 同理", -2, observedRedispatchRounds(ActionType.CLICK, riskMatched = false))
+        assertEquals("scroll 同理", -2, observedRedispatchRounds(ActionType.SCROLL, riskMatched = false))
+        assertEquals(
+            "高危（三裁 ①）：一档重派都不给，直接收红——弹窗已经确认过一次，绝不自动重来",
+            0,
+            observedRedispatchRounds(ActionType.CLICK, riskMatched = true),
+        )
     }
 
-    /** 平台侧推进规则的镜像**演练**（不是第二份判据）：判据只调 [redispatchPlan]，这里只数它给了几档 RetryOnce。 */
-    private fun observedRedispatchRounds(type: String): Int {
+    /** 平台侧推进规则的镜像**演练**（不是第二份判据）：判据只调 [redispatchPlan]，额度只问 [StepRetryPolicy]，这里只数它给了几档 RetryOnce。 */
+    private fun observedRedispatchRounds(type: String, riskMatched: Boolean): Int {
         var dispatched = false // 设备最坏输入：每一派都明示拒绝
-        var attempt = 0
+        var retriesUsed = 0
         var retries = 0
         while (true) {
-            when (redispatchPlan(dispatched, type, attempt)) {
+            when (redispatchPlan(dispatched, type, StepRetryPolicy.retriesLeft(riskMatched, retriesUsed))) {
                 Redispatch.Skip -> return retries
                 Redispatch.GiveUp -> return -retries
                 Redispatch.RetryOnce -> {
                     retries += 1
-                    attempt += 1
+                    retriesUsed += 1
                 }
             }
         }
@@ -84,28 +96,28 @@ class ExecutorDecisionsTest {
     @Test
     fun `派发已被接收则Skip 与轮数和类型无关`() {
         for (type in listOf(ActionType.CLICK, ActionType.SCROLL, ActionType.TYPE_TEXT, ActionType.WAIT, ActionType.KEY)) {
-            for (attempt in 0..2) {
+            for (retriesLeft in 0..2) {
                 assertEquals(
-                    "performed=true 之后任何再派都是重复点击/重复输入，一档都不给（$type attempt=$attempt）",
+                    "performed=true 之后任何再派都是重复点击/重复输入，一档都不给（$type retriesLeft=$retriesLeft）",
                     Redispatch.Skip,
-                    redispatchPlan(performed = true, type = type, attempt = attempt),
+                    redispatchPlan(performed = true, type = type, retriesLeft = retriesLeft),
                 )
             }
         }
     }
 
     @Test
-    fun `WAIT永不进入重派`() {
-        assertEquals(Redispatch.Skip, redispatchPlan(performed = false, type = ActionType.WAIT, attempt = 0))
-        assertEquals(Redispatch.Skip, redispatchPlan(performed = false, type = ActionType.WAIT, attempt = 1))
+    fun `WAIT永不进入重派 额度再足也不派`() {
+        assertEquals(Redispatch.Skip, redispatchPlan(performed = false, type = ActionType.WAIT, retriesLeft = 2))
+        assertEquals(Redispatch.Skip, redispatchPlan(performed = false, type = ActionType.WAIT, retriesLeft = 0))
     }
 
     @Test
     fun `三档落点互不相同 调用方不必猜null`() {
         val outcomes = listOf(
-            redispatchPlan(true, ActionType.CLICK, 0),
+            redispatchPlan(true, ActionType.CLICK, 2),
+            redispatchPlan(false, ActionType.CLICK, 2),
             redispatchPlan(false, ActionType.CLICK, 0),
-            redispatchPlan(false, ActionType.CLICK, 1),
         )
         assertEquals(
             "Skip/RetryOnce/GiveUp 三档各占一个输入格：互换落点=把已接收当失败停机、或把封顶已过再派一次",
@@ -117,11 +129,11 @@ class ExecutorDecisionsTest {
     @Test
     fun `除WAIT外的类型一律按原判据参与重派 含未支持类型`() {
         // 原判据写的是 `action.type != ActionType.WAIT`（黑名单一条），不是白名单：
-        // 改成 `when` 白名单会把 key/submit 这类"走 else->false"的派发从"重派一次再收红"变成"直接收红"。
+        // 改成 `when` 白名单会把 key/submit 这类"走 else->false"的派发从"重派到额度用尽再收红"变成"直接收红"。
         // （`run()` 的 when 目前只把 CLICK/SCROLL/TYPE_TEXT 送进 runNodeStep，这条锁的是判据字面等价性。）
         for (type in listOf(ActionType.KEY, ActionType.SUBMIT, ActionType.SELECT_DROPDOWN, "teleport")) {
-            assertEquals(Redispatch.RetryOnce, redispatchPlan(performed = false, type = type, attempt = 0))
-            assertEquals(Redispatch.GiveUp, redispatchPlan(performed = false, type = type, attempt = 1))
+            assertEquals(Redispatch.RetryOnce, redispatchPlan(performed = false, type = type, retriesLeft = 2))
+            assertEquals(Redispatch.GiveUp, redispatchPlan(performed = false, type = type, retriesLeft = 0))
         }
     }
 

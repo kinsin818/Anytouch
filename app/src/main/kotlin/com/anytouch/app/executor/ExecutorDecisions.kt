@@ -18,25 +18,26 @@ import com.anytouch.contracts.ActionType
 
 /* ========================= A1：明示拒绝后的重派计划 ========================= */
 
-/** [redispatchPlan] 的三档结论。三档落点互不相同，调用方不必猜 null 也不必自己数轮数。 */
+/**
+ * [redispatchPlan] 的三档结论。三档落点互不相同，调用方不必猜 null 也不必自己数轮数。
+ *
+ * **额度不在本文件判**（S5-R12 钉 9）：这里只看"还剩几次可试"这一个整数，
+ * 那个数由 [StepRetryPolicy.retriesLeft] 下发。原判据自带的 `MAX_REDISPATCH_ROUNDS = 1` 已删——
+ * 它与军令新增的"每步最多重试 2 次"是同一本账上的两笔支出，留着就是 1+1+2 的隐式放大。
+ */
 enum class Redispatch {
     /** 不必重派：派发已被接收，或该类型压根不参与重派。 */
     Skip,
 
-    /** 按原线索沉降后重定位一次，再派一次。 */
+    /** 按原线索沉降后重定位一次，再派一次（消耗重试额度 1 次，由调用方记账）。 */
     RetryOnce,
 
-    /** 封顶已过：收 `perform_failed`，绝不再派。 */
+    /** 额度已空：收 `perform_failed`，绝不再派。 */
     GiveUp,
 }
 
-/** 重派封顶轮数——"恰好一次"这半条判据就住在这里，平台侧不另数一遍。 */
-private const val MAX_REDISPATCH_ROUNDS = 1
-
 /**
- * A1：派发被**明示拒绝**（[performed] = false）且该类型参与重派时，沉降后按原线索重定位再派一次；
- * 仍 false 才收 `perform_failed`。**封顶恰好一次**：[attempt] 一到 [MAX_REDISPATCH_ROUNDS] 即 [Redispatch.GiveUp]，
- * 无循环是这条判据的一半（K40/MIUI 雷 12 是**持久**拒绝，放宽就会对同一台机器无限重派）。
+ * A1：派发被**明示拒绝**（[performed] = false）且该类型参与重派时，沉降后按原线索重定位再派一次。
  *
  * 为什么"再派一次"允许（不是装饰）：`false` 的含义是动作**根本没执行过**——线索未被消耗、无输入落盘，
  * 所以这一次重定位+重派是零副作用自证（设备实证：AVD 三档矩阵收口轮 C1/C7、MarvisPhone 重启后 C7
@@ -48,12 +49,13 @@ private const val MAX_REDISPATCH_ROUNDS = 1
  * @param type `Action.type` 的字符串值。contracts 侧 `ActionType` 是常量对象而非枚举
  * （`core/contracts/src/main/kotlin/com/anytouch/contracts/Constants.kt:21`，"非严格枚举，留扩展位"），
  * 故形参类型是 `String`；比较仍写 `ActionType.WAIT`，判据语义与平台侧原字面一致。
- * @param attempt 已经重派过几轮（首派后为 0）。
+ * @param retriesLeft 本步还剩几次重试额度（[StepRetryPolicy.retriesLeft] 的返回值，
+ *                     高危步恒为 0——[Redispatch.GiveUp] 因此对高危步即刻成立）。
  */
-fun redispatchPlan(performed: Boolean, type: String, attempt: Int): Redispatch {
+fun redispatchPlan(performed: Boolean, type: String, retriesLeft: Int): Redispatch {
     if (performed) return Redispatch.Skip
     if (type == ActionType.WAIT) return Redispatch.Skip
-    if (attempt >= MAX_REDISPATCH_ROUNDS) return Redispatch.GiveUp
+    if (retriesLeft <= 0) return Redispatch.GiveUp
     return Redispatch.RetryOnce
 }
 

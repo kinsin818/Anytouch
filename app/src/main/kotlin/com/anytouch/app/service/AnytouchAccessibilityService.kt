@@ -365,6 +365,15 @@ class AnytouchAccessibilityService : AccessibilityService() {
         NodeTaskRunner(
             device = AccessibilityDevice(this),
             confirmer = { verdict -> confirmWithCache(ui, confirmCache, verdict, round) },
+            // 每次自动重试都留痕（S5-R12 判据 §3-1）：额度与"哪类失败可重试"的判据全在 StepRetryPolicy，
+            // 这里只把已经发生的那一次写成人读流水，不在此判"该不该重试"。
+            retryReporter = { actionId, index, retryNo, retryMax, failure ->
+                Log.i(
+                    TAG,
+                    "S5ESMOKE step retry round=$round action=$actionId index=$index " +
+                        "retry=$retryNo/$retryMax failure=$failure",
+                )
+            },
         ).run(actions)
     } catch (e: kotlinx.coroutines.CancellationException) {
         // 取消不是任务失败，不伪造 S1SMOKE 回执——但必须留痕（设备实证：无痕取消曾把

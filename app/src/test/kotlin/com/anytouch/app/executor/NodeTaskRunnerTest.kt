@@ -322,11 +322,17 @@ class NodeTaskRunnerTest {
     @Test
     fun `type_text虚报 performAction为true但未落字 回执翻失败并停机`() = runBlocking {
         // 模拟器实测雷：Compose 输入框 ACTION_SET_TEXT 返回 true 却不落字——performAction 布尔不可作为成功凭据。
+        // 模拟器实测雷：Compose 输入框 ACTION_SET_TEXT 返回 true 却不落字——performAction 布尔不可作为成功凭据。
+        // 额度账（S5-R12 钉 9）：首派虚报 → 整步兜底重试 1 次（占额度）→ 外层整步重试 1 次（占额度）= 3 派封顶。
         val device = FakeDevice(settingsTree()).apply { mutateTree = false }
         val report = runnerFor(device).run(
             decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
         )
-        assertEquals(listOf("setText:hi", "setText:hi"), device.performed, "谎报一次→整步重试一次封顶；重试仍虚报必须收红，不得无限重派")
+        assertEquals(
+            List(StepRetryPolicy.MAX_STEP_ATTEMPTS) { "setText:hi" },
+            device.performed,
+            "重试总尝试 ≤ 3（原始 1 + 重试 2）封顶；仍虚报必须收红，不得无限重派",
+        )
         assertTrue(report.stopped)
         val recovery = report.results.single().recovery!!
         assertEquals(false, report.results.single().ok)
@@ -403,21 +409,131 @@ class NodeTaskRunnerTest {
     }
 
     @Test
-    fun `type_text明示拒绝边重派一次封顶仍拒收perform_failed`() = runBlocking {
+    fun `type_text明示拒绝边重派到额度用尽仍拒收perform_failed`() = runBlocking {
         // MarvisPhone 设备实证：SET_TEXT+PASTE 双双 false 可能只是字段重建瞬间的派发被拒（false=没执行过，
-        // 重派零副作用）；但重试必须封顶一次，不得对明示拒绝无限重派（K40/MIUI 雷 12 是持久拒绝）。
+        // 重派零副作用）；但重试必须封顶（S5-R12 钉 9：同一步总尝试 ≤ 3 = 原始 1 + 重试 2），
+        // 不得对明示拒绝无限重派（K40/MIUI 雷 12 是持久拒绝）。额度住 StepRetryPolicy，判据不在此重抄。
         val device = FakeDevice(settingsTree()).apply { succeed = false }
         val report = runnerFor(device).run(
             decode("""[{"action_id":"t1","type":"type_text","source":"node","value":{"resource_id":"android:id/list","input":"hi"},"safety":{"viewport_ok":true,"click_enabled":true}}]"""),
         )
         assertEquals(
-            listOf("setText:hi", "setText:hi"),
+            List(StepRetryPolicy.MAX_STEP_ATTEMPTS) { "setText:hi" },
             device.performed,
-            "首派 SET_TEXT 拒（PASTE 通道未开不记流水）→整步重定位再派一次封顶，随后必须收 perform_failed",
+            "首派 + 重派两次（每次重定位再派，占同一本额度）之后必须收 perform_failed，不许有第四次派发",
         )
         assertTrue(report.stopped)
         assertEquals("perform_failed", payloadString(report.stopCommand!!, "stop_reason"))
     }
+
+    @Test
+    fun `高危步获确认后失败绝不自动重派`() = runBlocking {
+        // 三裁 ②（老板 09-25 复令第 1 条）：高危步失败**不当场重试**——所谓"失败"可能动作其实已经落地
+        // （只是落地校验超时），当场重来＝同一个删除/付款类动作被触发第二次。
+        // 反例探针：把 retryCeiling(riskMatched=true) 写成 2、或让 riskMatched 漏传出，这里立刻变 2 次而红。
+        val root = ui(
+            clazz = "FrameLayout",
+            children = listOf(ui(marker = "支付", id = "com.shop:id/pay_now", clickable = true)),
+        )
+        val device = FakeDevice(root).apply { succeed = false }
+        val retries = mutableListOf<String>()
+        val runner = retryRecordingRunner(device, retries, confirmer = { true })
+        val report = runner.run(decode("""[${click("pay", """{"text":"支付"}""")}]"""))
+        assertEquals(listOf("click:支付"), device.performed, "高危步只准首派那一次：确认已给≠可以再点一次")
+        assertEquals(listOf(), retries, "高危步一次重试都不该记账")
+        assertTrue(report.stopped)
+        assertEquals("perform_failed", payloadString(report.stopCommand!!, "stop_reason"))
+    }
+
+    @Test
+    fun `非高危步失败自动重试两次并逐次留痕`() = runBlocking {
+        // 军令 1 的正脸：同一步拒答时自动重试 ≤2 次，每次重试**记账**（可归因），第三次仍拒才收红。
+        // 与上一条同形输入（设备全体明示拒），唯一差别是这一步没命中高危词表——两格对照即证
+        // "可不可重试"吃的是 riskMatched 而非失败类型。
+        val device = FakeDevice(settingsTree()).apply { succeed = false }
+        val retries = mutableListOf<String>()
+        val report = retryRecordingRunner(device, retries).run(
+            decode("""[${click("r1", """{"text":"System"}""")}]"""),
+        )
+        assertEquals(
+            listOf("r1#0#1/2#ExplicitRefusal", "r1#0#2/2#ExplicitRefusal"),
+            retries,
+            "重试留痕须逐次递增、带步号与失败类，上限与 StepRetryPolicy 同源：$retries",
+        )
+        assertEquals(List(StepRetryPolicy.MAX_STEP_ATTEMPTS) { "click:System" }, device.performed)
+        assertTrue(report.stopped)
+        assertEquals("perform_failed", payloadString(report.stopCommand!!, "stop_reason"))
+    }
+
+    @Test
+    fun `重试前按下急停则当场即停不再重试`() = runBlocking {
+        // 判据 §3-1："重试全程可被急停打断"。设备每次明示拒并顺手按下急停（模拟用户在第一次失败后点球）：
+        // 该步必须只派发一次，且出的是 USER_STOP 回执而非 perform_failed。
+        val inner = FakeDevice(settingsTree())
+        var stopped = false
+        val killer = object : NodeActions by inner {
+            override fun click(node: UiNode): Boolean {
+                val ok = inner.click(node)
+                if (!stopped) {
+                    stopped = true
+                    KillSwitch.stop(reason = "user_stop", source = "stop_ball")
+                }
+                return false
+            }
+        }
+        val retries = mutableListOf<String>()
+        val report = retryRecordingRunner(killer, retries).run(
+            decode("""[${click("k9", """{"text":"System"}""")}]"""),
+        )
+        assertEquals(listOf("click:System"), inner.performed, "急停之后一次重派都不许发生")
+        assertEquals(listOf(), retries, "急停之后的重试不许记账（根本没重试）")
+        assertTrue(report.stopped)
+        assertEquals("USER_STOP", payloadString(report.stopCommand!!, "stop_code"))
+    }
+
+    @Test
+    fun `定位未命中也吃同一本额度 整步重跑三次封顶`() = runBlocking {
+        // NODE_NOT_FOUND 是"这一步什么都没做"的失败，重试安全（页面切换期自愈就靠它）；
+        // 但同样吃那一本账：整步重跑 = 定位 3 轮取树，绝不许第 4 轮（额度被旁路的机械探针）。
+        val inner = FakeDevice(settingsTree())
+        var rootReads = 0
+        val counted = object : NodeActions by inner {
+            override suspend fun root(): UiNode? {
+                rootReads += 1
+                return inner.root()
+            }
+        }
+        val report = runnerFor(counted).run(
+            decode("""[${click("nf", """{"text":"not_there"}""")}]"""),
+        )
+        assertTrue(report.stopped)
+        assertEquals(LocatorMiss.NODE_NOT_FOUND, report.results.single().recovery!!.code)
+        assertEquals(
+            StepRetryPolicy.MAX_STEP_ATTEMPTS,
+            rootReads,
+            "每次整步重试取一轮活树：总尝试 = 1 原始 + 2 重试，读出第 4 轮即为额度被旁路",
+        )
+        assertEquals(listOf(), inner.performed, "没定位到就绝不派发")
+    }
+
+    /** 带重试留痕的 runner：与 [runnerFor] 同参，只多接一条 [NodeTaskRunner.retryReporter] 流水。 */
+    private fun retryRecordingRunner(
+        device: NodeActions,
+        sink: MutableList<String>,
+        confirmer: suspend (SafetyVerdict.RequiresSecondConfirm) -> Boolean = { false },
+    ): NodeTaskRunner = NodeTaskRunner(
+        device = device,
+        matcher = HighRiskMatcher.default(),
+        confirmer = confirmer,
+        locateTimeoutMs = 0,
+        locatePollMs = 10,
+        settleMs = 0,
+        landedTimeoutMs = 0,
+        confirmTimeoutMs = 200,
+        retryReporter = { actionId, index, retryNo, retryMax, failure ->
+            sink += "$actionId#$index#$retryNo/$retryMax#$failure"
+        },
+    )
 
     @Test
     fun `wait步在任何设备拒答下也绝不产perform_failed`() = runBlocking {
