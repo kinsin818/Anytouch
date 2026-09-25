@@ -9,3 +9,7 @@
 # 构建 09-25 22:22:44 · s5f run6 46/0 装的是这一枚（raw 头部 md5 逐字同值）
 # 复核：此后两处改动均为注释/禁词字面（ActivationStore.kt KDoc、ActivationCodeTest.kt 禁词清单），
 #   CI 重跑 compileDebugKotlin 产物重写后 APK md5 仍逐字 = 3128921ab9a1a0ee78db2c7338e4f1a8（实测，非推理）
+# 发布账（09-26 01:01 追加，先建后记）：commit db79e96 → annotated tag v1.0.5 → origin/main 44d843c..db79e96
+#   Release https://github.com/kinsin818/Anytouch/releases/tag/v1.0.5 资产 app-debug.apk
+#   匿名回对（curl 无凭据走 release 直链，地址由未登录的 api.github.com/tags/v1.0.5 现取）：
+#   落盘 9,532,419 B · md5 3128921ab9a1a0ee78db2c7338e4f1a8 —— 与被测发布字节逐字同值

@@ -1,0 +1,18 @@
+# v1.0.5 JVM 分模块单变体计数（判据 9 的口径件）
+# 口径：与 evidence/S5/raw/v105-ci-jvm-redline-20260925-224042.txt 同一次 CI（[2/4] --rerun-tasks 干净重跑），
+# 对每个模块 test-results 目录下 TEST-*.xml 的 testsuite 头自加，单变体（app 只取 testDebugUnitTest），不 glob 其他目录、不数日志行。
+# 本文件所列 XML 的 mtime 逐字落在 2026-09-25 22:40:16~22:40:37，即那次重跑写的；计数生成时刻（host）：2026-09-26 01:05:19。
+# 自纠一笔：本文件初稿 TOTAL 行的 files= 是我手填的（45），与实测求和不符，已改为脚本累加值——tests/failures/errors/skipped 四列自始至终是脚本算的，未受影响。
+:app (testDebugUnitTest)   files=38  tests=464  failures=0 errors=0 skipped=0
+:byok (test)               files=8   tests=69   failures=0 errors=0 skipped=0
+:core:contracts (test)     files=2   tests=19   failures=0 errors=0 skipped=0
+:tools:compiler            files=0   tests=0    failures=0 errors=0 skipped=0
+------------------------------------------------------------------------------
+TOTAL                      files=48  tests=552  failures=0 errors=0 skipped=0
+
+# 激活三套件逐件（同一批 XML，testsuite 头原文）：
+name="com.anytouch.app.activation.ActivationCodeTest" tests="14" skipped="0" failures="0" errors="0"
+name="com.anytouch.app.activation.ActivationGateTest" tests="10" skipped="0" failures="0" errors="0"
+name="com.anytouch.app.activation.ActivationStoreTest" tests="9" skipped="0" failures="0" errors="0"
+
+# 对基线：v1.0.4=515（app 427/byok 69/contracts 19）→ v1.0.5=552（app 464/byok 69/contracts 19），净增 37 全在 :app，即三件激活套件 14+10+9=33 另加同批既有类补的 4 例。
