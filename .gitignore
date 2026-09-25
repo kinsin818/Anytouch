@@ -19,3 +19,5 @@ Desktop.ini
 
 # device-smoke scratch dumps (test channel working files)
 .smoke-tmp/
+.smoke-*.log
+__pycache__/

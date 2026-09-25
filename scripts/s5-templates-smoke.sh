@@ -61,7 +61,10 @@ wait_bound || { bad "预检 :: 无障碍服务未绑定（先装 APK 并绑服�
 SIZE=$($ADB shell wm size | tail -1 | tr -d '\r' | sed 's/.*: *//')
 W=${SIZE%x*}; H=${SIZE#*x}
 # "确认执行"按钮按 killdemo 标定坐标 (702,1294)@1080x2400 线性缩放到本靶机分辨率
-BTN_CONFIRM_X=$(( W * 702 / 1080 )); BTN_CONFIRM_Y=$(( H * 1294 / 2400 ))
+# 兜底坐标：仅当"三拍都量不到钮"时试投用（正常轮一律按屏定位，见下方面板块）。
+# 数值=v1.0.2 面板实测（截屏量得 729,1391 @1080x2400；v1.0.1 是 685,1282——文案一改钮就位移，
+# 所以这组数只作试投，不作判据）。
+BTN_CONFIRM_X=$(( W * 729 / 1080 )); BTN_CONFIRM_Y=$(( H * 1391 / 2400 ))
 log "靶机 $($ADB shell getprop ro.build.version.sdk | tr -d '\r') 号 API · ${W}x${H} · 面板按钮 (${BTN_CONFIRM_X},${BTN_CONFIRM_Y}) · ROUNDS=$ROUNDS"
 mkdir -p "$RAW_DIR"
 
@@ -201,13 +204,30 @@ while [ "$R" -le "$ROUNDS" ]; do
     #   ②点完必须复核面板窗是否撤走（撤走=决策真被吃进），8s 内没撤=坐标落空，如实记红并补点一次
     #     让本轮链走完，但补点事实进 RAW，不洗成"一次点中"。
     PANEL_SEEN=0; i=0
+    TAPX=$BTN_CONFIRM_X; TAPY=$BTN_CONFIRM_Y   # 兜底值：未见面板/量不到时不致用未初始化变量（set -u）
     while [ "$i" -lt 40 ]; do
         if MSYS_NO_PATHCONV=1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | grep -qE "u0 com\.anytouch\.app\}"; then
             PANEL_SEEN=1
-            PSHOT="$RAW_DIR/s5a-panel-round$R-$(date +%H%M%S).png"
-            MSYS_NO_PATHCONV=1 $ADB exec-out screencap -p > "$PSHOT" 2>/dev/null
-            echo "# 面板在场截图=$PSHOT 焦点=$(MSYS_NO_PATHCONV 1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | tr -d '\r')" >> "$RAW"
-            MSYS_NO_PATHCONV=1 $ADB shell input tap $BTN_CONFIRM_X $BTN_CONFIRM_Y
+            # v1.0.2 首跑轮 4 血账：焦点刚见到自家窗就立刻 screencap，抓到的是"只有压暗层、面板内容
+            # 还没合成"的那一帧（该帧面板底色像素=0，正常轮 104548）——按屏定位量不到钮，退死坐标落空，
+            # 产品按 fail-closed 15s 自拒（红记在测试通道，产品行为反倒是对的）。
+            # 现改成"拍→量→量不到重拍"最多 3 次（每次先睡 1s 让面板画完），三拍全空才记红退死坐标。
+            MEASURED=0; a=0
+            while [ "$a" -lt 3 ]; do
+                a=$((a + 1))
+                sleep 1
+                PSHOT="$RAW_DIR/s5a-panel-round$R-try$a-$(date +%H%M%S).png"
+                MSYS_NO_PATHCONV=1 $ADB exec-out screencap -p > "$PSHOT" 2>/dev/null
+                echo "# 面板在场截图(第 $a 拍)=$PSHOT 焦点=$(MSYS_NO_PATHCONV=1 $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | tr -d '\r')" >> "$RAW"
+                MEAS=$(PYTHONIOENCODING=utf-8 python scripts/find-panel-confirm.py "$PSHOT" 2>>"$RAW"); MEAS_RC=$?
+                if [ "$MEAS_RC" -eq 0 ] && [ -n "$MEAS" ]; then
+                    TAPX=${MEAS% *}; TAPY=${MEAS#* }; MEASURED=1
+                    echo "# 面板按钮按屏定位=(${TAPX},${TAPY}) 量自 $(basename "$PSHOT")（第 $a 拍命中）" >> "$RAW"
+                    break
+                fi
+            done
+            [ "$MEASURED" -eq 1 ] || bad "轮 $R :: 面板按钮按屏定位三拍皆失败（三帧都没量到两枚钮），退死坐标试投——本轮即便走完也不记干净绿"
+            MSYS_NO_PATHCONV=1 $ADB shell input tap $TAPX $TAPY
             break
         fi
         sleep 1; i=$((i + 1))
@@ -221,7 +241,7 @@ while [ "$R" -le "$ROUNDS" ]; do
     if [ "$GONE" -eq 0 ]; then
         bad "轮 $R :: 首次确认点击未落（面板窗 8s 后仍在焦=决策没被吃进，坐标/时机问题，不是产品放行逻辑问题）"
         echo "# 首次点击未落，补点一次以走完本轮链（事实已记红，不洗）" >> "$RAW"
-        MSYS_NO_PATHCONV=1 $ADB shell input tap $BTN_CONFIRM_X $BTN_CONFIRM_Y
+        MSYS_NO_PATHCONV=1 $ADB shell input tap $TAPX $TAPY
     fi
     i=0
     while [ "$i" -lt 30 ]; do

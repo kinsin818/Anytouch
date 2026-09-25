@@ -1,0 +1,21 @@
+# S5-a photos_cleanup 全链轮 3  @ 2026-09-25T10:10:06+08:00  serial=emulator-5554
+# 面板在场截图(第 1 拍)=evidence/S5/raw/s5a-panel-round3-try1-101135.png 焦点=  mCurrentFocus=Window{16512b1 u0 com.anytouch.app}
+# band y 1344..1438 center 1391 | left (170, 529) right (550, 909) | screen 1080x2400 | dark-panel-px 104548
+# 面板按钮按屏定位=(729,1391) 量自 s5a-panel-round3-try1-101135.png（第 1 拍命中）
+# 回执等待 0s（host=10:11:38 device=02:11:36）
+09-25 02:11:34.958  2110  2110 I AnytouchRun: S1SMOKE ok=9 total=9 stopped=false stop=-
+# 磁盘终判 第 1 读 @02:11:52 .trashed 残留=0 种子残留=0
+--------- beginning of main
+09-25 02:11:09.983  2110  2110 I AnytouchRun: S3SMOKE model ledger written origin=template steps=9 replaced=9
+09-25 02:11:09.984  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=0 type=click value={"content_desc":"Show Navigation Drawer"}
+09-25 02:11:09.984  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=1 type=wait value={"ms":800}
+09-25 02:11:09.984  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=2 type=click value={"text":"Trash"}
+09-25 02:11:09.987  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=3 type=wait value={"ms":1500}
+09-25 02:11:09.987  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=4 type=click value={"content_desc":"More options"}
+09-25 02:11:09.987  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=5 type=wait value={"ms":800}
+09-25 02:11:09.987  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=6 type=click value={"text":"Empty trash"}
+09-25 02:11:09.987  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=7 type=wait value={"ms":800}
+09-25 02:11:09.999  2110  2110 I AnytouchRun: S3SMOKE-MODEL-STEP index=8 type=click value={"resource_id":"com.google.android.apps.photos:id/confirmation_button"}
+09-25 02:11:10.003  2110  2110 I AnytouchRun: S3SMOKE-TASK [{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+09-25 02:11:10.003  2110  2110 I AnytouchRun: S5SMOKE template load ok id=photos_cleanup via=adb_inject steps=9 replaced=9 verification=DEVICE_PROVEN_ON_AVD
+09-25 02:11:34.958  2110  2110 I AnytouchRun: S1SMOKE ok=9 total=9 stopped=false stop=-

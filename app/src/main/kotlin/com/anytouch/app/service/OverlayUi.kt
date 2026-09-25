@@ -9,6 +9,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.anytouch.app.safety.HighRiskPanelCopy
 import com.anytouch.app.safety.SafetyVerdict
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -133,13 +134,13 @@ class OverlayUi(private val context: Context) {
      */
     suspend fun awaitSecondConfirm(verdict: SafetyVerdict.RequiresSecondConfirm): Boolean =
         suspendCancellableCoroutine { cont ->
-            val message = buildString {
-                append("High-risk action: ").append(verdict.matchedRule.ruleId)
-                verdict.allMatches.firstOrNull()?.let { m ->
-                    append('\n').append("matched field ").append(m.matchedField.name)
-                }
-                append("\nConfirm and run it?")
-            }
+            // 面板只说人话（S5-R10 裁 1）：规则 id 与命中字段一律不上屏，归因走日志与回执。
+            Log.i(
+                TAG,
+                "second-confirm panel shown: rule=${verdict.matchedRule.ruleId} " +
+                    "fields=${verdict.allMatches.joinToString(",") { it.matchedField.name }}",
+            )
+            val message = HighRiskPanelCopy.body(verdict)
             val panel = LinearLayout(context)
             panel.orientation = LinearLayout.VERTICAL
             panel.setBackgroundColor(0xF2212121.toInt())
@@ -154,7 +155,7 @@ class OverlayUi(private val context: Context) {
             }
             val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             row.addView(Button(context).apply {
-                text = "Cancel"
+                text = HighRiskPanelCopy.CANCEL
                 setOnClickListener {
                     // 决策即撤面板：只 resume 不 remove 会让已完成的确认框永久盖在页面上（设备实测复现）
                     removePanel(panel)
@@ -162,7 +163,7 @@ class OverlayUi(private val context: Context) {
                 }
             }, lp)
             row.addView(Button(context).apply {
-                text = "Confirm and run"
+                text = HighRiskPanelCopy.CONFIRM
                 setOnClickListener {
                     removePanel(panel)
                     if (cont.isActive) cont.resume(true)

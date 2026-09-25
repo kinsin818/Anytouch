@@ -91,8 +91,8 @@ and abort loudly with the reason instead of failing silently).
 | `app/` | The Android app: UI, accessibility service, recorder, executor. |
 | `:byok` (`byok/`) | Android-free BYOK module: OpenAI-compatible transport, base-URL policy, key masking, Keystore-backed storage, screen-context minimization, `ExecutorVocabulary` single source of truth. |
 | `tools/compiler/` | Host-side compile probe (dev tooling; never ships in the APK). |
-| `docs/` | `onboarding-gumroad-en.md` = the English end-user guide for buyers (its closing "Appendix B — backing table" is an internal record, remove before publishing). `usage-notes.md` = device-limitation notes written for internal use, currently Chinese — not part of the English buyer doc. |
-| `evidence/` | Timestamped engineering records: raw device logs, run ledgers, acceptance proofs. The backing table in the user guide maps each public claim to a file here. |
+| `docs/` | `onboarding-gumroad-en.md` = the English end-user guide for buyers (a shipping artifact; it carries no internal test records). `usage-notes.md` = device-limitation notes kept in Chinese for internal use — not part of the buyer guide and not shipped in the listing package. |
+| `evidence/` | Timestamped engineering records: raw device logs, run ledgers, acceptance proofs. The internal backing table that maps each buyer-facing claim to a file here lives in `evidence/S4/s4b-buyer-copy-backing-table.md`. |
 | `orders/` | Internal build orders and rulings (the process this project is built under). |
 
 ## Privacy policy (plain words)

@@ -1,0 +1,29 @@
+      | 靶机 34 号 API · 1080x2400 · 面板按钮 (702,1294) · ROUNDS=5
+[0;32mPASS[0m T0a :: gmail_cleanup 装载面绿（4 步落账 origin=template，未执行任何业务步）
+[0;32mPASS[0m T0b :: discord_checkin 装载面绿（5 步落账 origin=template，未执行任何业务步）
+[0;32mPASS[0m T0c :: 脏 id 被装载器拒并留痕（一步不落）
+      | —— 轮 1/5 ——
+[0;32mPASS[0m 轮 1 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 1 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round1-20260925-095355.log
+      | —— 轮 2/5 ——
+[0;32mPASS[0m 轮 2 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 2 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round2-20260925-095542.log
+      | —— 轮 3/5 ——
+[0;32mPASS[0m 轮 3 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 3 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round3-20260925-095729.log
+      | —— 轮 4/5 ——
+[0;31mFAIL[0m 轮 4 :: 面板按钮按屏定位失败（python/判据坏了），退死坐标试投——本轮即便走完也不记干净绿
+[0;31mFAIL[0m 轮 4 :: 首次确认点击未落（面板窗 8s 后仍在焦=决策没被吃进，坐标/时机问题，不是产品放行逻辑问题）
+[0;31mFAIL[0m 轮 4 :: 回执不达 ok=9 total=9 stopped=false → 09-25 02:01:00.087  2110  2110 I AnytouchRun: S1SMOKE ok=8 total=9 stopped=true stop="DELETE:delete"
+[0;31mFAIL[0m 轮 4 :: 回收站仍有残留（三次对拍后 trashed=2 any=0）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round4-20260925-095918.log
+      | —— 轮 5/5 ——
+[0;32mPASS[0m 轮 5 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 5 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round5-20260925-100135.log
+      | 收尾：服务在绑=1；用时 589s
+RESULT fail=1 passed=11 rounds=5
+RAW_EXIT=1

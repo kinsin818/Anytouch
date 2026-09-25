@@ -13,7 +13,8 @@
 # 用法：ANDROID_SERIAL=emulator-5554 bash scripts/ui-english-sweep.sh
 # 前置：恰好 1 台靶机在线且装了本轮 APK、无障碍已绑。
 # 洁净纪律：全程无在跑任务（执行期禁 dump 的雷天然不触发）；只读屏 + 模拟手指滑动，不改任何产品资产。
-# 注：本站点集不含"高危二次确认面板"（仅执行链挂起时出现），由 s5-templates-smoke.sh 的 raw dump 同批扫 CJK 补上。
+# 注：本站点集不含"高危二次确认面板"（仅执行链挂起时出现，执行期禁 dump）。该屏的 CJK=0 与"不露内部规则 id"
+#     两条由 JVM 文案锁 `HighRiskPanelCopyTest`（正文字面逐条断言）+ s5-templates-smoke 每轮面板截屏（人读对拍）合起来覆盖。
 set -u
 export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")/.."
