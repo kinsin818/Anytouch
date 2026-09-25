@@ -4,7 +4,8 @@
 # 退出码：0=全部通过；1=有失败；2=前置不满足。产品路径零坐标注入、零网络，纯 adb + logcat 回执断言；
 # 例外（均为测试通道动作，脚本内留痕）：C6/C7 用 `input tap` 点悬浮停止球（模拟用户手指，非产品定位）；
 # C8/C9 真实切换无障碍服务开关（settings put）复现"执行中被系统解绑"与"服务不在场仍想开录"，case 尾重绑恢复；
-# C9/C10 = 录制门禁双路径（军令红线 E：无障碍不可用 / 执行中球收起，两条通道都不得开录）。
+# C9/C10 = 录制门禁双路径（军令红线 E：无障碍不可用 / 执行中球收起，两条通道都不得开录）；
+# C3 前置的 `input swipe`（滚到目标框进无障碍树）也是测试通道动作——只摆环境，不参与产品定位。
 # 输入通道洁净断言（09-22 幽灵触点事件）：C5/C7 用 getevent 布网，合法触点预算均为 0
 # （`input tap` 走 InputManager 注入、kernel /dev/input 看不见），任何捕获到的触摸即外部污染 FAIL。
 # 防共享模拟器上别人的手把安全负例点成假绿。
@@ -48,6 +49,13 @@ run_case() {
     fi
 }
 
+# 面板真弹出与否只认 Overlay 这条日志（回执只说"最终没被确认"，不说"曾经问过用户"）。
+# run_case / 各 case 自己在链首 logcat -c，所以这里读到的必然是本格的。
+panel_count() { # $1=rule 串（如 PASSWORD:password）；返回该 rule 的面板弹出次数
+    MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchOverlay:* 2>/dev/null |
+        grep -ac "second-confirm panel shown: rule=$1" || true
+}
+
 # ---------- 前置 ----------
 devices=$(MSYS_NO_PATHCONV=1 adb devices | grep -c "device$" || true)
 if [ "$devices" -lt 1 ]; then echo "前置失败：无 adb 设备"; exit 2; fi
@@ -62,7 +70,6 @@ SAFE='"safety":{"viewport_ok":true,"click_enabled":true}'
 
 # 本地化/几何参数：默认值=模拟器英文系统口径；真机（如中文 MIUI）经环境变量覆盖，见 §T3 摸底档
 TXT_SEARCH="${TXT_SEARCH:-Search settings}"
-TXT_PASSWORDS="${TXT_PASSWORDS:-Passwords & accounts}"
 TXT_CONNECTED="${TXT_CONNECTED:-Connected devices}"
 RID_HOME="${RID_HOME:-com.android.settings:id/settings_homepage_container}"
 BALL_TAP="${BALL_TAP:-1002 1272}"
@@ -76,6 +83,34 @@ A11Y_NOUS=$(printf '%s' "$A11Y_ORIG" | sed 's#com\.anytouch\.app/\.service\.Anyt
 stop_settings_ui() {
     MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.android.settings >/dev/null 2>&1
     MSYS_NO_PATHCONV=1 $ADB shell am force-stop com.google.android.settings.intelligence >/dev/null 2>&1
+}
+
+# 球心现读现点（09-25 定，两次改错才找到的根因，逐字留痕）：
+# ① 执行期自家包同时挂着两个 TYPE_ACCESSIBILITY_OVERLAY 窗：确认面板与停止球。面板块在
+#    `dumpsys window windows` 里排在小球前面，实测（面板挂起态）面板 frame=[120,912][960,1487]、
+#    小球 frame=[957,1207][1056,1321]。
+# ② 前一版取框心的 awk 用 `/^[ ]+Window\{/` 复位块标志——这条正则**永不匹配**（真实行是
+#    `  Window #N Window{...}`，"Window" 与 "{" 之间夹着 #序号），于是块标志粘连：面板块之后
+#    所有 Frames 行都被当成"自家窗"，第一条被选中的正是面板 → 点进面板正中 (540,1199)，
+#    C7 恒红且红得莫名其妙（回执为空＝面板一直没被理，15s 后才默认拒）。
+#    这次改为按"每个 Window 块"重算归属，并按宽高双阈值(≤200)排除面板/Activity 窗。
+# ③ 写死的 BALL_TAP 也不能留：小球 frame 实测至少两种量级（无面板 [901,1213][1068,1314]、
+#    有面板 [957,1207][1056,1321]，此前还采到过 y=765 的一枚），"这一刻它在哪"只能现读。
+#    读不到窗才退回 BALL_TAP。产品侧观察（急停球停靠位不固定＝用户预判位置会落空）单独上报，
+#    不改代码、不洗回——军令：急停/门禁本体零改动。
+ball_xy() { # 打印 "<x> <y>"：自家小球窗（宽、高均 ≤200，排除面板/Activity 窗）的当下框心
+    local f
+    f=$(MSYS_NO_PATHCONV=1 $ADB shell dumpsys window windows 2>/dev/null | tr -d '\r' |
+        awk '
+            /^  Window #/ { own = ($0 ~ /u0 com\.anytouch\.app\}:/); next }
+            own && /Frames:/ {
+                s = $0; sub(/.*frame=\[/, "", s); sub(/\]\[/, ",", s); sub(/\].*/, "", s); gsub(/[^0-9,]/, "", s)
+                n = split(s, a, ",")
+                if (n == 4 && a[3] > a[1] && a[4] > a[2] && a[3] - a[1] <= 200 && a[4] - a[2] <= 200) {
+                    printf "%d %d", (a[1] + a[3]) / 2, (a[2] + a[4]) / 2; exit
+                }
+            }')
+    if [ -n "$f" ]; then printf '%s' "$f"; else printf '%s' "$BALL_TAP"; fi
 }
 
 # 就绪轮询（AVD 三档矩阵收口轮）：固定 sleep 在宿主高负载下不够——容器节点已在树里但条目
@@ -124,39 +159,96 @@ run_case "C2 type_text 经典EditText" "ok=2 total=2 stopped=false" \
     "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"cs\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"smoke c2 $(date +%s)\"},$SAFE}]'"
 
 # ---------- C3 type_text 自家 Compose（resource_id 裸 testTag；keep_fg 自目标） ----------
-# 设备实证（09-24 飞行模式重跑 · 模拟器 + 带 INTERNET 同源构建）：C3 出
-# `L1 NO_MATCH resource-id 'task_input' 零命中`，而把面板滚到底再 dump，task_input 就在树里。
-# 结论不是"执行器坏了"，是一条**自家窗的设备事实**：Compose 长面板折叠线以下的节点未合成就不进
-# 无障碍树——切片 D 立起 BYOK 面板之后，task_input 被推到了折叠线以下（这条要记进证据，
-# 它同时说明"对自家窗的目标可达性受滚动位置影响"）。
-# 另一半是脚本自己欠的前置：前置动作必须自复核——先带前台、滚到节点在树里，再下发这一条。
-wait_own_task_input() {
+# 09-25 五轮才定下来的一格。六条设备事实逐条进证据 evidence/S5/s5d-repeat-loop-device-run.md：
+#  ① 高危探针读的是**目标节点当场的 text**（NodeTaskRunner.kt:215-221 用 hit.node.text 造探针）。
+#     这格原先打 task_input，而任务框会留着任何一批装载过的模板 JSON → C3 被那张 JSON 里的词判高危，
+#     没有人在场答面板 → 15s 默认拒。产品是对的（fail-closed），红的是测试通道欠前置。
+#  ② harness 不许自带第二份高危词表：我照 HighRiskRule.kt:47-48 抄的那份判 discord 模板"零命中"，
+#     产品当场按 SEND:send 拒了它（词表还有 SEND/PAY 整类）。判据只有一份，harness 不自造口径。
+#  ③ "把任务框清成真空"实测走不通：task_input 的落点在无障碍 dump 里不可信（按其 bounds 落指，
+#     字符进了 repeat_count；连发 DEL 字数纹丝不动），而收键盘要用的 BACK 一收就连带退出自家窗。
+#  ④ 执行器 type_text 是**整段替换**不是追加，且走无障碍 ACTION_SET_TEXT——不需要焦点、不需要键盘
+#     （repeat_count 实测 "1"→"X"→空→"1"，三条回执逐字 ok=1 total=1 stopped=false）。所以靶换成
+#     一枚**屏上文本天然干净**的自家 Compose 框：本格测的是"执行器能否写进自家 Compose 目标"本身。
+#  ⑤ 进格前把原值逐字读出来、出格时写回并**在屏上复核**：本格对设备状态零残留，不给后面任何一格
+#     埋雷（这一批就是被上一批留在框里的雷炸的）。复位步恒下发（含"原值本就是空"这一路：实测
+#     input:"" 是能落地的整段替换，回执 ok=2/2，屏上读回空），所以本格的期望恒为 ok=2 total=2。
+#  ⑥ "节点不在树里" ≠ "节点文本是空的"：折叠线以下的 Compose 节点未合成就不进无障碍树，
+#     前置必须先滚到它进树；把前者当后者读就是假绿。
+TI_DUMP=.smoke-tmp/c3-target.xml
+mkdir -p .smoke-tmp
+C3_TID=repeat_count        # 自家 Compose 输入框（testTag 裸 id）；文本天然是一枚短数字
+C3_FALLBACK=1              # 原值不是可安全回写的短 token 时，按产品默认值复位（RepeatPolicy 默认 1）
+wait_own_node() { # 前置：带前台 + 滚到 $C3_TID 真进无障碍树（事实⑥：不在树里绝不读成"文本是空的"）
     MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
     sleep 2
-    local sz w h i=0
+    local sz w h i=0 prev="" now
     sz=$(MSYS_NO_PATHCONV=1 $ADB shell wm size 2>/dev/null | tr -d '\r' | grep -o '[0-9]*x[0-9]*' | tail -1)
     w=${sz%x*}; h=${sz#*x}
     [ -n "${w:-}" ] && [ -n "${h:-}" ] || { w=500; h=1000; }
-    while [ "$i" -lt 8 ]; do
+    while [ "$i" -lt 24 ]; do
         if MSYS_NO_PATHCONV=1 $ADB shell uiautomator dump /sdcard/.smoke_ti.xml >/dev/null 2>&1 &&
-           MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ti.xml 2>/dev/null | grep -qa 'resource-id="task_input"'; then
+           MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ti.xml 2>/dev/null | grep -qa "resource-id=\"$C3_TID\""; then
+            MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ti.xml 2>/dev/null | tr -d '\r' > "$TI_DUMP"
             MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ti.xml >/dev/null 2>&1
+            [ "$i" -gt 0 ] && echo "      | C3 前置：滚第 $i 格后 $C3_TID 进树（框里留着长 JSON 时页面更高，8 格不够）"
             return 0
         fi
+        MSYS_NO_PATHCONV=1 $ADB shell cat /sdcard/.smoke_ti.xml 2>/dev/null | tr -d '\r' > "$TI_DUMP"
         MSYS_NO_PATHCONV=1 $ADB shell rm /sdcard/.smoke_ti.xml >/dev/null 2>&1
+        now=$(grep -o 'resource-id="[^"]*"' "$TI_DUMP" | sort | tr '\n' ' ')   # 节点集不再变化=已到页底，别再空滚
+        if [ -n "$prev" ] && [ "$now" = "$prev" ]; then
+            cp "$TI_DUMP" .smoke-tmp/c3-miss.xml 2>/dev/null
+            echo "      | C3 前置：滚到页底（第 $((i + 1)) 格节点集与上一格相同）仍无 $C3_TID，末树存 .smoke-tmp/c3-miss.xml"
+            return 1
+        fi
+        prev="$now"
         MSYS_NO_PATHCONV=1 $ADB shell input swipe "$((w / 2))" "$((h * 70 / 100))" "$((w / 2))" "$((h * 30 / 100))" 400 >/dev/null 2>&1
         sleep 1
         i=$((i + 1))
     done
+    cp "$TI_DUMP" .smoke-tmp/c3-miss.xml 2>/dev/null
+    echo "      | C3 前置：滚满 24 格仍无 $C3_TID，末树存 .smoke-tmp/c3-miss.xml（焦点：$(MSYS_NO_PATHCONV=1 $ADB shell dumpsys window 2>/dev/null | tr -d '\r' | grep -o 'mCurrentFocus=Window{[^}]*' | head -1)）"
     return 1
 }
-if wait_own_task_input; then
-    echo "      | C3 前置自复核：task_input 已在无障碍树里（滚到面板底部）"
+nc_text() { # $1=resource-id；从 TI_DUMP 取该节点 text（0=节点在树里，含"文本为空"；1=压根不在树里）
+    local n v
+    [ -f "$TI_DUMP" ] || return 1
+    n=$(grep -o "<node[^>]*resource-id=\"$1\"[^>]*>" "$TI_DUMP" | head -1)
+    [ -n "$n" ] || return 1
+    v=$(printf '%s' "$n" | sed -n "s/.*text='\([^']*\)'.*/\1/p")
+    [ -n "$v" ] || v=$(printf '%s' "$n" | sed -n 's/.*text="\([^"]*\)".*/\1/p')
+    printf '%s' "$v"
+}
+C3_ORIG=""; C3_BACK=""; C3_STEPS=""
+if wait_own_node; then
+    C3_ORIG=$(nc_text "$C3_TID")
+    case "$C3_ORIG" in
+        *[!A-Za-z0-9_.-]*) C3_BACK="$C3_FALLBACK"
+            echo "      | C3 前置：$C3_TID 屏上原值不是可安全回写的短 token（[${C3_ORIG:0:24}…]），复位按默认值 [$C3_FALLBACK]" ;;
+        *)  C3_BACK="$C3_ORIG"
+            echo "      | C3 前置：$C3_TID 已在无障碍树里，屏上原值 [$C3_ORIG]（出格按此复位）" ;;
+    esac
+    C3_STEPS="{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"$C3_TID\",\"input\":\"smoke c3 $(date +%s)\"},$SAFE}"
+    C3_STEPS="$C3_STEPS,{\"action_id\":\"t2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"$C3_TID\",\"input\":\"$C3_BACK\"},$SAFE}"
 else
-    echo "      | C3 前置未成立：滚了 8 格仍读不到 task_input（下面这条按自家回执出结论，不猜）"
+    echo "      | C3 前置未成立：滚到页底仍读不到 $C3_TID（下面这条按自家回执出结论，不猜）"
 fi
-run_case "C3 type_text Compose自目标" "ok=1 total=1 stopped=false" \
-    "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"t1\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"resource_id\":\"task_input\",\"input\":\"smoke c3 $(date +%s)\"},$SAFE}]' --ez keep_fg true"
+if [ -n "$C3_STEPS" ]; then
+    C3_EXPECT="ok=2 total=2 stopped=false"
+    run_case "C3 type_text Compose自目标" "$C3_EXPECT" \
+        "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[$C3_STEPS]' --ez keep_fg true"
+    # 出格复核：屏上必须回到原值（回执只证明执行器说它写成了，屏上读数才证明真写成了）
+    # 复核前先走同一个 wait_own_node：跑完一轮面板/焦点变化后框可能又被推出折叠线（事实⑥），
+    # 直接 dump 会把"看不见"读成"没复位"——那是假红，不是残留。
+    C3_NOW="<未读到>"
+    if wait_own_node; then C3_NOW=$(nc_text "$C3_TID"); else C3_NOW="<滚回页面也没读到节点>"; fi
+    if [ "$C3_NOW" = "$C3_BACK" ]; then
+        pass "C3b 出格复位复核：屏上 $C3_TID = [$C3_NOW]（本格零残留出格）"
+    else
+        bad "C3b 出格复位复核 :: 期望屏上 [$C3_BACK]，实际 [$C3_NOW]——本格对设备状态留了残留，必须查"
+    fi
+fi
 
 # ---------- C4 fail-closed 负例：不存在的节点必须 NODE_NOT_FOUND 停机，不得假绿 ----------
 run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
@@ -165,6 +257,14 @@ run_case "C4 负例 NODE_NOT_FOUND" "stop=\"NODE_NOT_FOUND\"" \
 # ---------- C5 高危二次确认：无人点击=15s 超时默认拒绝（面板必须真实弹出，见 evidence/S2/stage-highrisk-confirm-device.md） ----------
 # 输入通道洁净断言（09-22 幽灵触点事件后加装）：C5 全程合法触点预算=0，
 # getevent 抓到任何触摸即判"外部污染"——防宿主鼠标/其他窗口把安全负例点成假绿。
+# 高危靶口径（09-25 换）：旧链第 3 步点的是 Settings 搜索结果里的 "Passwords & accounts" 一行，
+# 而这台 AVD 的搜索索引从 04:44 那轮起对任何查询都只回 "No results"（复现与恢复尝试见
+# evidence/S5/s5d-repeat-loop-device-run.md）。索引活着时那行文本是 ROM 自带的，死了就再也拿不到——
+# 判据本身不需要 ROM 送词：第 2 步已经把 "password" 整段替换进了搜索框，第 3 步点这枚**外部 App 节点**，
+# 门禁读的仍是它当场的 text（NodeTaskRunner.kt:215-221），命中 PASSWORD 词表 → 面板 → 15s 无人应答默认拒。
+# C5/C7 共用这一份链（两格曾各自抄一遍，抄到 C7 在索引失效后静默退化成"定位轮询期点球"=C6 的活儿，
+# 还记了绿——单一真源，杜绝再退化）。
+RISK_CHAIN="[{\"action_id\":\"s1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"s2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"password\"},$SAFE},{\"action_id\":\"s3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"password\"},$SAFE}]"
 stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 8
@@ -173,7 +273,7 @@ MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV" 2>&1 &
 GE_PID=$!
 sleep 1
 run_case "C5 高危超时默认拒绝" "stop=\"PASSWORD:password\"" \
-    "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"s1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"s2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"password\"},$SAFE},{\"action_id\":\"s3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_PASSWORDS\"},$SAFE}]'" 60
+    "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '$RISK_CHAIN'" 60
 kill $GE_PID 2>/dev/null
 # 注：`|| true` 是必需的——grep -c 零命中时退出码为 1，且其 0 已先打到 stdout，不能重复 echo。
 touches=$(grep -c "ABS_MT_TRACKING_ID   00000000" "$GEV" || true)
@@ -182,28 +282,37 @@ if [ "${touches:-0}" -eq 0 ]; then
 else
     bad "C5x 输入通道洁净 :: 抓到 $touches 次外部触摸——C5 结果不可信（查谁的手/窗口在模拟器上），trap 存 $GEV"
 fi
+p5=$(panel_count "PASSWORD:password")
+if [ "${p5:-0}" -ge 1 ]; then
+    pass "C5p 确认面板真实弹出（rule=PASSWORD:password，共 $p5 次）"
+else
+    bad "C5p 确认面板真实弹出 :: Overlay 里 0 条 second-confirm panel shown——回执说被拒，但没问过用户；这条判据的另一半（面板可见）不成立"
+fi
 
 # ---------- C6 停止球即时响应：定位轮询期点球，回执须是 user_stop（非 NODE_NOT_FOUND）且 ≤5s 到达 ----------
 # 回归锁（Task #14 设备雷）：KillSwitch 曾只在步首查询，长等待环里点球无感、末步点球丢归因。
-# 坐标 (1002,1272) 是悬浮球默认停靠位（END|CENTER_VERTICAL, x=24），仅测试通道模拟手指，非产品定位。
+# 落点=ball_xy 现读的球窗框心（END|CENTER_VERTICAL, x=24 只是停靠锚，y 随可用帧变），仅测试通道模拟手指，非产品定位。
 stop_settings_ui
 MSYS_NO_PATHCONV=1 $ADB shell am start -n com.android.settings/.Settings >/dev/null 2>&1
 sleep 8
 MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
 MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"k1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_CONNECTED\"},$SAFE},{\"action_id\":\"k2\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"__no_such_node_smoke__\"},$SAFE}]'" >/dev/null 2>&1
 sleep 4  # 第一步落地、第二步进入 15s 定位轮询
+BT6=$(ball_xy)
 T0=$(date +%s)
-MSYS_NO_PATHCONV=1 $ADB shell input tap $BALL_TAP >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell input tap $BT6 >/dev/null 2>&1
 r6=$(wait_receipt C6 10)
 dt=$(( $(date +%s) - T0 ))
 if printf '%s' "$r6" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
-    pass "C6 停止球即时响应 :: ${dt}s :: $r6"
+    pass "C6 停止球即时响应 :: 实测球心($BT6) ${dt}s :: $r6"
 else
     bad "C6 停止球即时响应 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r6]"
 fi
 
 # ---------- C7 面板挂起期点球：确认面板(touch-modal 雷, FLAG_NOT_TOUCH_MODAL)不得吞掉停止球触点 ----------
-# 链同 C5（超时默认拒绝），但 +9s 时面板应已弹出，点球后必须 ≤5s 出 user_stop（而非等满 15s 的 PASSWORD 归因）。
+# 链与 C5 同一份 RISK_CHAIN（超时默认拒绝）。本格判据有两半：**先要看到面板真的挂着**，再看点球 ≤5s 出
+# user_stop（而非等满 15s 的 PASSWORD 归因）。09-25 的教训：只断言后半截时，索引失效让第 3 步根本没弹面板，
+# 本格静默退化成"定位轮询期点球"（=C6 已经在测的东西）还记绿——前置不成立就不许记账绿。
 # 洁净预算=0：`input tap` 走 InputManager 注入、不经 /dev/input（getevent 看不见自家点球），
 # 故 trap 抓到任何触摸都是宿主侧外部点击——09-22 幽灵触点事件：外部鼠标在球停靠位原地下键，
 # 恰命中居中面板"确认执行"按钮，把 C5/C7 安全负例点成 ok=3/3 假绿。
@@ -215,17 +324,29 @@ MSYS_NO_PATHCONV=1 $ADB shell "getevent -lt" > "$GEV7" 2>&1 &
 GE7=$!
 sleep 1
 MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
-MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '[{\"action_id\":\"p1\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\"},$SAFE},{\"action_id\":\"p2\",\"type\":\"type_text\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_SEARCH\",\"input\":\"password\"},$SAFE},{\"action_id\":\"p3\",\"type\":\"click\",\"source\":\"node\",\"value\":{\"text\":\"$TXT_PASSWORDS\"},$SAFE}]'" >/dev/null 2>&1
-sleep 9  # p1 开搜索、p2 落字、p3 命中 PASSWORD 词表 → 面板弹出挂起
+MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --es task_json '$RISK_CHAIN'" >/dev/null 2>&1
+P7=0; i7=0
+while [ "$i7" -lt 14 ]; do                                 # 等面板真的挂起（弹出后 15s 才默认拒，窗口够）
+    P7=$(panel_count "PASSWORD:password")
+    [ "${P7:-0}" -ge 1 ] && break
+    sleep 1
+    i7=$((i7 + 1))
+done
+BT7=$(ball_xy)          # 面板挂起态下现读球心：这一刻软键盘多半起着，球被顶到可用帧中部
 T0=$(date +%s)
-MSYS_NO_PATHCONV=1 $ADB shell input tap $BALL_TAP >/dev/null 2>&1
+MSYS_NO_PATHCONV=1 $ADB shell input tap $BT7 >/dev/null 2>&1   # 面板没弹也照点：把这条链收干净再红
 r7=$(wait_receipt C7 10)
 dt=$(( $(date +%s) - T0 ))
 kill $GE7 2>/dev/null
-if printf '%s' "$r7" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
-    pass "C7 面板挂起期点球即停 :: ${dt}s :: $r7"
+if [ "${P7:-0}" -lt 1 ]; then
+    bad "C7 前置未成立 :: ${i7}s 内没读到 second-confirm panel shown（rule=PASSWORD:password）——面板不在场，本格的 user_stop 只能是定位轮询期点球（那是 C6 的判据），不许记绿 :: 回执 [$r7]"
+elif printf '%s' "$r7" | grep -qF 'stop="user_stop"' && [ "$dt" -le 5 ]; then
+    pass "C7 面板挂起期点球即停 :: 面板在第 ${i7}s 挂起，实测球心($BT7) 点后 ${dt}s :: $r7"
 else
-    bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]（若归因 PASSWORD:password=先看 C7x：外部触点可能已点了确认按钮）"
+    # 红项归因补一手：面板 15s 才默认拒，本格判据的 10s 窗口必然拿不到终回执——
+    # 09-25 两连红都只报出 [12s, 空]，看不出"点空了"还是"点了面板空白"。追等只为把话说全，不改判据。
+    r7b=$(wait_receipt C7-attr 14)
+    bad "C7 面板挂起期点球即停 :: 期望 [stop=\"user_stop\" 且 ≤5s]，实际 [${dt}s, $r7]｜球心现读=[$BT7] 追等到 $(( $(date +%s) - T0 ))s 的终回执 [$r7b]（若终回执=PASSWORD:password 即球没被点中，先看 C7x 判外部触点）"
 fi
 t7=$(grep -c "ABS_MT_TRACKING_ID   00000000" "$GEV7" || true)
 if [ "${t7:-0}" -eq 0 ]; then

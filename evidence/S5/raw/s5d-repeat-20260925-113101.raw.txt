@@ -1,0 +1,14 @@
+# s5d-repeat-loop 预检 ok · api=34 1080x2400 vc=4
+# [L4] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L4-panel-try1-113152.png 焦点=  mCurrentFocus=Window{224097b u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# [L4] 面板在场截图(第 2 拍)=evidence/S5/raw/s5d-L4-panel-try2-113154.png 焦点=  mCurrentFocus=Window{224097b u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# [L4] 面板在场截图(第 3 拍)=evidence/S5/raw/s5d-L4-panel-try3-113156.png 焦点=  mCurrentFocus=Window{224097b u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# [L5] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L5-panel-try1-113226.png 焦点=  mCurrentFocus=Window{7f35f62 u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# [L5] 面板在场截图(第 2 拍)=evidence/S5/raw/s5d-L5-panel-try2-113229.png 焦点=  mCurrentFocus=Window{7f35f62 u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# [L5] 面板在场截图(第 3 拍)=evidence/S5/raw/s5d-L5-panel-try3-113231.png 焦点=  mCurrentFocus=Window{7f35f62 u0 com.anytouch.app}
+no-two-button-band-found dark-panel-px=99295
+# RAW 结束 fail=1 passed=12

@@ -1,0 +1,2 @@
+# s5d-repeat-loop 预检 ok · api=34 1080x2400 vc=4
+# RAW 结束 fail=1 passed=9

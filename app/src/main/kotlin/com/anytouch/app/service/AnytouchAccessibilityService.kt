@@ -399,8 +399,10 @@ class AnytouchAccessibilityService : AccessibilityService() {
             RepeatConfirmCache.Decision.AUTO_CONFIRMED_EARLIER_GRANT -> {
                 Log.i(
                     TAG,
+                    // 留痕要说清"少问这一次是谁授权的"（裁决 S5-R11 钉 3 的原话），只写"跳过"读不出授权来源
                     "S5DSMOKE panel skipped round=$round category=$category " +
-                        "rule=${verdict.matchedRule.ruleId} reason=granted_earlier_in_this_run",
+                        "rule=${verdict.matchedRule.ruleId} reason=granted_earlier_in_this_run " +
+                        "repeat round=$round: $category auto-confirmed by user's \"Repeat without asking\"",
                 )
                 true
             }

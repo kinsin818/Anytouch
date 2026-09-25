@@ -1,0 +1,65 @@
+#0 click · Connection preferences
+#0 click · Show Navigation Drawer
+#1 click · Bluetooth
+#1 wait · no clue
+#2 click · Trash
+#3 wait · no clue
+#4 click · More options
+#5 wait · no clue
+#6 click · Empty trash
+#7 wait · no clue
+#8 click · confirmation_button
+1
+5
+AI compile
+AI compile (bring your own key — network is used only when creating a task)
+API key (after saving, only its last 4 digits stay on screen)
+Accessibility service is not connected: please open Settings → Accessibility → Downloaded services and turn Anytouch on right away. Until it is on, recording and execution cannot start.
+Anytouch executor
+Attach the visible text of the current screen (only on-screen labels and control ids are sent; text-field contents, password fields and screenshots never are)
+BYOK configuration (kept encrypted on this device in the Keystore, never sent anywhere else)
+Delete
+Discord check-in
+Down
+Erase device credentials
+Every round asks for confirmation by default. "Repeat without asking" only skips the panel for a risk you already approved during this run; a new kind of risk still asks.
+Gmail cleanup
+Gmail cleanup and Discord check-in require you to sign in to the app yourself first. Anytouch only automates the interface after you are signed in; it never performs logins and never reads or stores your account credentials.
+Idle
+Interval seconds (1-60)
+Key saved on this device: ***JgYp
+Model name
+Not recording
+Package to record
+Photo cleanup
+Rename
+Repeat without asking
+Repetitions (1-100)
+Run task
+Save
+Say what to do in one sentence (e.g. open the Bluetooth page)
+Service URL (OpenAI-compatible endpoint, https only)
+Start recording
+Step name
+Steps 2 (delete / rename / reorder only touch this step ledger)
+Steps 9 (delete / rename / reorder only touch this step ledger)
+Stop & compile
+Up
+Your key is sent to exactly this one address: integrate.api.nvidia.com
+[{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+com.android.settings
+deepseek-ai/deepseek-v4.1-flash
+https://integrate.api.nvidia.com/v1
+open_drawer
+open_trash
+pause_confirm
+pause_drawer
+pause_menu
+pause_trash
+rec-0002
+rec-0003
+tap_delete_permanently
+tap_empty_trash
+trash_overflow
+{"stopped":false,"results":[{"ok":true,"status":"success","action_id":"u16a","backend":"accessibility","landed":null,"recovery":null,"details":{"mock":false,"waited_ms":300}},{"ok":true,"status":"success","action_id":"u16b","backend":"accessibility","landed":null,"recovery":null,"details":{"mock":false,"waited_ms":300}}],"repeats":"repeats: 3 of 3 round(s) ran, asked for confirmation every round"}

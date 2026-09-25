@@ -355,4 +355,40 @@ INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
 INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
 INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
 INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
-INFO
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | IPv4 server found: 172.18.0.2
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | IPv4 server found: 172.18.0.2
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 986d:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: 8873:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d880:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+INFO         | Ignore IPv6 address: d086:174b:602:0:1061:174b:602:0
+ERROR        | Failed to find ColorBuffer: 61122
+ERROR        | Failed to find ColorBuffer: 65133
+ERROR        | Failed to find ColorBuffer: 70007
+INFO         | Boot completed in 191214230 ms

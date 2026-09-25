@@ -184,6 +184,14 @@ ui_has() {
 
 sweep_complete() { [ "$SWEEP_OK" = "1" ] && echo 1 || echo 0; }
 
+# 读某一枚节点的属性值（$1=resource-id，$2=属性名）。为什么必须有：S5-d 的默认值与安全默认
+# 都是"**这一枚**控件里的值"，整页 grep text="1" 会读到别人的节点（假绿），只 grep testTag 又读不到值。
+# 只在**主 shell 刚 ui_sweep 过**之后调用（本函数不翻页，只读缓存）。读不到输出空串。
+ui_tag_attr() {
+    printf '%s' "$SWEEP_BUF" | grep -ao "<node[^>]*resource-id=\"$1\"[^>]*>" | head -1 \
+        | grep -o "$2=\"[^\"]*\"" | head -1 | sed "s/$2=\"//;s/\"$//"
+}
+
 # 断言一条编辑日志出现
 assert_edit() {
     local name="$1" expect="$2" line
@@ -535,6 +543,96 @@ else
 fi
 inject "--es step_remove 0"
 assert_edit "U15d 跑完立刻可编：同一请求转放行" "step edit ok=remove index=0 before=3 after=2"
+
+# ---------- U16 S5-d 重复执行面：三枚控件在屏 + 默认值/安全默认 + 脏数字红字 + 单发报告字段缺席 ----------
+# 为什么住 ui-smoke 而不是 s5d-repeat-loop-smoke.sh：这一族全是**屏幕侧**判据，只有本脚本的
+# ui_sweep 会逐屏翻页扫到底；设备冒烟脚本单次 dump 看不见折叠线以下的节点，"读不到=没有"是假绿。
+UWAITS="[{\"action_id\":\"u16a\",\"type\":\"wait\",\"source\":\"node\",\"value\":{\"ms\":300},$SAFE},{\"action_id\":\"u16b\",\"type\":\"wait\",\"source\":\"node\",\"value\":{\"ms\":300},$SAFE}]"
+MSYS_NO_PATHCONV=1 $ADB shell am start -n com.anytouch.app/.MainActivity >/dev/null 2>&1
+sleep 2
+ui_sweep
+u16a1=$(ui_expect 'resource-id="repeat_count"')
+u16a2=$(ui_expect 'resource-id="repeat_interval"')
+u16a3=$(ui_expect 'resource-id="repeat_no_ask"')
+u16a4=$(ui_expect 'Repetitions (1-100)')
+u16a5=$(ui_expect 'Interval seconds (1-60)')
+u16a6=$(ui_expect 'a new kind of risk still asks')
+if [ "$u16a1$u16a2$u16a3" = "skip" ]; then
+    skip "U16a :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点（读的不是自家窗）"
+elif [ "$u16a1" = "hit" ] && [ "$u16a2" = "hit" ] && [ "$u16a3" = "hit" ]; then
+    pass "U16a 重复执行三枚控件在屏（轮数框/间隔框/开关）"
+else
+    bad "U16a :: repeat_count=$u16a1 repeat_interval=$u16a2 repeat_no_ask=$u16a3（期望三枚 hit）"
+fi
+if [ "$u16a4" = "hit" ] && [ "$u16a5" = "hit" ] && [ "$u16a6" = "hit" ]; then
+    pass "U16b 英文范围提示与开关解释同屏（军令 1 条的 1-100/1-60 写在屏上，不只写在代码里）"
+else
+    bad "U16b :: 范围提示/解释读数 reps=$u16a4 interval=$u16a5 explain=$u16a6（期望三枚 hit）"
+fi
+# 默认值与"未勾选"是**这一枚节点**的读数：整页 grep text="1" 会读到别人的节点＝假绿
+d_reps=$(ui_tag_attr repeat_count text)
+d_int=$(ui_tag_attr repeat_interval text)
+d_chk=$(ui_tag_attr repeat_no_ask checked)
+if [ "$d_reps" = "1" ] && [ "$d_int" = "5" ]; then
+    pass "U16c 框内默认值 1 轮 / 5 秒（军令 1 条缺省档，逐字对上 RepeatPolicy.DEFAULT_*）"
+else
+    bad "U16c :: 默认读数 reps=[$d_reps] interval=[$d_int]（期望 1 / 5）"
+fi
+case "$d_chk" in
+    false) pass "U16d 开关默认未勾选（安全默认：不勾=每轮该弹还弹，裁决 C 的负向半边在屏上）" ;;
+    true) bad "U16d :: 开关默认被勾上（checked=true）＝把安全默认改成了少问一次" ;;
+    *) skip "U16d 开关默认态读不到（repeat_no_ask 的 checked 属性=$d_chk，空串不许当 false 用）" ;;
+esac
+
+# 脏数字：注入通道与手点同一判据，拒派发必须显形（红字上屏）且零执行
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+inject "--es task_json '$UWAITS' --es repeat_count 101"
+assert_edit "U16e 越界轮数被拒留痕" "submit refused gate=REPEAT_FIELD field=repetitions"
+n_exec=$(count_line 'S1SMOKE ok=')
+if [ "$n_exec" = "0" ]; then pass "U16f 拒而未放：本轮零执行回执（脏数字没被夹取成 100 轮）"; else
+    bad "U16f :: 被拒之后仍有 $n_exec 条执行回执"
+fi
+ui_sweep
+u16g=$(ui_expect 'Nothing was dispatched')
+if [ "$u16g" = "skip" ]; then
+    skip "U16g 拒因上屏 :: 本扫视 $SWEEP_SCREENS 屏里 0 屏含自家窗节点"
+elif [ "$u16g" = "hit" ]; then pass "U16g 拒因上屏（用户看得见『为什么没跑』）"; else
+    bad "U16g :: 屏上没有拒因红字（task_rejection 缺席=静默吞掉一次点击）"
+fi
+
+# 单发不写多轮字段 / 多轮写：屏上侧只有本脚本扫得全（报告格在页面末尾）
+inject "--es task_json '$UWAITS'"
+r16=$(wait_line "S1SMOKE ok=" 60)
+if [ -z "$r16" ]; then
+    bad "U16h :: 单发没跑起来（报告格无从产生）"
+    skip "U16h/U16i 屏上报告字段 :: 前置未立"
+else
+    ui_sweep
+    u16h=$(ui_expect 'resource-id="run_report"')
+    if [ "$u16h" = "hit" ]; then pass "U16h 单发执行报告上屏（run_report 节点可见）"; else
+        bad "U16h :: 执行完屏上没有报告格（run_report=$u16h）"
+    fi
+    if [ "$(ui_expect 'repeats:')" = "miss" ] && [ "$(sweep_complete)" = "1" ]; then
+        pass "U16i 单发屏上无 repeats 字段（v1.0.2 字节面不回归；扫视到底才敢判缺席）"
+    elif [ "$SWEEP_OK" != "1" ]; then
+        skip "U16i 单发屏上 repeats 缺席 :: 页没扫到底，缺席一侧读不出证据"
+    else
+        bad "U16i :: 单发屏上竟出现 repeats 字段（旧口径被多轮逻辑污染）"
+    fi
+fi
+
+# 多轮：收口真进报告格（日志侧在 s5d 脚本判，这里只钉"用户看得见第几轮"）
+MSYS_NO_PATHCONV=1 $ADB logcat -c >/dev/null 2>&1
+inject "--es task_json '$UWAITS' --es repeat_count 3 --es repeat_interval 1"
+if wait_line "repeats: 3 of 3" 90 >/dev/null; then
+    ui_sweep
+    u16j=$(ui_expect 'repeats: 3 of 3')
+    if [ "$u16j" = "hit" ]; then pass "U16j 多轮收口写进屏上报告（repeats: 3 of 3）"; else
+        bad "U16j :: 日志说跑满 3 轮、屏上报告却没有（两本账）"
+    fi
+else
+    bad "U16j :: 90s 内没等到多轮收口日志"
+fi
 
 echo
 echo "汇总：通过 $passed / 失败计数见下 / 跳过 $skipped（跳过=前置未立，不记绿也不记红）"

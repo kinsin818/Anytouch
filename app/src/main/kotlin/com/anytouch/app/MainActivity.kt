@@ -295,6 +295,9 @@ class MainActivity : ComponentActivity() {
                                 it,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 18,
+                                // 挂 tag 的唯一理由：设备面要能**证伪**"报告上屏了没有"——没有 tag，
+                                // 任何"屏上没有 repeats 字段"的断言都能在看不见报告的情况下恒真通过（假绿）。
+                                modifier = Modifier.testTag("run_report"),
                             )
                         }
                     }
