@@ -43,7 +43,9 @@ class StepEditingTest {
 
     // ---------- READY ----------
     @Test
-    fun `三操作在合法下标与非空名时 READY`() {
+    fun `删改移三操作在合法下标与非空名时 READY`() {
+        // 插步那一支的合法下标区间不同（0..size 可追加），判据与用例整体在 StepInsertionTest，
+        // 这里只锁原有三支——两本账各数各的，合起来才是四支全覆。
         val s = steps()
         assertEquals(StepEditGate.READY, stepEditGateOf(s, StepEdit.Remove(0)))
         assertEquals(StepEditGate.READY, stepEditGateOf(s, StepEdit.Remove(s.size - 1)))
@@ -53,7 +55,7 @@ class StepEditingTest {
 
     // ---------- 空账 ----------
     @Test
-    fun `空步序账三操作一律拒为 EMPTY_LEDGER`() {
+    fun `空步序账删改移三操作一律拒为 EMPTY_LEDGER`() {
         listOf(
             StepEdit.Remove(0),
             StepEdit.Rename(0, "x"),
@@ -268,7 +270,9 @@ class StepEditingTest {
 
     // ---------- 话术 ----------
     @Test
-    fun `READY 无话术 四档拒因各自有话术且互不雷同`() {
+    fun `READY 无话术 原有四档拒因各自有话术且互不雷同`() {
+        // 拒因档总数（现为九档）由 StepInsertionTest 那条总数锁兜；这里只点名编辑面原有的四档，
+        // 两本账各自数得清，才不会加一档时两边都"看起来还是绿的"。
         assertNull(StepEditGate.READY.userCopy())
         val copies = listOf(
             StepEditGate.RUNNING,

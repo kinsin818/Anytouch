@@ -42,6 +42,7 @@ import com.anytouch.app.platform.runGateOf
 import com.anytouch.app.platform.runUserCopy
 import com.anytouch.app.platform.userCopy
 import com.anytouch.app.recorder.DeleteOutcome
+import com.anytouch.app.recorder.ManualStep
 import com.anytouch.app.recorder.ReadOutcome
 import com.anytouch.app.recorder.SaveOutcome
 import com.anytouch.app.recorder.SavedTaskGate
@@ -471,6 +472,30 @@ class MainActivity : ComponentActivity() {
             RecorderStore.applyEdit(StepEdit.Move(from, to ?: -1))
             handled = true
         }
+        // 手动补步骤注入通道（S5-e 判据 5/7 的设备面手）：字段与屏上面板一一同号，递的还是同一个
+        // StepEdit.Insert、走的还是同一个唯一写口。注意这半段**没有坐标可递**——extra 清单里压根
+        // 没有 x/y 两格（三裁③"不开放坐标点击入口"落在通道形状上，不是落在注释上）。
+        // 插入位缺失/非数字同样送 -1 哨兵，由越界档拒（与移序那条例外同一条口径）；名字允许空白，
+        // 因为 BLANK_NAME 这一档要在设备面可证伪（与 task_save 同一理由）。
+        intent.getStringExtra(EXTRA_STEP_INSERT_AT)?.let { rawAt ->
+            RecorderStore.applyEdit(
+                StepEdit.Insert(
+                    index = rawAt.toIntOrNull() ?: -1,
+                    step = ManualStep(
+                        type = intent.getStringExtra(EXTRA_STEP_INSERT_TYPE).orEmpty(),
+                        actionId = intent.getStringExtra(EXTRA_STEP_INSERT_NAME).orEmpty(),
+                        resourceId = intent.getStringExtra(EXTRA_STEP_INSERT_RESOURCE_ID).orEmpty(),
+                        text = intent.getStringExtra(EXTRA_STEP_INSERT_TEXT).orEmpty(),
+                        contentDesc = intent.getStringExtra(EXTRA_STEP_INSERT_CONTENT_DESC).orEmpty(),
+                        path = intent.getStringExtra(EXTRA_STEP_INSERT_PATH).orEmpty(),
+                        instance = intent.getStringExtra(EXTRA_STEP_INSERT_INSTANCE).orEmpty(),
+                        input = intent.getStringExtra(EXTRA_STEP_INSERT_INPUT).orEmpty(),
+                        waitMs = intent.getStringExtra(EXTRA_STEP_INSERT_MS).orEmpty(),
+                    ),
+                ),
+            )
+            handled = true
+        }
         // AI 编译注入通道（切片 D 的测试通道，与面板同一格意图、同一入口判据）：
         // 先落意图，再按 ctx_enabled 调开关，最后按 ai_compile 触发——三步都可单独下发，
         // 脚本因此能"先看词表账，再决定编不编"。Key 不走这条通道（字面量进 adb 就是进 shell 历史）。
@@ -875,6 +900,18 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_STEP_RENAME_TO = "step_rename_to"
         const val EXTRA_STEP_MOVE = "step_move"
         const val EXTRA_STEP_MOVE_TO = "step_move_to"
+
+        // 手动补步骤（S5-e 要求 3）：插入位 + 面板那九格，一格一个 extra，通道内零判据
+        const val EXTRA_STEP_INSERT_AT = "step_insert_at"
+        const val EXTRA_STEP_INSERT_TYPE = "step_insert_type"
+        const val EXTRA_STEP_INSERT_NAME = "step_insert_name"
+        const val EXTRA_STEP_INSERT_RESOURCE_ID = "step_insert_resource_id"
+        const val EXTRA_STEP_INSERT_TEXT = "step_insert_text"
+        const val EXTRA_STEP_INSERT_CONTENT_DESC = "step_insert_content_desc"
+        const val EXTRA_STEP_INSERT_PATH = "step_insert_path"
+        const val EXTRA_STEP_INSERT_INSTANCE = "step_insert_instance"
+        const val EXTRA_STEP_INSERT_INPUT = "step_insert_input"
+        const val EXTRA_STEP_INSERT_MS = "step_insert_ms"
 
         /** 冒烟任务：Connected devices → Connection preferences → Bluetooth（模拟器实测可三级钻取；真机口径属 T3）。门禁显式放行。 */
         const val SAMPLE_TASK =
