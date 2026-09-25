@@ -1,0 +1,36 @@
+# S5-g 激活白名单服务（同机、与 ai-congress-online 零共享）。
+# 部署位置：/etc/systemd/system/anytouch-activate.service
+# 单元本体只读不写业务数据；写面收窄到 /var/lib/anytouch-activate 一条路径。
+
+[Unit]
+Description=Anytouch activation whitelist (S5-g)
+Documentation=file:///opt/anytouch-activate/README-deploy.txt
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=anytouch
+Group=anytouch
+EnvironmentFile=/opt/anytouch-activate/.env
+ExecStart=/usr/bin/python3 /opt/anytouch-activate/app.py
+WorkingDirectory=/opt/anytouch-activate
+Restart=always
+RestartSec=2
+
+# 隐私口的唯一存放处：0600 root，由 systemd（root）读进来再降权，服务进程本身读不到 .env 原文。
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/anytouch-activate
+PrivateTmp=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

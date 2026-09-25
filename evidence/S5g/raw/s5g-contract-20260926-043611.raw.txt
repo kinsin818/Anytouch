@@ -1,0 +1,29 @@
+==> [1/7] 自签证书 + 临时库（SAN=IP:127.0.0.1，仅本地）
+==> [2/7] 白名单 seed：4 枚 staging + 1 枚 buyer（走既有发卡口，同源不另写算法）
+==> [3/7] 起服务（TLS）
+  health ok on 18443 (tls)
+==> [4/7] 判据 1：三态（invalid / ok / 幂等重放）
+  PASS 不在册的合法格式码 → invalid
+  PASS 结构脏的码 → invalid（同一档，不泄露'在册但格式错'）
+  PASS 在册码首次绑定 → ok seats=1 (tail=TMCC)
+  PASS 同码同机重放 → ok 且 seats 仍=1（幂等，不重复占额度）
+==> [5/7] 判据 2：绑满即拒 + 解绑后可进
+  PASS 第二台 → ok seats=2
+  PASS 第三台 → seats_full（军令'最多绑2台'成立）
+  PASS 满员后已绑过的机器仍可激活（不被自己锁死）
+  PASS 解绑一台 → seats 回 1
+  PASS 解绑后第三台可进（裁1 那条兜底口真有效）
+==> [6/7] 并发超绑锁（验 BEGIN IMMEDIATE 那条注释不是写着好看）
+  PASS 8 路并发抢 1 码，最终绑定数恰为 2（没超绑）
+  PASS 8 路并发恰好 2 路拿到 ok（拒绝方确为 seats_full 而非超时）
+==> [7/7] 管理口鉴权 + lease-staging + buyer 段不被租
+  PASS 错 token → 403 forbidden
+  PASS 缺 token 的解绑 → forbidden（不会被人白嫖解绑）
+  PASS 租到 staging 码 (tail=0WSX)
+  PASS 租到的确是 staging 段在册码
+  PASS staging 占满 → no_staging_seat（且绝不回退去租 buyer 段）
+  PASS buyer 段全程零使用（未进租约池、未上日志）
+  PASS 全表复查：任何一枚码绑定数都 ≤2
+
+CONTRACT pass=18 fail=0
+SCRIPT-RC=0

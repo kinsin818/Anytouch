@@ -1,0 +1,10 @@
+=== 机内端到端(只动 staging 段，测完复原，buyer 段零触碰) ===
+lease: ok=True kind=staging tail=5BWQ
+activate first: ok=True seats=1 reason=-
+activate replay: ok=True seats=1 reason=-
+activate second: ok=True seats=2 reason=-
+activate third: ok=False seats=- reason=seats_full
+复原核验: ok=True seats=1（复原后仍可绑，额度账干净）
+终态: codes={'buyer': 100, 'staging': 20} 该码剩余绑定=0 全表最大绑定数=(None,)
+=== journal 整码扫描(必须 0) ===
+0

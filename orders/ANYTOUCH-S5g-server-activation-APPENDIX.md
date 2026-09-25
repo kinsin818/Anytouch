@@ -21,7 +21,9 @@
 
 摸底事实（09-26 只读实测）：`45.32.63.177` = Ubuntu，只监听 22/80；80 由 `docker-proxy` 转 `ai-congress-online:8000`，另有 `ai-congress-redis`；**无 443、无任何证书、nginx 未启用**。
 
-- **独立容器** `anytouch-activate`，发布 `0.0.0.0:8443`（TLS），**不共用** `ai-congress-online` 的进程、镜像、数据卷与 SQLite 文件。理由：那个容器是老板另一条在营业务，激活接口挂它身上=它一重启买家激活就失败，且两边互相拖垮。"不加钱"= 同机同 IP，不等于同进程。
+- **独立进程** `anytouch-activate`，监听 `0.0.0.0:8443`（TLS），**不共用** `ai-congress-online` 的进程、镜像、数据卷与 SQLite 文件。理由：那个容器是老板另一条在营业务，激活接口挂它身上=它一重启买家激活就失败，且两边互相拖垮。"不加钱"= 同机同 IP，不等于同进程。
+  - **落地形态与本文原写法的差别（照实登记，不改口）**：本条 09-26 凌晨原写"**独立容器**"，实机部署改 **systemd 单元 + 机器自带的 Python 3.14**（`server/activation/anytouch-activate.service`）。原因：① 隔离目的（不与 ai-congress 共享进程/镜像/卷/库）systemd 比 docker **更彻底**——它压根不在 docker daemon 那条链上，误操作碰不到 `ai-congress-online`；② 免拉基础镜像、免占那台机 14G 剩余空间里的额外份额；③ 服务只依赖标准库（`sqlite3`/`ssl` 实机 `import` 已验）。**这条覆盖的是形态，不是隔离边界**：§1 后面那些"独立数据文件/私钥 0600/日志脱敏"一条不少。
+- 部署前只读复查（09-26 04:3x，实机原文）：`docker ps` 基线 = `ai-congress-online`(80→8000) + `ai-congress-redis`，两者 Up 3 days；`python3 -c "import sqlite3,ssl"` → `sqlite 3.46.1 ssl ok`；`ss -lntp` 只有 22/80 在听，**8443 空**；`iptables -S` 三链全 `ACCEPT`（本机无拦截，公网可达性另测）；`df -h /` → 23G 已用 8.8G。
 - **独立数据文件**：`/var/lib/anytouch-activate/activation.db`（SQLite），宿主机路径独占，不给 `ai-congress-online` 容器可读。
 - **证书**：自签（CN/SAN 含 IP `45.32.63.177`），有效期按 10 年（免续期运维负担；到期前另有账面待办）。私钥只落服务器 `0600`，**不进仓、不进任何日志**。
 - 表结构（最小面）：
@@ -36,6 +38,7 @@
     → `{"ok": false, "reason": "seats_full"}`（已绑满 2 台且本机不在列表）
     同一 `code+device_hash` 重复请求幂等返回 `ok:true`（重装/重开 App 不重复占额度）。
   - `POST /api/deactivate` · body `{"code","device_hash","admin_token"}` → 解绑一台（裁 1 那条兜底口）。`admin_token` 走环境变量注入、不落仓、日志永不出现。
+  - `POST /api/admin/lease-staging` · body `{"admin_token"}` → 返回一枚在册且未占满的 `{"code","kind":"staging"}` 给自动化测试用（见 §4；**在册码一律不进仓、不进日志**）。
   - `GET /api/health` → 存活探针，无业务数据。
 - **日志纪律**：服务端访问日志只记 `code` 的**尾四位**与 `device_hash` 的前 8 位；完整码/完整指纹不落盘。
 - **限流**：同 IP 每分钟阈值内计数，超限 429（挡枚举；不做成长列表，轻量即可）。
@@ -57,9 +60,13 @@
 
 ## 4. 测试通道（裁 3：staging 码段，生产 100 枚一次都不许碰）
 
-- `scripts/activation-preflight.sh` 改造点：所 mint 的码一律取自 **staging 段**，且脚本内以 `kind='staging'` 断言（拿到 buyer 段码即当场红，防手滑烧真额度）。
+**先记一条本窗施工前自查纠正（原判据若照写会全批假绿）**：白名单成为校验权威之后，**本地 mint 出来的码服务器一概不认**（格式合法≠在册）。原 §4 写"preflight 本地 mint 合法码"在 S5-f 成立、在 S5-g 必红；更坏的处理方式是"给测试加一条本地放行的旁路"，那正是判据 10 明令禁止的东西。故改为：
+
+- **码从服务器租**：新增管理口 `POST /api/admin/lease-staging`（带 `admin_token`）→ 返回一枚**在册且未占满**的 staging 码给测试用；`activation-preflight.sh` 走这一口取码，取到后仍走 `ActivationStore.submit` **同一条校验路径**（旁路零条）。本地 mint（`scripts/activation-code.py --random`）此后**只服务两件事**：造格式负例（五档脏码六条拒因那批判据）、以及老板手工给真买家出码发货。
+- **仓内零码原文（公开仓硬约束）**：本仓公开 + GPLv3 ⇒ **任何一枚在册码（buyer 或 staging）都不得进 git、不得进日志、不得进脚本字面量**。staging 码能解锁功能＝它也是免费许可证，泄进公开仓等于给全球开门。取码只经 admin 口，`admin_token` 落服务器 `.env`（0600）与本机 `D:\Qoder\secrets\anytouch-activate.md`（台账只放指针，见密钥落盘规矩）。
+- preflight 必须**断言取到的是 staging**（admin 口返回 `kind` 字段），拿到 `kind='buyer'` 当场 `exit 2` 响亮失败——防配置错把手伸进真买家额度。
 - 五支依赖激活的设备脚本（`ui-smoke`/`device-smoke`/`ui-english-sweep`/`s5d`/`s5e`）+ 新 `s5g` 脚本：**只在预检联网可达时跑**；不可达即 `exit 2` 响亮失败并照报，**不许**为了变绿而加"测试期跳过服务器"的旁路（那正是判据 10 禁的东西）。
-- staging 绑定表可一键重置（`scripts/s5g-reset-staging.sh`，服务器侧执行）；重置动作与轮次一一对应入 raw。
+- staging 绑定表可一键重置（`scripts/s5g-reset-staging.sh`，走 admin 口），重置动作与轮次一一对应入 raw。
 - CI 依赖外网属**新的事实**，必须写进 STATUS 门禁列（以前激活面零外网依赖）。
 
 ## 5. 判据（1-12，逐条要有凭）
