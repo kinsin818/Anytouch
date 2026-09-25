@@ -1,6 +1,8 @@
 package com.anytouch.app
 
 import com.anytouch.app.platform.RecordGate
+import com.anytouch.app.recorder.SavedTask
+import com.anytouch.app.recorder.SavedTaskGate
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -57,6 +59,37 @@ object AppState {
      * 单独一格不复用 [taskRejection]：两件事同时红时不许互相盖（同 record/record_stop 分格先例）。
      */
     val templateRejection = MutableStateFlow<String?>(null)
+
+    /**
+     * 「我的任务」操作被拒的话术（S5-e 要求 2）：与上面几格同一条律——静默"点了没反应"=黑洞。
+     * 仍是独立一格：存一条的同时派发正被 V-3 拦下，两句话不许互相盖。
+     */
+    val savedRejection = MutableStateFlow<String?>(null)
+
+    /**
+     * 那条存档红字**当时判的是哪一档**（与 [savedRejection] 必须同写，同 `taskRejectionGate` 那条纪律）。
+     * 需要它的是三档**纯状态档**：[com.anytouch.app.recorder.SavedTaskGate.READ_FAILED]（盘现在读不出）、
+     * [com.anytouch.app.recorder.SavedTaskGate.COMPILING]（编译那一跑在路上）、
+     * [com.anytouch.app.recorder.SavedTaskGate.RUNNING]（有任务正在跑）——状态一归位，这三句话就失去依据，
+     * 留在屏上就是假红（假红与假绿同罪）。其余档都是请求绑定的（空名／重名／太长／空账／找不到／写不进），
+     * 由下一次操作覆盖；词表档那条存档脱钩的红字也存 null——它跟 V-3 一样绑用户那一次点击。
+     * 判据住在纯函数 `savedRejectionAfterChange`，这里只存身份。
+     */
+    @Volatile
+    var savedRejectionGate: SavedTaskGate? = null
+
+    /** 存档拒因成对上写：档位与话术同生同灭（漏一处=过期边认不出该作废哪条）。 */
+    fun setSavedRejection(gate: SavedTaskGate?, copy: String?) {
+        savedRejectionGate = gate
+        savedRejection.value = copy
+    }
+
+    /**
+     * 屏上「我的任务」列表：磁盘件的**镜像**，不是第二份真值——每次写操作后由 `SavedTaskStore` 从盘重读再发布，
+     * 首进界面也重读一次（与 `ByokGateway.refreshFromVault` 同一形态）。判据一律在磁盘＋纯函数那一侧，
+     * 这一格只负责"让 Compose 在增删后重画"。
+     */
+    val savedTasks = MutableStateFlow<List<SavedTask>>(emptyList())
 
     /**
      * 那次派发被拒时门禁判的是哪一档（S3-F/F1-2、F1-3）。与 [taskRejection] **必须同写**：

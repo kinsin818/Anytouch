@@ -36,19 +36,33 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.anytouch.app.compile.ByokGateway
 import com.anytouch.app.compile.byokContextFlagOf
+import com.anytouch.app.platform.AndroidSavedTaskDisk
 import com.anytouch.app.platform.RecordGate
 import com.anytouch.app.platform.runGateOf
 import com.anytouch.app.platform.runUserCopy
 import com.anytouch.app.platform.userCopy
+import com.anytouch.app.recorder.DeleteOutcome
+import com.anytouch.app.recorder.ReadOutcome
+import com.anytouch.app.recorder.SaveOutcome
+import com.anytouch.app.recorder.SavedTaskGate
 import com.anytouch.app.recorder.StepEdit
 import com.anytouch.app.recorder.encodeActions
+import com.anytouch.app.recorder.ledgerRunningCopy
+import com.anytouch.app.recorder.savedRejectionAfterChange
 import com.anytouch.app.recorder.session.RecorderStore
+import com.anytouch.app.recorder.userCopy
 import com.anytouch.app.template.PresetTemplateLibrary
 import com.anytouch.app.template.TemplateLoad
 import com.anytouch.app.template.TemplateLoader
 import com.anytouch.app.ui.ByokPanel
 import com.anytouch.app.ui.StepListEditor
 import com.anytouch.byok.executorSupportedActionTypes
+import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * 任务注入窗 + 录制控制窗（S2-ONDEVICE 主窗窄口）：
@@ -58,6 +72,24 @@ import com.anytouch.byok.executorSupportedActionTypes
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class MainActivity : ComponentActivity() {
+
+    /**
+     * 「我的任务」磁盘件（进程内单例，见 `AndroidSavedTaskDisk.of`）：UI 按钮与 adb 注入两条通道
+     * 必须操作同一个文件件。lazy 的唯一理由：冷启动不该为存档先付一次 IO。
+     */
+    private val savedStore by lazy { AndroidSavedTaskDisk.of(applicationContext) }
+
+    /**
+     * 存档读写专用的**串行**调度线。两件事各自的理由：
+     * - 离开主线程：文件 IO 一律不上 UI 线程（与 Keystore 同一口径）；
+     * - 只要一个 worker：UI 通道、注入通道、每次操作后的重读、状态跃迁后的重读都碰同一件文件，
+     *   并发时"后读的那份把先写的那份冲回屏上"就是镜像说谎的入口（屏上列表与盘不一致，且没人会再刷）。
+     */
+    private val savedExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "anytouch-saved")
+    }
+
+    private val savedScope = CoroutineScope(SupervisorJob() + savedExecutor.asCoroutineDispatcher())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +111,9 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(RepeatPolicy.DEFAULT_INTERVAL_SEC.toString())
                     }
                     var repeatNoAsk by remember { mutableStateOf(false) }
+                    // 「我的任务」命名框的草稿（S5-e 要求 2）：与 taskJson 同理必须 remember，
+                    // 否则每帧重组合把用户正在敲的名字冲掉。
+                    var saveName by remember { mutableStateOf("") }
                     // 进程内单例：面板与 adb 注入通道必须看见同一格意图、同一个"编译中"（两套=两套真值）
                     val byok = remember { ByokGateway.of(applicationContext) }
                     val recording by RecorderStore.activeSession.collectAsState()
@@ -90,6 +125,11 @@ class MainActivity : ComponentActivity() {
                     val compileBusy by AppState.compileBusy.collectAsState()
                     val taskRejection by AppState.taskRejection.collectAsState()
                     val templateRejection by AppState.templateRejection.collectAsState()
+                    val savedTasks by AppState.savedTasks.collectAsState()
+                    val savedRejection by AppState.savedRejection.collectAsState()
+                    // `running` 从 Column 里提到这一层：存档红字的过期边要按它作废 RUNNING 档（下面那条
+                    // LaunchedEffect），而过期判据只认状态、不认文本——两处各 collect 一次才是两套真值。
+                    val running by AppState.running.collectAsState()
                     // 编译产物到达即进任务框；用户随后手改，建议流即刻作废（不夺字）
                     LaunchedEffect(suggestion) {
                         suggestion?.let {
@@ -99,13 +139,17 @@ class MainActivity : ComponentActivity() {
                     }
                     // 首进界面把已存配置回填到屏上（只填还空着的字段，用户正在敲的字不夺）
                     LaunchedEffect(Unit) { byok.refreshFromVault() }
+                    // 首进界面（本 effect 的键在首次组合也会触发一次）把存档列表摆上屏——判据 3
+                    // "冷启（进程重进）仍在"的前半格；此后每次执行/编译归位都以盘为准重读一次，
+                    // 顺带让纯函数复核红字（RUNNING／COMPILING 是**纯状态档**，状态走了话术必须跟着走，
+                    // 留着就是假红）。
+                    LaunchedEffect(running, compileBusy) { refreshSaved() }
                     Column(
                         Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         val connected by AppState.serviceConnected.collectAsState()
-                        val running by AppState.running.collectAsState()
                         val report by AppState.lastRunReport.collectAsState()
                         Text("Anytouch executor", style = MaterialTheme.typography.headlineSmall)
                         // L2-①：未连接即首启引导必现（同一话术单源于 AccessibilityGate，UI 不各写一份）
@@ -220,6 +264,85 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.testTag("template_rejection"),
                             )
                         }
+                        // 「我的任务」（S5-e 要求 2 / 三裁②"走同一个现有落账口，不另起存储"）。
+                        // 这一面只做三件事：命名存、载入、删除——载入与 AI 编译/模板**共用同一个落账口**
+                        // （`acceptModelActions(origin="saved")`），"载入即执行"仍走同一个派发口（`submitTask`）。
+                        // 屏上不出现第二条通道：RUNNING 档、词表档、编译互斥、V-3 框账比对一条都不因"这是存档"而绕开。
+                        Text("My tasks", style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = saveName,
+                                onValueChange = { saveName = it },
+                                modifier = Modifier.weight(1f, fill = false).testTag("save_task_name"),
+                                label = { Text("Name for this task") },
+                                singleLine = true,
+                            )
+                            // 存一条**不置灰**：它读此刻屏上那本账、写进自己的文件，不动账本本身，
+                            // 因此不属于编译互斥要拦的那四个入口（改账/换账才拦）。编译回来换的是账，不是已存的文件。
+                            Button(
+                                onClick = { saveCurrentTask(saveName, "ui_button") },
+                                modifier = Modifier.testTag("save_task"),
+                            ) { Text("Save this task") }
+                        }
+                        // 空表提示只在"确实读到了空表"时说：读不出时这句"No saved tasks yet"就是假陈述，
+                        // 那时该说的是下面那格红字（盘读不出）。
+                        if (savedTasks.isEmpty() && savedRejection == null) {
+                            Text(
+                                "No saved tasks yet: record or compile a task, type a name above, " +
+                                    "then tap “Save this task”.",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("saved_empty"),
+                            )
+                        }
+                        savedTasks.forEachIndexed { index, task ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    task.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    modifier = Modifier.testTag("saved_task_$index"),
+                                )
+                                // 置灰只是提示：真门禁在 loadIntoLedger 入口、落账口与派发口，
+                                // adb 注入绕过按钮同样被拒（下面 saved_rejection 那格就是它的红字）。
+                                Button(
+                                    onClick = { loadSavedTask(task.name, "ui_button") },
+                                    enabled = !compileBusy,
+                                    modifier = Modifier.testTag("saved_load_$index"),
+                                ) { Text("Load") }
+                                Button(
+                                    onClick = {
+                                        runSavedTask(
+                                            task.name,
+                                            "ui_button",
+                                            repeatCount,
+                                            repeatInterval,
+                                            repeatNoAsk,
+                                        )
+                                    },
+                                    // 与「Run task」同一档前置：服务不在场放了也不动（派发口那头的判据不变）
+                                    enabled = connected && !compileBusy,
+                                    modifier = Modifier.testTag("saved_run_$index"),
+                                ) { Text("Run") }
+                                Button(
+                                    onClick = { deleteSavedTask(task.name, "ui_button") },
+                                    modifier = Modifier.testTag("saved_delete_$index"),
+                                ) { Text("Delete") }
+                            }
+                        }
+                        savedRejection?.let {
+                            Text(
+                                it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.testTag("saved_rejection"),
+                            )
+                        }
                         OutlinedTextField(
                             value = taskJson,
                             onValueChange = { taskJson = it },
@@ -312,6 +435,13 @@ class MainActivity : ComponentActivity() {
         handleTrigger(intent)
     }
 
+    override fun onDestroy() {
+        // 收掉存档那条串行线：窗都不在了，排队中的刷新没有该去的屏（写口本身是同目录改名，不会留半本）。
+        savedScope.cancel()
+        savedExecutor.shutdown()
+        super.onDestroy()
+    }
+
     private fun handleTrigger(intent: Intent?) {
         intent ?: return
         var handled = false
@@ -363,6 +493,33 @@ class MainActivity : ComponentActivity() {
         intent.getStringExtra(EXTRA_TEMPLATE_LOAD)?.takeIf { it.isNotBlank() }?.let { id ->
             // 模板装载注入通道（S5-a 冒烟用）：与 UI 按钮同一入口同一门禁，被拒同样出 refused 日志
             loadTemplate(id, "adb_inject")
+            handled = true
+        }
+        // 「我的任务」注入通道（S5-e 判据 3/4 的设备面手）：以**名字**为句柄，与列表行三枚按钮
+        // 逐一转调同一函数——门禁、回执、红字全走同一条，通道本身一个字都不判。
+        // 为什么按名字不按序号：序号是屏面镜像的位置，两条通道并发删改时序号会指错那条存档
+        // （指错=删错/载错，比红字严重得多）；名字本来就是唯一的（重名在存入口就被拒）。
+        intent.getStringExtra(EXTRA_TASK_SAVE)?.let { name ->
+            saveCurrentTask(name, "adb_inject")
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_SAVED_LOAD)?.takeIf { it.isNotBlank() }?.let { name ->
+            loadSavedTask(name, "adb_inject")
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_SAVED_DELETE)?.takeIf { it.isNotBlank() }?.let { name ->
+            deleteSavedTask(name, "adb_inject")
+            handled = true
+        }
+        intent.getStringExtra(EXTRA_SAVED_RUN)?.takeIf { it.isNotBlank() }?.let { name ->
+            // 与「Run task」那一条共用同一组重复参数（同一解析口、同一判据，不在通道里另定默认）
+            runSavedTask(
+                name,
+                "adb_inject",
+                intent.getStringExtra(EXTRA_REPEAT_COUNT),
+                intent.getStringExtra(EXTRA_REPEAT_INTERVAL),
+                intent.getBooleanExtra(EXTRA_REPEAT_NO_ASK, false),
+            )
             handled = true
         }
         intent.getStringExtra(EXTRA_TASK_JSON)?.let { json ->
@@ -428,9 +585,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     is RecorderStore.ModelLedger.RefusedRunning -> {
-                        val copy = "A task is running, so the whole template was refused entry to the ledger " +
-                            "(the running task and the on-screen ledger must never become two books). Wait " +
-                            "for this run to finish, or tap the floating ball to stop, then load it again."
+                        // 话术单源：模板与「我的任务」两条装载来路共用同一句（见 `ledgerRunningCopy`）
+                        val copy = ledgerRunningCopy("template")
                         AppState.templateRejection.value = copy
                         Log.w(TAG, "S5SMOKE template load refused gate=RUNNING id=${load.template.id} via=$via")
                     }
@@ -451,6 +607,174 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * 「我的任务」三件操作（S5-e 要求 2 / 老板三裁②"走同一个现有落账口，不另起存储"）。
+     *
+     * 本面**一行判据都不写**：存档门禁住 `savedTaskGateOf`、红字过期边住 `savedRejectionAfterChange`、
+     * 载入门禁住落账口 `acceptModelActions`、派发门禁住 `submitTask`。接线只做三件事：取数、转调、上屏留痕。
+     *
+     * **"第二条通道在哪里"的答案：没有第二条。** 载入=预制模板走的那同一条 `acceptModelActions`
+     * （origin 换成 "saved"，它只进日志、不改判据），执行=「Run task」那同一条 `submitTask`。
+     * 所以 RUNNING 档、词表档、编译互斥、V-3 框账比对、60s TTL 对存档来路逐字同样成立——
+     * "这是我存过的"不构成任何豁免。
+     *
+     * 文件 IO 一律离开主线程（与 Keystore 同一口径），并且**全部排在 `savedScope` 这一条串行线上**：
+     * 两条通道并发读写同一件文件时，"后读的那份把先写的那份冲回屏上"就是镜像说谎的入口。
+     * **由此带来的设备面纪律**：一次操作的结论是异步回到屏上的，设备断言必须先等
+     * `S5ESMOKE saved task` 那一行回执、再读屏——反过来就是把上一格的旧镜像当成这一格的结果（假绿形态）。
+     */
+    private fun saveCurrentTask(name: String, via: String) {
+        savedScope.launch {
+            // 存的是**屏上那本步序账**，不是任务框文本：框里可能已被用户手改（那正是 V-3 要拦的两套真值），
+            // 账本才是"录出来／编出来／装载进来"的那一份。
+            val actions = RecorderStore.compiledActions.value
+            when (val outcome = savedStore.save(name, actions)) {
+                is SaveOutcome.Saved -> {
+                    AppState.setSavedRejection(null, null)
+                    Log.i(
+                        TAG,
+                        "S5ESMOKE saved task op=save ok name=\"${outcome.task.name}\" " +
+                            "steps=${outcome.task.actions.size} total=${outcome.total} via=$via",
+                    )
+                }
+                is SaveOutcome.Rejected ->
+                    rejectSaved("save", outcome.gate, outcome.name, via, "ledger=${actions.size}")
+            }
+            refreshSavedFromDisk()
+        }
+    }
+
+    /**
+     * 删一条存档：同样先读盘再写盘（在 `SavedTaskStore` 内），本函数只分流。
+     * 删的是存档件里那一条，**不动屏上步序账**——所以它不在编译互斥要拦的那几件事里
+     * （与「载入」相对：那一件是整本换账，必须暂停）。
+     */
+    private fun deleteSavedTask(name: String, via: String) {
+        savedScope.launch {
+            when (val outcome = savedStore.delete(name)) {
+                is DeleteOutcome.Deleted -> {
+                    AppState.setSavedRejection(null, null)
+                    Log.i(
+                        TAG,
+                        "S5ESMOKE saved task op=delete ok name=\"${outcome.name}\" " +
+                            "remaining=${outcome.remaining} via=$via",
+                    )
+                }
+                is DeleteOutcome.Rejected ->
+                    rejectSaved("delete", outcome.gate, outcome.name, via, "list=${savedStore.list().size}")
+            }
+            refreshSavedFromDisk()
+        }
+    }
+
+    /**
+     * 载入一条存档（「Load」钮与「Run」钮共用）：读档 → **同一个落账口**整本进账。
+     * 返回进账后的任务框文本（派发口要用它与账逐字可比），null=没进账（红字与回执都已到位）。
+     *
+     * 编译互斥在**入口**把关——落账口刻意不看 `compileBusy`（它要接编译那一跑的产物，看了就自锁死），
+     * 所以"换账本的来路"必须在入口自己拒，与 `loadTemplate` 同一分工；RUNNING 档与词表档不在此处复制，
+     * 由落账口那两档返回（本函数只转述话术）。
+     */
+    private fun loadIntoLedger(name: String, via: String): String? {
+        if (AppState.compileBusy.value) {
+            rejectSaved("load", SavedTaskGate.COMPILING, name, via, "running=${AppState.running.value}")
+            return null
+        }
+        val task = savedStore.find(name)
+        if (task == null) {
+            rejectSaved("load", SavedTaskGate.NOT_FOUND, name, via, "list=${savedStore.list().size}")
+            return null
+        }
+        return when (
+            val verdict = RecorderStore.acceptModelActions(task.actions, executorSupportedActionTypes, origin = "saved")
+        ) {
+            is RecorderStore.ModelLedger.Written -> {
+                AppState.setSavedRejection(null, null)
+                Log.i(
+                    TAG,
+                    "S5ESMOKE saved task op=load ok name=\"${task.name}\" steps=${verdict.steps} " +
+                        "replaced=${verdict.replaced} via=$via",
+                )
+                // 落账口发布的建议就是这一串（同一个 `encodeActions` 真值），派发口拿它喂 V-3 才逐字可比
+                encodeActions(task.actions)
+            }
+            is RecorderStore.ModelLedger.RefusedRunning -> {
+                // 档位存 RUNNING（不是 null）：这句说的是"此刻有任务在跑"，纯状态档——跑完还挂着就是假红。
+                // 作废判据住 `savedRejectionAfterChange`，话术与模板来路共用 `ledgerRunningCopy` 那一份。
+                rejectSaved("load", SavedTaskGate.RUNNING, task.name, via, "incoming=${task.actions.size}")
+                null
+            }
+            is RecorderStore.ModelLedger.RefusedUnsupportedType -> {
+                // 词表档判据在落账口；这一句只补存档来路特有的那一半——编译来路该重编、模板来路是资产
+                // 带病、存档来路是"这条存的本数与本 build 的词表脱钩了"。三条建议不同是应该的。
+                // 档位存 null：这条拒因是**请求绑定**的（说的是这一条存档的内容），状态跃迁不会让它失去依据，
+                // 与 V-3 那一格同律（见 `AppState.taskRejectionGate` 的 null 分支）。
+                val copy = "Saved task \"${task.name}\" step ${verdict.index + 1} is type=${verdict.type}, " +
+                    "which this build's executor cannot run — not a single step of the whole ledger was " +
+                    "written, and the steps on screen stayed exactly as they were. The saved entry is left " +
+                    "untouched in your list: re-record that step on this build (or delete the entry) " +
+                    "instead of running a half ledger."
+                AppState.setSavedRejection(null, copy)
+                Log.w(
+                    TAG,
+                    "S5ESMOKE saved task op=load refused gate=UNSUPPORTED_TYPE name=\"${task.name}\" " +
+                        "via=$via index=${verdict.index} type=${verdict.type}",
+                )
+                null
+            }
+        }
+    }
+
+    /** 「Load」钮／注入：只进账，不派发。 */
+    private fun loadSavedTask(name: String, via: String) {
+        savedScope.launch { loadIntoLedger(name, via) }
+    }
+
+    /** 「Run」钮／注入 = 上面那一条 + 派发口那一条，中间没有任何第三通道（军令"点一下就能载入并直接执行"）。 */
+    private fun runSavedTask(
+        name: String,
+        via: String,
+        repetitionsRaw: String?,
+        intervalRaw: String?,
+        askWithoutPrompt: Boolean,
+    ) {
+        savedScope.launch {
+            val json = loadIntoLedger(name, via) ?: return@launch
+            submitTask(json, "saved_$via", repetitionsRaw, intervalRaw, askWithoutPrompt)
+        }
+    }
+
+    /** 一次存档被拒：档位与话术成对写（过期边认身份不认文本），回执与红字同一条（禁静默"点了没反应"）。 */
+    private fun rejectSaved(op: String, gate: SavedTaskGate, name: String, via: String, detail: String) {
+        AppState.setSavedRejection(gate, gate.userCopy())
+        Log.w(TAG, "S5ESMOKE saved task op=$op refused gate=$gate name=\"$name\" via=$via $detail")
+    }
+
+    /**
+     * 从盘重读列表并按纯函数复核红字（每写一次之后、执行/编译状态归位之后、首进界面各走一次）。
+     * 屏上那份镜像**每次都以盘为准**：内存里不养第二本列表，否则冷启动或另一条通道刚写过文件时
+     * 镜像就会说谎（条目数量级也犯不上缓存）。
+     *
+     * 这里刻意每次操作后都重读、而不是"写完把新列表塞进 flow"：写完再读才是对盘取证
+     * （写口已经以字节回读为准，屏面这一层再信一次内存里的乐观值就是两层各自乐观）。
+     */
+    private fun refreshSavedFromDisk() {
+        val outcome = savedStore.read()
+        AppState.savedTasks.value = (outcome as? ReadOutcome.Ok)?.tasks ?: emptyList()
+        val next = savedRejectionAfterChange(
+            AppState.savedRejectionGate,
+            outcome,
+            AppState.running.value,
+            AppState.compileBusy.value,
+        )
+        if (next != AppState.savedRejectionGate) AppState.setSavedRejection(next, next?.userCopy())
+    }
+
+    /** [refreshSavedFromDisk] 的异步壳：主线程（LaunchedEffect）只走这一条，不直接碰盘。 */
+    private fun refreshSaved() {
+        savedScope.launch { refreshSavedFromDisk() }
     }
 
     private fun submitTask(
@@ -532,6 +856,15 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_SESSION_JSON = "session_json"
         /** 预制模板装载（S5-a）：只认注册表 id，脏 id 由装载器拒并上屏，不在注入通道猜意图。 */
         const val EXTRA_TEMPLATE_LOAD = "template_load"
+        /**
+         * 「我的任务」四枚注入通道（S5-e）：值都是**存档名字**。
+         * `task_save` 刻意不 `takeIf { isNotBlank() }`——空名正是 [com.anytouch.app.recorder.SavedTaskGate.BLANK_NAME]
+         * 那一条判据要能在设备面被证伪的输入；其余三枚空串没有指代对象，直接当"没下发"。
+         */
+        const val EXTRA_TASK_SAVE = "task_save"
+        const val EXTRA_SAVED_LOAD = "saved_load"
+        const val EXTRA_SAVED_RUN = "saved_run"
+        const val EXTRA_SAVED_DELETE = "saved_delete"
         const val EXTRA_AI_INTENT = "ai_intent"
         const val EXTRA_AI_COMPILE = "ai_compile"
 

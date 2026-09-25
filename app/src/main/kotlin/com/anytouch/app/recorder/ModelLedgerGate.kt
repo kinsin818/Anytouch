@@ -49,3 +49,17 @@ fun unsupportedModelLedgerCopy(unsupported: UnsupportedModelAction, supportedTyp
         "the screen, leaving the on-screen steps at odds with your intent with no error at all — harder to " +
         "spot than \"this run failed\". Rephrase into something runnable and tap “AI compile” again " +
         "(one refusal = one recompile, and that still costs a request)."
+
+/**
+ * 落账口 **RUNNING 档**的拒因话术（S5-e 起两条装载来路共用：预制模板、「我的任务」存档）。
+ *
+ * 为什么这一句必须共用而词表档那句可以各写各的：RUNNING 档说的三件事——"有任务正在跑"、
+ * "整本没进账"、"等这一跑结束或按停止球"——对两条来路**逐字相同**，只有主语不同；
+ * 两处各抄一句就是话术面的雷 18（改一处漏一处=这一面说不许进账、那一面没说不许进账）。
+ * 词表档不同：那一句的**建议**按来路分（编译来路该重编、模板来路是资产带病、存档来路是本数与本 build 的
+ * 词表脱钩），建议不同是应该的，所以那三句各自留在调用侧。
+ */
+fun ledgerRunningCopy(subject: String): String =
+    "A task is running, so the whole $subject was refused entry to the ledger (the running task and the " +
+        "on-screen ledger must never become two books). Wait for this run to finish, or tap the floating " +
+        "ball to stop, then load it again."
