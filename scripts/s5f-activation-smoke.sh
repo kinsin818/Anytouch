@@ -25,7 +25,9 @@
 # - 逐字下发、逐字读回（byok-credential-inject 三、四枪：整串一次下发会相邻成对换序，长度对得上也是脏码）。
 # - 判据 6（安全面不变）不在本脚本另写一套：以 s5d L4/L5、ui-smoke C 系列、Photos 全链在同一枚 v1.0.5 字节上复绿为凭。
 #   判据 7（全英文含对话框层）不在本脚本判：由 ui-english-sweep 段4 在同一枚字节上扫。
-# - 零网络：激活码校验全在本机（附页 §0 裁 1＝装饰性锁，对外禁写"防破解"）。
+# - **S5-g 改口**：激活这一步不再"全在本机"——码与本机标识会出门一次问服务器（fail-closed），
+#   执行期仍零网络（红线 C/G 一字未动）。对外话术禁写"防破解"这条继续有效。
+# - 解锁格用的码是**租来的在册码**：整码不进日志、不进 raw、不进 git，只回显尾四位。
 #
 # 读数走位四条硬口径（run2/run3 血账，本批改判据的地方全在这里）：
 # - **`run` 派发之后的第一次屏面读数之前，先把自家页拉回前台**：adb 通道触发后产品**主动退后台**
@@ -47,21 +49,24 @@ export MSYS_NO_PATHCONV=1
 
 ADB="adb"
 [ -n "${ANDROID_SERIAL:-}" ] && ADB="adb -s $ANDROID_SERIAL"
+. "$(dirname "$0")/s5g-server.sh"   # S5-g：解锁那一格用的码从服务器租，不再拿本地 mint 的码当"能解锁的码"
+. "$(dirname "$0")/s5g-relay.sh"    # S5-g：本台测试机出不了网（路由事实），中继不起＝设备这一格必然红
 E9_APK="${E9_APK:-}"
 RAW_DIR="${RAW_DIR:-evidence/S5/raw}"
 EXPECTED_VC="${EXPECTED_VC:-6}"
 LOCK=/tmp/s5f-activation.lock
-# golden 表里那一枚（自由正文 A1B2C3D4E5；与 ActivationCodeTest、scripts/activation-code.py 同源三处之一）
-GOLDEN="ANY-A1B2-C3D4-E5NX"
-GOLDEN_TAIL="E5NX"
-GOLDEN_HEAD="A1B2"          # 允许上屏的是尾四位；前段一出现就说明整枚码漏了出去
+# S5-g 起：能解锁的码只有一枚来源——服务器在册的 staging 段（本地 mint 的那枚现在应当被服务器拒，
+# 它从"正例"变成了"格式全对但不在册"的负例，负例格在 scripts/s5g-server-activation-smoke.sh N1）。
+# 租不到（服务不可达/token 不对/测试段占满）一律 exit 2：绝不用本地码凑一个"看起来解锁了"的绿。
+# 租码排在 pass/bad 定义之后（run 前自查：这一行原来写在 `bad()` 之前，真失败时报的是 command-not-found，
+# 把"为什么 exit 2"这条最该有的读数吞掉了）。
 
-fail=0; passed=0
+fail=0; passed=0; failed=0   # failed=红格**条数**；fail 只是退码 0/1——只报 fail 会把"红了四格"印成"FAIL=1"
 UNLOCKED=0                  # 1=**本跑已用屏上锚确认过**已解锁；缺席类判据的资格凭
 IN_DIALOG=0                 # 1=对话框开着：话术在框内那一格，只原地 dump、不滚页（见 find_cell 里那条）
 RED='\033[0;31m'; GRN='\033[0;32m'; NCT='\033[0m'
 pass() { printf "${GRN}PASS${NCT} %s\n" "$1"; passed=$((passed + 1)); }
-bad()  { printf "${RED}FAIL${NCT} %s\n" "$1"; fail=1; }
+bad()  { printf "${RED}FAIL${NCT} %s\n" "$1"; failed=$((failed + 1)); fail=1; }
 log()  { printf '      | %s\n' "$*"; }
 RAW="$RAW_DIR/s5f-activation-$(date +%Y%m%d-%H%M%S).raw.txt"
 # 存档名逐轮唯一：磁盘上的"我的任务"列表**跨进程、跨 install -r 都留着**（这正是判据 4 要证的性质），
@@ -99,6 +104,13 @@ rebind_cmd() {
 VC=$($ADB shell dumpsys package com.anytouch.app 2>/dev/null | tr -d '\r' | grep -m1 versionCode | sed 's/.*versionCode=//; s/[^0-9].*//')
 [ "$VC" = "$EXPECTED_VC" ] || { bad "预检 :: 机上 versionCode=$VC 与本轮应有 $EXPECTED_VC 不符——装错包，跑了也是白跑"; exit 2; }
 wait_bound || { bad "预检 :: 无障碍服务未绑定（可能被上一支脚本留在 null）——复位命令：$(rebind_cmd)"; exit 2; }
+# ---- S5-g 起：解锁那一格要的是"设备真打到服务器"，本台测试机的出网被拦（路由事实，不是产品开关） ----
+# 与 activation-preflight.sh 同一口径：这里只负责"起"，撤除是显式动作（bash scripts/s5g-relay.sh --down）——
+# 一轮设备面里几支脚本接力跑，"谁起谁撤"必须只有一条规则，否则半路撤了中继后面的格全成假红。
+s5g_relay_up || { bad "预检 :: 中继起不来 / 对面证书不等于本轮期望指纹——绝不为变绿把激活改回本地判据，本跑终止"; exit 2; }
+GOLDEN=$(bash -c '. scripts/s5g-server.sh; s5g_lease_staging') || { bad "预检 :: 未从服务器取到在册 staging 码——解锁格无证可跑（判据 10 禁旁路）"; exit 2; }
+GOLDEN_TAIL=${GOLDEN: -4}
+GOLDEN_HEAD=${GOLDEN:4:4}      # 允许上屏的只有尾四位；前段那四个字符一出现就说明整枚码漏了出去
 APK_MD5=$(md5sum "$E9_APK" | cut -d' ' -f1)
 PM_PATH=$($ADB shell pm path com.anytouch.app 2>/dev/null | tr -d '\r' | head -1 | sed 's/^package://')
 [ -n "$PM_PATH" ] || { bad "预检 :: pm path 读不到机上 apk——对不了账"; exit 2; }
@@ -538,9 +550,13 @@ wait_line 'refused gate=NOT_ACTIVATED' 15 >/dev/null && pass "G7e :: 复位后�
     echo "# 判据 6（安全面不变）不在本脚本另写一套：以 s5d L4/L5、ui-smoke C 系列、Photos 全链在同一枚 v1.0.5 字节上复绿为凭"
     echo "# 判据 7（全英文含对话框层）由 ui-english-sweep 段4 在同一枚字节上扫"
 } >> "$RAW"
+# 收尾：本轮租到的码在这台机上占了一格测试额度，留给 reset-staging 一键清（脚本不自己解绑：
+# 解绑口要整码做参数，多一处整码过手就多一次泄漏面）。
+s5g_reset_staging >/dev/null 2>&1 && log "收尾 :: 测试段绑定已清（s5g-reset-staging）"     || log "收尾 :: 测试段未清（不记产品红；下一轮起跑前手动跑 scripts/s5g-reset-staging.sh）"
+
 echo
 echo "================ s5f-activation 汇总 ================"
 echo "RAW=$RAW"
-echo "passed=$passed  fail=$fail"
+echo "passed=$passed failed-cells=$failed exit-code=$fail"
 [ "$fail" = "0" ] || echo "结论：本批有红格，按实照报——不修脚本判据来凑绿"
 exit "$fail"

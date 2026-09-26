@@ -21,6 +21,15 @@ class ActivationStoreTest {
 
     private val code = "ANY-PRO9-FAN8-B1CE"
 
+    /**
+     * 上面那些老用例一律喂"服务器已经点头"这一档：它们钉的是**本地判据与落盘**，
+     * 把服务器那一格固定成 [ActivationRemote.Allowed] 才只变一件事（v1.0.5 那六档判据逐字不回退，判据 3）。
+     *
+     * 顺带钉住本批的顺序：脏码即使配上 Allowed 也照样一个字节都不落盘——
+     * **本地判据排在服务器之前**，这就是"形状都没对就别出门"那条省额度规则的机器锁形态。
+     */
+    private val allowed = ActivationRemote.Allowed(seatsUsed = 1, seatsTotal = 2)
+
     private class FakeDisk(initial: String? = null) : ActivationDisk {
         var text: String? = initial
         var writable: Boolean = true
@@ -57,7 +66,7 @@ class ActivationStoreTest {
     fun `golden 码放行后盘上只留末四位 且回读同一份字节`() {
         val disk = FakeDisk()
         val store = ActivationStore(disk)
-        assertEquals(ActivationVerdict.UNLOCKED, store.submit(code))
+        assertEquals(ActivationVerdict.UNLOCKED, store.submit(code, allowed))
         assertEquals("B1CE", disk.text, "盘上留的必须是末四位：整枚能解锁的串不许落在设备上")
         assertEquals(1, disk.writeCalls, "算对之前一个字节都不许写：脏码会留下半个解锁态")
         val state = store.state()
@@ -70,7 +79,7 @@ class ActivationStoreTest {
     fun `小写与粘贴空白同样解锁 与校验器共用同一条归一口`() {
         val disk = FakeDisk()
         val store = ActivationStore(disk)
-        assertEquals(ActivationVerdict.UNLOCKED, store.submit("  ${code.lowercase()} \n"))
+        assertEquals(ActivationVerdict.UNLOCKED, store.submit("  ${code.lowercase()} \n", allowed))
         assertEquals("B1CE", disk.text, "盘上留的仍是规范式尾四位（不是小写、不带空白）")
     }
 
@@ -88,7 +97,7 @@ class ActivationStoreTest {
         ).forEach { (raw, expect) ->
             val disk = FakeDisk()
             val store = ActivationStore(disk)
-            assertEquals(expect, store.submit(raw), "$raw 的结论必须逐字来自校验器")
+            assertEquals(expect, store.submit(raw, allowed), "$raw 的结论必须逐字来自校验器")
             assertEquals(0, disk.writeCalls, "$raw 被拒却动了盘")
             assertFalse(store.isActivated())
         }
@@ -100,7 +109,7 @@ class ActivationStoreTest {
     fun `盘写不进时报 WRITE_FAILED 而不是 UNLOCKED`() {
         val disk = FakeDisk().apply { writable = false }
         val store = ActivationStore(disk)
-        assertEquals(ActivationVerdict.WRITE_FAILED, store.submit(code), "写不成就是没解锁：IO 层的沉默不能当真")
+        assertEquals(ActivationVerdict.WRITE_FAILED, store.submit(code, allowed), "写不成就是没解锁：IO 层的沉默不能当真")
         assertFalse(store.isActivated(), "写失败还算解锁=假绿")
         assertEquals(1, disk.writeCalls, "判据算对之后才允许动盘")
     }
@@ -108,7 +117,7 @@ class ActivationStoreTest {
     @Test
     fun `写口谎报成功但读回不是那几个字节 同样算失败`() {
         val store = ActivationStore(LyingDisk())
-        assertEquals(ActivationVerdict.WRITE_FAILED, store.submit(code), "只信 write() 的返回值=信了一层谎")
+        assertEquals(ActivationVerdict.WRITE_FAILED, store.submit(code, allowed), "只信 write() 的返回值=信了一层谎")
         assertFalse(store.isActivated())
     }
 
@@ -153,7 +162,7 @@ class ActivationStoreTest {
     fun `reset 之后必须真的没有那四个字符`() {
         val disk = FakeDisk()
         val store = ActivationStore(disk)
-        store.submit(code)
+        store.submit(code, allowed)
         assertTrue(store.isActivated())
         assertTrue(store.reset())
         assertNull(disk.text)
@@ -168,5 +177,74 @@ class ActivationStoreTest {
         val store = ActivationStore(FakeDisk("B1CE").apply { clears = false })
         assertFalse(store.reset(), "复位没做成不许谎报")
         assertTrue(store.isActivated(), "盘上仍是合规尾四位：这一格必须仍算已激活，reset 的 false 才有意义")
+    }
+
+    // ---- 6. S5-g：本地判据过 ≠ 解锁，服务器说了算（军令 §2 + 裁 1 覆盖 S5-R13 裁 1） ----
+
+    @Test
+    fun `形状全对但服务器说不在册 落 SERVER_INVALID 且一个字节都不写`() {
+        val disk = FakeDisk()
+        val store = ActivationStore(disk)
+        assertEquals(
+            ActivationVerdict.SERVER_INVALID,
+            store.submit(code, ActivationRemote.Invalid),
+            "本地算对了就解锁=v1.0.5 的口径；本批改判据后这一格必须是拒",
+        )
+        assertEquals(0, disk.writeCalls, "服务器没点头却动了盘=把'格式像'当成'买过了'")
+        assertFalse(store.isActivated())
+    }
+
+    @Test
+    fun `额度满落 SERVER_SEATS_FULL 且不落盘`() {
+        val disk = FakeDisk()
+        val store = ActivationStore(disk)
+        assertEquals(ActivationVerdict.SERVER_SEATS_FULL, store.submit(code, ActivationRemote.SeatsFull))
+        assertEquals(0, disk.writeCalls)
+        assertFalse(store.isActivated())
+    }
+
+    @Test
+    fun `连不上服务器就是拒绝激活 这一档绝不写成通过`() {
+        val disk = FakeDisk()
+        val store = ActivationStore(disk)
+        assertEquals(
+            ActivationVerdict.SERVER_UNREACHABLE,
+            store.submit(code, ActivationRemote.Unreachable),
+            "fail-closed（自钉 2）：'没答上'若算通过，整套额度锁等于没有",
+        )
+        assertEquals(0, disk.writeCalls)
+        assertFalse(store.isActivated())
+    }
+
+    @Test
+    fun `本机给不出设备标识时既不落盘也不冒充网络故障`() {
+        val disk = FakeDisk()
+        val store = ActivationStore(disk)
+        assertEquals(
+            ActivationVerdict.DEVICE_ID_MISSING,
+            store.submit(code, ActivationRemote.IdentityMissing),
+            "这一格与'连不上'分开：让买家去查网络是误导，真实情况是根本没出门",
+        )
+        assertEquals(0, disk.writeCalls)
+    }
+
+    @Test
+    fun `已经解锁的机器遇到服务器不应 既不改盘也不撤既有解锁态`() {
+        // 判据 5 的 JVM 半边：联网只发生在"输码这一次"，任何后续失败都不许把已付过费的人关回门外
+        val disk = FakeDisk("B1CE")
+        val store = ActivationStore(disk)
+        assertEquals(ActivationVerdict.SERVER_UNREACHABLE, store.submit(code, ActivationRemote.Unreachable))
+        assertEquals("B1CE", disk.text, "一次没成的输码不许顺手清掉既有态")
+        assertTrue(store.isActivated())
+    }
+
+    @Test
+    fun `服务器点头但盘写不成仍报 WRITE_FAILED 不报解锁`() {
+        val disk = FakeDisk().apply { writable = false }
+        assertEquals(
+            ActivationVerdict.WRITE_FAILED,
+            ActivationStore(disk).submit(code, allowed),
+            "远程通过了不等于本机通过了：落盘复核这一格一步都不能省",
+        )
     }
 }

@@ -137,8 +137,11 @@ Your API key and your screen content are only ever sent to the endpoint you conf
 compiling, only with the amount shown on screen. Nothing runs in anyone else's cloud. There is no
 account, no analytics, no crash reporting, no screenshot capture anywhere in the product
 (no screenshot pixels are ever uploaded, and playback reads the screen structure, not pixels).
-Recording, editing and playback all work fully offline; only the compile step ever touches the
-network, and only to the endpoint you chose.
+Recording, editing and playback all work fully offline; the compile step is the only thing that
+sends anything to *your* model provider, and the only thing that ever reaches *us* is the one
+request that activates your code on a device (it carries the code and a hashed device id — not
+your key, not your tasks, not your screen). Since v1.0.6 that check is on our server; before
+v1.0.6 the same codes were verified entirely on your phone.
 
 ## Troubleshooting
 

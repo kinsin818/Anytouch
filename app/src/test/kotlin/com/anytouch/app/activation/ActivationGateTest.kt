@@ -106,6 +106,7 @@ class ActivationGateTest {
             add(ActivationCopy.FIELD_LABEL)
             add(ActivationCopy.CONFIRM)
             add(ActivationCopy.CANCEL)
+            add(ActivationCopy.CHECKING)
             add(ActivationCopy.SCOPE)
             add(ActivationCopy.unlocked("B1CE"))
             addAll(ActivationVerdict.values().map { ActivationCopy.refusal(it) })
@@ -115,15 +116,52 @@ class ActivationGateTest {
         assertTrue(all.isNotEmpty())
         all.forEach { copy ->
             assertFalse(copy.any { it in '一'..'龥' }, "上屏文案出现中文（军令 §5）：$copy")
+            // 这条律钉的是**内部标识符漏上屏**，不是英文单词。v1.0.6 起 "activated" 一词必须在屏上：
+            // S5-g 军令 §3 逐字指定了 "This code has already been activated on 2 devices, maximum reached"
+            // (SERVER_SEATS_FULL 那句)。军令 > 自钉的禁词表，所以这里把宽口单词换成它真正的来源
+            // `AppState.activated`，判据强度不降（枚举/字段名照样漏一句红一句），并把那三句军令
+            // 字面钉在下面的独立用例里，防止有人反过来把老板那句改掉。未擅改任何冻结文件。
             listOf(
                 "NOT_ACTIVATED", "UNLOCKED", "WRITE_FAILED", "BAD_CHARSET", "BAD_LENGTH", "BAD_PREFIX",
                 "BAD_SEPARATOR", "CHECKSUM", "REPEAT_LOOP", "SAVED_TASKS", "MANUAL_STEP_INSERT",
-                "ProGate", "ProFeature", "ActivationVerdict", "exercised", "activated", "filesDir", "flag.txt",
+                "ProGate", "ProFeature", "ActivationVerdict", "exercised", "AppState.activated",
+                "filesDir", "flag.txt",
             ).forEach {
                 assertFalse(copy.contains(it), "上屏文案里出现内部档名 $it（v1.0.2 去黑话同一条律）：$copy")
             }
         }
         assertNotNull(all.singleOrNull { it.contains("never goes online") }, "对话框必须讲清不联网（军令 §4 的对外那一半）")
+    }
+
+    /**
+     * S5-g 军令 §3 的三句逐字锁（老板口述原句，一个字都不许顺带改）。
+     *
+     * 上一格刚因为这句话放宽过禁词表，所以这一格必须存在：把"屏上就是老板那一句"从口头
+     * 保证变成机器锁——将来谁觉得文案"更顺"而动了字面，红的是他自己那一格。
+     */
+    @Test
+    fun `军令 §3 三句原话逐字在屏`() {
+        val seatsFull = ActivationCopy.refusal(ActivationVerdict.SERVER_SEATS_FULL)
+        assertTrue(
+            seatsFull.contains("This code has already been activated on 2 devices, maximum reached"),
+            "座位满的原话被改动了：$seatsFull",
+        )
+        assertTrue(
+            ActivationCopy.refusal(ActivationVerdict.SERVER_INVALID)
+                .startsWith("Activation code invalid"),
+            "码无效的原话必须在句首",
+        )
+        assertTrue(
+            ActivationCopy.unlocked("B1CE").startsWith("Activation successful"),
+            "成功句的原话必须在句首",
+        )
+        // 三句彼此不同：同一句糊三档 = 买家分不清该找谁（退单还是解绑）
+        val three = listOf(
+            seatsFull,
+            ActivationCopy.refusal(ActivationVerdict.SERVER_INVALID),
+            ActivationCopy.unlocked("B1CE"),
+        )
+        assertEquals(3, three.toSet().size)
     }
 
     @Test

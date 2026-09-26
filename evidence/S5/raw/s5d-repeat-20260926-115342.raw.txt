@@ -1,0 +1,12 @@
+# s5d-repeat-loop 预检 ok · api=34 1080x2340 vc=7
+# [L4] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L4-panel-try1-115450.png 焦点=  mCurrentFocus=Window{57fd165 u0 com.anytouch.app}
+# panel rect x 100..978 y 868..1294 | band y 1296..1394 center 1345 | left (151, 528) right (552, 928) | screen 1080x2340 | dark-panel-px 111629
+# [L4] 面板按钮按屏定位=(740,1345) 量自 s5d-L4-panel-try1-115450.png（第 1 拍命中）
+no-panel-rect-found dark-panel-px=7867
+# [L4] 第 1 拍量不到面板且计数仍=1 → 判'已消失'收手（截图=s5d-L4-recheck1-115452.png）
+# [L5] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L5-panel-try1-115515.png 焦点=  mCurrentFocus=Window{eab697 u0 com.anytouch.app}
+# panel rect x 100..978 y 868..1294 | band y 1296..1394 center 1345 | left (151, 528) right (552, 928) | screen 1080x2340 | dark-panel-px 111629
+# [L5] 面板按钮按屏定位=(740,1345) 量自 s5d-L5-panel-try1-115515.png（第 1 拍命中）
+no-panel-rect-found dark-panel-px=7867
+# [L5] 第 1 拍量不到面板且计数仍=1 → 判'已消失'收手（截图=s5d-L5-recheck1-115519.png）
+# RAW 结束 fail=0 passed=15

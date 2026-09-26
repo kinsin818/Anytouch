@@ -1,0 +1,87 @@
+#0 click · Connection preferences
+#0 click · Show Navigation Drawer
+#1 click · Bluetooth
+#1 wait · 800ms
+#2 click · Trash
+#3 wait · 1500ms
+#4 click · More options
+#5 wait · 800ms
+#6 click · Empty trash
+#7 wait · 800ms
+#8 click · confirmation_button
++ Step
+1
+5
+AI compile
+AI compile (bring your own key — network is used only when creating a task)
+API key (after saving, only its last 4 digits stay on screen)
+Accessibility service is not connected: please open Settings → Accessibility → Downloaded services and turn Anytouch on right away. Until it is on, recording and execution cannot start.
+Activate
+Activation code (ANY-XXXX-XXXX-XXXX)
+Activation successful. Pro features are unlocked on this device (code ending …-E7DA).
+Add step
+Adds one step at position #1
+Anytouch executor
+Attach the visible text of the current screen (only on-screen labels and control ids are sent; text-field contents, password fields and screenshots never are)
+BYOK configuration (kept encrypted on this device in the Keystore, never sent anywhere else)
+Cancel
+Cancel +
+Click
+Content description
+Delete
+Discord check-in
+Down
+Enter your activation code
+Erase device credentials
+Every round asks for confirmation by default. "Repeat without asking" only skips the panel for a risk you already approved during this run; a new kind of risk still asks.
+Gmail cleanup
+Gmail cleanup and Discord check-in require you to sign in to the app yourself first. Anytouch only automates the interface after you are signed in; it never performs logins and never reads or stores your account credentials.
+Hierarchy path
+Idle
+Interval seconds (1-60)
+Model name
+My tasks
+Name for this task
+No key saved on this device
+No such preset template (the registry has no such id); not a single step was written.
+Not recording
+Package to record
+Photo cleanup
+Rename
+Repeat without asking
+Repetitions (1-100)
+Resource id
+Run task
+Save
+Save this task
+Say what to do in one sentence (e.g. open the Bluetooth page)
+Service URL (OpenAI-compatible endpoint, https only)
+Start recording
+Step name
+Steps 2 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps 9 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps find their target on the accessibility node tree, so there is no x/y to fill in here.
+Stop & compile
+Text on screen
+There are no steps to save: record some steps (or load a template) first — an empty task would be runnable and would report success without doing anything.
+Type text
+Unlock
+Unlocking adds three things: repeating a task over several rounds, your own saved task list, and hand-added steps. When you enter a code, it and an identifier for this device go once to our activation server; after that the app needs no network to run a task, and running a task never goes online. The identifier is per device, so a reset or a fresh install may need you to unlock again.
+Up
+Wait
+Which match (0 = first)
+[{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+com.android.settings
+open_drawer
+open_trash
+pause_confirm
+pause_drawer
+pause_menu
+pause_trash
+rec-0002
+rec-0003
+tap_delete_permanently
+tap_empty_trash
+trash_overflow
+{"stopped":true,"results":[],"stop_command":{"command_id":"dropped-service_interrupted-3431342305000","type":"stop","source":"accessibility_service","payload":{"stop_code":"SERVICE_INTERRUPTED","stop_reason":"Job was cancelled","note":"The task did not reach a normal finish; results are absent, which does not mean anything was (or was not) executed"},"confirm":"stopped"}}

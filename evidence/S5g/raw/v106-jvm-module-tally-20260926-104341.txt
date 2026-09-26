@@ -1,0 +1,10 @@
+# v1.0.6 JVM 分模块单变体计数（判据 9/10 的口径件）
+# 口径：与 .smoke-tmp/v106-ci-s5g.log（scripts/ci-local.sh [2/4] --rerun-tasks 干净重跑，CI-RC=0）同一次 CI；
+# 每模块只取其单变体 test-results 目录下 TEST-*.xml 的 testsuite 头自加，不 glob 其他目录、不数日志行、四列全脚本累加非手填。
+# XML mtime 区间：2026-09-26 10:42:38 ~ 2026-09-26 10:43:08（生成时刻 host 2026-09-26 10:43:41）
+::app (testDebugUnitTest) files=39  tests=477  failures=0 errors=0 skipped=0
+::byok (test)             files=9   tests=80   failures=0 errors=0 skipped=0
+::core:contracts (test)   files=2   tests=19   failures=0 errors=0 skipped=0
+::tools:compiler          files=0   tests=0    failures=0 errors=0 skipped=0
+------------------------------------------------------------------------------
+TOTAL                       files=50  tests=576  failures=0 errors=0 skipped=0

@@ -452,7 +452,10 @@ fi
 # 从不真开录——于是旧口径下这条判据读的是"根本没有球的屏"：命中不到就判红（假红），
 # 偶发撞上一个残留会话时又判绿（假绿）。两头都不是产品事实。改成先真开一次录制、
 # 用 `record start target=` 这条日志坐实球该在屏上，再截屏量像素；用完立刻停录（U14 自带重建账的前置）。
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# 路径形态必须是 Windows 侧解释得通的：MSYS 的 `/d/Anytouch/scripts` 交给 C:\Python314\python.exe
+# 会被当成相对路径重解析成 `D:\d\Anytouch\scripts\…`（09-26 v1.0.6 首轮 U13 因此假红——
+# 红的是读数器（探针压根没跑），不是屏上的球）。`pwd -W` 有则用，无则退回原样。
+SCRIPT_DIR=$(cd "$(dirname "$0")" && { pwd -W 2>/dev/null || pwd; })
 PY=$(command -v python3 || command -v python || true)
 if [ -z "$PY" ]; then
     skip "U13 球位：无 python（像素判据需要 PIL）"

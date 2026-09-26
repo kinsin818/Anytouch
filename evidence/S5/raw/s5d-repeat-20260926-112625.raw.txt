@@ -1,0 +1,9 @@
+# s5d-repeat-loop 预检 ok · api=34 1080x2340 vc=7
+# [L4] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L4-panel-try1-112727.png 焦点=  mCurrentFocus=Window{7f35acb u0 com.anytouch.app}
+# panel rect x 100..978 y 868..1294 | band y 1296..1394 center 1345 | left (151, 528) right (552, 928) | screen 1080x2340 | dark-panel-px 111629
+# [L4] 面板按钮按屏定位=(740,1345) 量自 s5d-L4-panel-try1-112727.png（第 1 拍命中）
+# [L5] 面板在场截图(第 1 拍)=evidence/S5/raw/s5d-L5-panel-try1-112749.png 焦点=  mCurrentFocus=Window{ef3c068 u0 com.anytouch.app}
+# panel rect x 100..978 y 868..1294 | band y 1296..1394 center 1345 | left (151, 528) right (552, 928) | screen 1080x2340 | dark-panel-px 111629
+# [L5] 面板按钮按屏定位=(740,1345) 量自 s5d-L5-panel-try1-112749.png（第 1 拍命中）
+# [L5] 确认落点用了偏移档 off=45（阶梯第 3 次试投之后）
+# RAW 结束 fail=1 passed=14

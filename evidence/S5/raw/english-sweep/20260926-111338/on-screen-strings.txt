@@ -1,0 +1,93 @@
+#0 click · Message
+#0 click · Show Navigation Drawer
+#1 wait · 1000ms
+#1 wait · 800ms
+#2 click · Trash
+#2 type_text · Message · types Daily check-in ✅
+#3 wait · 1500ms
+#3 wait · 800ms
+#4 click · More options
+#4 click · Send
+#5 wait · 800ms
+#6 click · Empty trash
+#7 wait · 800ms
+#8 click · confirmation_button
++ Step
+1
+5
+AI compile
+AI compile (bring your own key — network is used only when creating a task)
+API key (after saving, only its last 4 digits stay on screen)
+Accessibility service is not connected: please open Settings → Accessibility → Downloaded services and turn Anytouch on right away. Until it is on, recording and execution cannot start.
+Activate
+Activation code (ANY-XXXX-XXXX-XXXX)
+Activation successful. Pro features are unlocked on this device (code ending …-H8PA).
+Add step
+Adds one step at position #1
+Anytouch executor
+Attach the visible text of the current screen (only on-screen labels and control ids are sent; text-field contents, password fields and screenshots never are)
+BYOK configuration (kept encrypted on this device in the Keystore, never sent anywhere else)
+Cancel
+Cancel +
+Click
+Content description
+Delete
+Discord check-in
+Down
+Enter your activation code
+Erase device credentials
+Every round asks for confirmation by default. "Repeat without asking" only skips the panel for a risk you already approved during this run; a new kind of risk still asks.
+Gmail cleanup
+Gmail cleanup and Discord check-in require you to sign in to the app yourself first. Anytouch only automates the interface after you are signed in; it never performs logins and never reads or stores your account credentials.
+Hierarchy path
+Idle
+Interval seconds (1-60)
+Model name
+My tasks
+Name for this task
+No key saved on this device
+No such preset template (the registry has no such id); not a single step was written.
+Not recording
+Package to record
+Photo cleanup
+Rename
+Repeat without asking
+Repetitions (1-100)
+Resource id
+Run task
+Save
+Save this task
+Saved task "f16dirty" step 1 is type=swipe, which this build's executor cannot run — not a single step of the whole ledger was written, and the steps on screen stayed exactly as they were. The saved entry is left untouched in your list: re-record that step on this build (or delete the entry) instead of running a half ledger.
+Say what to do in one sentence (e.g. open the Bluetooth page)
+Service URL (OpenAI-compatible endpoint, https only)
+Start recording
+Step name
+Steps 5 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps 9 (add / delete / rename / reorder here; only this step ledger is touched)
+Steps find their target on the accessibility node tree, so there is no x/y to fill in here.
+Stop & compile
+Text on screen
+Type text
+Unlock
+Unlocking adds three things: repeating a task over several rounds, your own saved task list, and hand-added steps. When you enter a code, it and an identifier for this device go once to our activation server; after that the app needs no network to run a task, and running a task never goes online. The identifier is per device, so a reset or a fresh install may need you to unlock again.
+Up
+Wait
+Which match (0 = first)
+[{"action_id":"open_drawer","type":"click","target":null,"value":{"content_desc":"Show Navigation Drawer"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_drawer","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"open_trash","type":"click","target":null,"value":{"text":"Trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_trash","type":"wait","target":null,"value":{"ms":1500},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"trash_overflow","type":"click","target":null,"value":{"content_desc":"More options"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_menu","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_empty_trash","type":"click","target":null,"value":{"text":"Empty trash"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_confirm","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_delete_permanently","type":"click","target":null,"value":{"resource_id":"com.google.android.apps.photos:id/confirmation_button"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+[{"action_id":"open_input","type":"click","target":null,"value":{"content_desc":"Message"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"pause_input","type":"wait","target":null,"value":{"ms":1000},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"type_checkin","type":"type_text","target":null,"value":{"content_desc":"Message","input":"Daily check-in ✅"},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"pause_typed","type":"wait","target":null,"value":{"ms":800},"source":"node","safety":{"viewport_ok":true,"click_enabled":false,"requires_transition":false}},{"action_id":"tap_send","type":"click","target":null,"value":{"content_desc":"Send"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+com.android.settings
+open_drawer
+open_input
+open_trash
+pause_confirm
+pause_drawer
+pause_input
+pause_menu
+pause_trash
+pause_typed
+tap_delete_permanently
+tap_empty_trash
+tap_send
+trash_overflow
+type_checkin
+{"stopped":true,"results":[{"ok":false,"status":"failed","action_id":"m1","backend":"accessibility","landed":null,"recovery":{"code":"NODE_NOT_FOUND","severity":"STOP","message":"L1 NO_MATCH resource-id 'com.anytouch.s5e.absent.10720' zero hits | L2 NOT_ATTEMPTED request carries no text/contentDescription | L3 NOT_ATTEMPTED request carries no hierarchical path","evidence":{"action_id":"m1","attempts":[{"level":1,"outcome":"NO_MATCH","detail":"resource-id 'com.anytouch.s5e.absent.10720' zero hits"},{"level":2,"outcome":"NOT_ATTEMPTED","detail":"request carries no text/contentDescription"},{"level":3,"outcome":"NOT_ATTEMPTED","detail":"request carries no hierarchical path"}]}},"details":{}}],"stop_command":{"command_id":"safety-gate-stop-m1-0","type":"stop","source":"safety_gate","payload":{"step_index":"0","step_id":"m1","stop_code":"SAFETY_GATE_BLOCKED","stop_reason":"NODE_NOT_FOUND"},"confirm":"stopped"}}

@@ -147,12 +147,41 @@ answer_panel_once() { # $1=格名
         sleep 1; i=$((i + 1))
     done
     [ "$seen" -eq 1 ] || { bad "[$tag] :: 40s 内未见高危确认面板（面板判据缺席=本格不成立）"; return 1; }
+    # 落点复核只认**产品自己打的那条计数**，不认焦点、也不按"偏移史"盲投：
+    #   ①焦点翻转不能当落点判据——面板与主窗同名窗，撤窗一瞬下一轮的面板可能已经挂上，
+    #     于是"点第二张"被误当成"第一张没落"继续补投 = 读数器越权多点一次。
+    #     09-26 r3 实锤就是这个形状：L5 题设"只答第一次"，量到面板=3（期望 2），
+    #     上一版偏移阶梯把第二轮的面板也点了。红记在测试通道，不记产品少问。
+    #   ②`input tap` 在自家 Compose 面上的命中确有已知偏移（S5-e run3 实测约 85px），但**并非每帧都偏**：
+    #     同一枚字节这一轮 L4 一投即中、L5 单发落空。所以补投必须按**当下那一帧重新量出的坐标**，
+    #     不拿固定档位赌。
+    # 判据一寸不松：5 拍内计数不动且面板一直在场，照旧红。预算压在 ~10s，早于面板 15s 自动拒——
+    # 否则"自己消失了"会被读成"我点中了"。
+    local base now tried=0 shot2 meas2 tx2 ty2
+    base=$(logs | grep -ac "second-confirm panel shown")
     i=0
-    while [ "$i" -lt 8 ]; do
-        $ADB shell dumpsys window 2>/dev/null | grep mCurrentFocus | grep -qE "u0 com\.anytouch\.app\}" || return 0
-        sleep 1; i=$((i + 1))
+    while [ "$i" -lt 5 ]; do
+        i=$((i + 1)); sleep 1
+        now=$(logs | grep -ac "second-confirm panel shown")
+        if [ "$now" -gt "$base" ]; then
+            echo "# [$tag] 确认已落：面板计数 $base→$now（第 $i 拍复核，补投 $tried 次）" >> "$RAW"
+            return 0
+        fi
+        shot2="$RAW_DIR/s5d-$tag-recheck$i-$(date +%H%M%S).png"
+        $ADB exec-out screencap -p > "$shot2" 2>/dev/null
+        meas2=$(python scripts/find-panel-confirm.py "$shot2" 2>>"$RAW"); rc=$?
+        if [ "$rc" -ne 0 ] || [ -z "$meas2" ]; then
+            echo "# [$tag] 第 $i 拍量不到面板且计数仍=$base → 判'已消失'收手（截图=$(basename "$shot2")）" >> "$RAW"
+            return 0
+        fi
+        if [ "$i" -ge 2 ] && [ "$tried" -lt 2 ]; then
+            tx2=${meas2% *}; ty2=${meas2#* }
+            $ADB shell input tap "$tx2" "$ty2"
+            tried=$((tried + 1))
+            echo "# [$tag] 面板仍在场且计数未变＝上一投落空，按新帧补投 ($tx2,$ty2) 第 $tried 次（截图=$(basename "$shot2")）" >> "$RAW"
+        fi
     done
-    bad "[$tag] :: 确认点击未落（面板 8s 后仍在焦=(${tx},${ty}) 试投落空，非产品放行逻辑）"
+    bad "[$tag] :: 确认点击未落（5 拍复核计数仍=$base 且面板一直在场，补投 $tried 次仍不落，非产品放行逻辑）"
     return 1
 }
 

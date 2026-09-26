@@ -32,6 +32,35 @@ data class ActivationState(val activated: Boolean, val tail: String) {
 }
 
 /**
+ * 服务器那一格的结论（S5-g 军令 §2 + 老板裁 1）。
+ *
+ * **为什么这个类型住在 `app/activation/` 而不是直接用 `:byok` 的 `ActivationCheck`**：
+ * 判据层一旦 import 联网模块，红线 G 那句"执行路径看不见 byok"就多了第一个例外，
+ * 而例外是会被抄的。所以本文件保持零联网依赖，由 `compile/ActivationChannel`
+ * （本就只许 UI 面 import byok 的那一层）把 `ActivationCheck` **穷尽式**映射成这里的档——
+ * byok 新增一档而那里没跟上就是编译错误，不是"两个口径都算过"（判据 9 的结构锁形态）。
+ *
+ * [Allowed] 是唯一能解锁的一档。其余四档一律不写盘，其中 [IdentityMissing] 连门都没出：
+ * 本机给不出设备标识时不该把责任推给网络，也不该拿别人的额度。
+ */
+sealed class ActivationRemote {
+    /** 服务器认这枚码，且本机占得住一格（或本来就占着）。额度数字只进日志，不参与判据。 */
+    data class Allowed(val seatsUsed: Int?, val seatsTotal: Int?) : ActivationRemote()
+
+    /** 码不在白名单里（格式对但没发过，或服务器读不出的脏输入）。 */
+    object Invalid : ActivationRemote()
+
+    /** 这枚码已绑满两台，本机不在列表里。 */
+    object SeatsFull : ActivationRemote()
+
+    /** 连不上／超时／指纹对不上／答非所问。**fail-closed：这一档等于拒绝**（自钉 2）。 */
+    object Unreachable : ActivationRemote()
+
+    /** 本机给不出 `ANDROID_ID`，请求根本没出门。 */
+    object IdentityMissing : ActivationRemote()
+}
+
+/**
  * 存的那**不是码**，是码的末四位（与屏上回显同一份字节）：
  * - 解锁判据是"有没有这个文件"，不需要留全码，全码留在盘上没有任何用途，只多一个可抄的东西；
  * - 内容必须恰好是 4 个 `[A-Z0-9]`：脏内容按**未激活**算（宁可让人再输一次码，也不许"文件里有字就算解锁"
@@ -51,17 +80,31 @@ class ActivationStore(private val disk: ActivationDisk) {
     fun isActivated(): Boolean = state().activated
 
     /**
-     * 输一枚码：先按纯判据算，**算错一个字节都不写盘**（脏码留下半个解锁态是最坏形态）；
-     * 算对了才写，且以"盘上真是这四个字符"为准——写不成回 `WRITE_FAILED`，绝不报"解锁了"。
+     * 输一枚码：三件事按顺序、缺一不可。
+     * 1) **本地纯判据**先过（格式/长度/分隔位/字符集/校验位）——脏码一个字节都不写盘，
+     *    也根本不该占用一次请求（v1.0.5 那六档拒因逐字保留，判据 3 的"不回退"格就落在这里）；
+     * 2) **服务器说了算**（S5-g 军令 §2，本裁覆盖 v1.0.5 的"本地即权威"）：`本地过 ≠ 解锁`，
+     *    只有 [ActivationRemote.Allowed] 才继续；其余四档各回各的新拒因，一律不落盘；
+     * 3) 以"盘上真是这四个字符"为准——写不成回 [ActivationVerdict.WRITE_FAILED]，绝不报"解锁了"。
+     *
+     * 顺序本身就是判据：[remote] 是**参数**而不是回调，所以本文件在结构上无法联网、
+     * 也无法在本地判据没过之前给出任何"通过"。
      */
-    fun submit(rawCode: String): ActivationVerdict {
+    fun submit(rawCode: String, remote: ActivationRemote): ActivationVerdict {
         val verdict = ActivationCode.classify(rawCode)
         if (verdict != ActivationVerdict.UNLOCKED) return verdict
         val tail = ActivationCode.tailForDisplay(rawCode)
-        return if (disk.write(tail) && disk.read()?.trim()?.uppercase() == tail) {
-            ActivationVerdict.UNLOCKED
-        } else {
-            ActivationVerdict.WRITE_FAILED
+        return when (remote) {
+            is ActivationRemote.Allowed ->
+                if (disk.write(tail) && disk.read()?.trim()?.uppercase() == tail) {
+                    ActivationVerdict.UNLOCKED
+                } else {
+                    ActivationVerdict.WRITE_FAILED
+                }
+            ActivationRemote.Invalid -> ActivationVerdict.SERVER_INVALID
+            ActivationRemote.SeatsFull -> ActivationVerdict.SERVER_SEATS_FULL
+            ActivationRemote.Unreachable -> ActivationVerdict.SERVER_UNREACHABLE
+            ActivationRemote.IdentityMissing -> ActivationVerdict.DEVICE_ID_MISSING
         }
     }
 

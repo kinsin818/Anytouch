@@ -1,0 +1,29 @@
+      | 靶机 34 号 API · 1080x2340 · 面板按钮 (729,1356) · ROUNDS=5
+[0;32mPASS[0m T0a :: gmail_cleanup 装载面绿（4 步落账 origin=template，未执行任何业务步）
+[0;32mPASS[0m T0b :: discord_checkin 装载面绿（5 步落账 origin=template，未执行任何业务步）
+[0;32mPASS[0m T0c :: 脏 id 被装载器拒并留痕（一步不落）
+      | 清残 :: 起始盘上 2 枚历代种子 → 清后盘=0 库行=0（双真空才放行播种）
+      | 复位 :: Photos 自家数据已清（第三方 fixture 复位，自家进程一枚没动）
+      | —— 轮 1/5 ——
+      | NOHIT Skip|No thanks|Later|Not now
+[0;32mPASS[0m 轮 1 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 1 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round1-20260926-120501.log
+      | —— 轮 2/5 ——
+[0;32mPASS[0m 轮 2 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 2 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round2-20260926-120651.log
+      | —— 轮 3/5 ——
+[0;32mPASS[0m 轮 3 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 3 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round3-20260926-120833.log
+      | —— 轮 4/5 ——
+[0;32mPASS[0m 轮 4 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 4 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round4-20260926-121015.log
+      | —— 轮 5/5 ——
+[0;32mPASS[0m 轮 5 :: 全链回执 ok=9/9 未中止
+[0;32mPASS[0m 轮 5 :: 磁盘终判种子物理消失（篓内外双真空，非账面绿）
+      | raw → evidence/S5/raw/s5a-emulator-5554-photos-round5-20260926-121157.log
+      | 收尾：服务在绑=1；用时 526s
+RESULT fail=0 passed=13 rounds=5

@@ -1,0 +1,3 @@
+# s5g-reset-staging 20260926-095940
+# ok=True removed=0 staging_left=0 buyer_left=0
+# 响应体（本口不返整码，字段只有计数）：{"ok": true, "removed": 0, "staging_left": 0, "buyer_left": 0}

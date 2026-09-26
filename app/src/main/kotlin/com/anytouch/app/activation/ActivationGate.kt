@@ -74,16 +74,34 @@ object ActivationCopy {
     const val CONFIRM = "Unlock"
     const val CANCEL = "Cancel"
 
-    /** 对话框里那句"这能解锁什么 + 它怎么验"——"不联网"是一句真话，也是隐私面的一部分。 */
+    /** 等服务器那一格时上屏的一句话（v1.0.6 起输码是异步的；没有这句就是八秒的"点了没反应"）。 */
+    const val CHECKING =
+        "Checking this code with the activation server - it takes a second, please keep this dialog open."
+
+    /**
+     * 对话框里那句"这能解锁什么 + 它怎么验"。
+     *
+     * **v1.0.6 起这句必须改口**（S5-R14 裁 4：仓是公开的，产品在售，不改口就是对外陈述假话）：
+     * v1.0.5 那句 "checked on this device only - it never goes online" 已经不成立。
+     * 现在这句把三件事一次说清：① 码与一个"本机标识"会出门**一次**；② 只有输码这一步联网；
+     * ③ 执行期照旧零网络（红线 C/G 一字未动，"never goes online" 那半句留给执行面，
+     * 全仓仍只有这一处出现该字样——`ActivationGateTest` 那条 singleOrNull 锁的就是这个唯一性）。
+     * 标识的口径按裁 1 的覆盖注：禁写"绑定硬件"，只准说"每台设备一个标识、重装或刷机可能要重新激活"。
+     */
     const val SCOPE =
         "Unlocking adds three things: repeating a task over several rounds, your own saved task list, and " +
-            "hand-added steps. The code is checked on this device only - it never goes online."
+            "hand-added steps. When you enter a code, it and an identifier for this device go once to our " +
+            "activation server; after that the app needs no network to run a task, and running a task never " +
+            "goes online. The identifier is per device, so a reset or a fresh install may need you to unlock " +
+            "again."
 
-    fun unlocked(tail: String): String = "Pro features unlocked on this device (code ending $tail)."
+    /** 军令 §3 逐字指定的成功句头（v1.0.6 起成功只有一个来源：服务器说 ok）。 */
+    fun unlocked(tail: String): String =
+        "Activation successful. Pro features are unlocked on this device (code ending $tail)."
 
     fun refusal(verdict: ActivationVerdict): String = when (verdict) {
         ActivationVerdict.UNLOCKED ->
-            "Pro features unlocked on this device. Nothing was sent anywhere - the code was checked here."
+            "Activation successful. Pro features are unlocked on this device."
         ActivationVerdict.EMPTY ->
             "Type the activation code you received with your purchase (it looks like ANY-XXXX-XXXX-XXXX). " +
                 "Nothing was unlocked."
@@ -105,6 +123,20 @@ object ActivationCopy {
         ActivationVerdict.WRITE_FAILED ->
             "The code is right, but this device refused to write the unlocked flag to its own storage, so " +
                 "nothing was unlocked. Retry, and if it keeps failing report this with the build number."
+        // ---- S5-g 新增四档：本地判据过之后才有资格谈这四句 ----
+        ActivationVerdict.SERVER_INVALID ->
+            "Activation code invalid. It isn't on the list of codes issued with your purchase, so check it " +
+                "against your receipt - or contact the seller if you bought it recently. Nothing was unlocked."
+        ActivationVerdict.SERVER_SEATS_FULL ->
+            "This code has already been activated on 2 devices, maximum reached. Contact the seller to free one " +
+                "of them, then try again here. Nothing was unlocked."
+        ActivationVerdict.SERVER_UNREACHABLE ->
+            // 那句归因话术必须与"码无效"分开：fail-closed 不解释会被买家当成码有问题去退单（自钉 2 补的第二句）
+            "Activation needs a network connection. The server could not be reached, so this code was not " +
+                "checked at all. Nothing was unlocked."
+        ActivationVerdict.DEVICE_ID_MISSING ->
+            "This device wouldn't hand over an identifier for the check, so nothing was sent anywhere and " +
+                "nothing was unlocked. Try once more; if it keeps failing, report this with the build number."
     }
 }
 

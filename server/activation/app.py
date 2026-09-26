@@ -141,6 +141,8 @@ class Handler(BaseHTTPRequestHandler):
             self._deactivate()
         elif self.path == "/api/admin/lease-staging":
             self._lease_staging()
+        elif self.path == "/api/admin/reset-staging":
+            self._reset_staging()
         else:
             self._json(404, {"ok": False, "reason": "not_found"})
 
@@ -232,6 +234,37 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(200, {"ok": True, "code": row[0], "kind": "staging"})
         print("lease-staging ok code=%s" % code_tail(row[0]), flush=True)
+
+
+    def _reset_staging(self):
+        """Clear every binding the test segment holds so a smoke round can start from a clean slate.
+
+        Scoped by kind in the subquery: a mis-fired admin call can never spend a real buyer's
+        quota. Response and log carry counts only — no code, no hash.
+        """
+        req = self._read_json()
+        if req is None or not self._admin_ok(req.get("admin_token")):
+            self._json(403, {"ok": False, "reason": "forbidden"})
+            return
+        with _db_lock, _Conn() as conn:
+            removed = conn.execute(
+                "DELETE FROM bindings WHERE code IN (SELECT code FROM codes WHERE kind='staging')"
+            ).rowcount
+            staging_left = conn.execute(
+                "SELECT COUNT(*) FROM bindings b JOIN codes c ON c.code=b.code WHERE c.kind='staging'"
+            ).fetchone()[0]
+            buyer_left = conn.execute(
+                "SELECT COUNT(*) FROM bindings b JOIN codes c ON c.code=b.code WHERE c.kind='buyer'"
+            ).fetchone()[0]
+        self._json(
+            200,
+            {"ok": True, "removed": removed, "staging_left": staging_left, "buyer_left": buyer_left},
+        )
+        print(
+            "reset-staging removed=%d staging_left=%d buyer_left=%d"
+            % (removed, staging_left, buyer_left),
+            flush=True,
+        )
 
 
 def main():

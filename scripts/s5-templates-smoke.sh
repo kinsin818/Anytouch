@@ -80,6 +80,11 @@ SEED_B64_B="iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAe0lEQVR4nO3PUQkAIBTA
 # + 2030-01-01/2030-02-02）两格齐上屏后固化于此。
 SEED_LABEL_A="Jan 1, 2030"
 SEED_LABEL_B="Feb 2, 2030"
+# 第三代雷（09-26 v1.0.6 r2 轮 1 前置 NOHIT 实锤）：**名字逐轮换新还不够，还必须逐"次运行"换新**。
+# 上一轮中断会在盘上留下同名残骸（当场读到 `S5SEEDR1A.png`+`S5SEEDR1B.png` 可见、外加一枚
+# `.trashed-…-S5SEEDR1B.png`），下一轮以同名重播种种子 → 网格里躺着两代同标签格，"Move to trash"
+# 那一拍点到的不是本轮那一行。run10 那条"同名被清过篓就不再建行"是同一族问题的另一张脸。
+SEED_NS="S5SEED$(date +%m%d%H%M)"
 XMIG=/sdcard/.s5t.xml; XHOST=.smoke-tmp/s5t.xml
 mkdir -p .smoke-tmp
 
@@ -98,7 +103,7 @@ logs() { MSYS_NO_PATHCONV=1 $ADB logcat -d -s AnytouchRun:* 2>/dev/null; }
 # 文件名必须**逐轮换新**（run10 实锤：同名文件被清过篓后，MediaProvider 不再为旧名重新建行——
 # 文件在盘、扫描广播照发、库里就是没行，网格永远 NOHIT）；$1=轮号
 seed_photos() {
-    local tag="S5SEEDR$1"
+    local tag="$SEED_NS"R$1
     $ADB shell "mkdir -p /sdcard/DCIM/Camera;
 echo $SEED_B64_A | base64 -d > /sdcard/DCIM/Camera/${tag}A.png; touch -t 203001010900.00 /sdcard/DCIM/Camera/${tag}A.png; am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/DCIM/Camera/${tag}A.png >/dev/null;
 echo $SEED_B64_B | base64 -d > /sdcard/DCIM/Camera/${tag}B.png; touch -t 203002020900.00 /sdcard/DCIM/Camera/${tag}B.png; am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/DCIM/Camera/${tag}B.png >/dev/null"
@@ -106,6 +111,31 @@ echo $SEED_B64_B | base64 -d > /sdcard/DCIM/Camera/${tag}B.png; touch -t 2030020
     # 播种判据=MediaStore 真源恰好 2 条新名行（run10 教训：只判"文件在盘"会把"建行失败"拖到屏上 NOHIT 才炸）
     local n; n=$($ADB shell "content query --uri content://media/external/images/media --projection _display_name:is_trashed" | grep -c "$tag.*is_trashed=0" || true)
     [ "$n" -eq 2 ] || { bad "播种 :: 第 $1 代种子建行不是恰好 2 条（读到 $n，盘上文件≠库里有行）"; return 1; }
+}
+# 历代种子残骸清场（只动自家 S5SEED* 命名空间，别人的一枚不碰）：
+# 判据是"清完必须读到双真空"，不是"发了 rm 就算清过"——起始读数一并入册，防"压根没残骸"与"清干净了"混成一句。
+purge_seed_residue() {
+    local before after rows
+    before=$($ADB shell "ls -a /sdcard/DCIM/Camera/" | grep -c "S5SEED" || true)
+    MSYS_NO_PATHCONV=1 $ADB shell "rm -f /sdcard/DCIM/Camera/S5SEED*.png /sdcard/DCIM/Camera/.trashed-*S5SEED*" >/dev/null 2>&1
+    MSYS_NO_PATHCONV=1 $ADB shell "content delete --uri content://media/external/images/media --where \"_display_name LIKE 'S5SEED%' OR _display_name LIKE '.trashed-%S5SEED%'\"" >/dev/null 2>&1
+    sleep 2
+    after=$($ADB shell "ls -a /sdcard/DCIM/Camera/" | grep -c "S5SEED" || true)
+    rows=$($ADB shell "content query --uri content://media/external/images/media --projection _display_name" | grep -c "S5SEED" || true)
+    [ "$after" -eq 0 ] && [ "$rows" -eq 0 ] || { bad "清残 :: 历代种子未清干净（起始盘上=$before，清后盘=$after 库行=$rows）"; return 1; }
+    log "清残 :: 起始盘上 $before 枚历代种子 → 清后盘=0 库行=0（双真空才放行播种）"
+}
+# Photos 自家状态复位（只清第三方相册 App 的数据，一枚不碰自家进程）：
+# 09-26 实锤——上面那种"直接从盘上 rm 掉 .trashed-* 文件"会让 Photos 的回收站账本对不上，
+# 于是它的 Delete 不再弹"Move to trash"确认框，而是直接尝试入篓并回一条 snackbar
+# "Failed to trash"。测试通道把这一步记成"点不到 Move to trash 行"，看着像脚本坏了，
+# 其实是 fixture 里的第三方 App 进了坏态（r2/r3 两轮前置红同形，手工 pm clear 后当场恢复）。
+# 顺序必须是"先清残、后复位"：复位让 Photos 重新按 MediaStore 建自己的账。
+reset_photos_fixture() {
+    local out
+    out=$(MSYS_NO_PATHCONV=1 $ADB shell pm clear com.google.android.apps.photos 2>&1 | tr -d '\r')
+    [ "$out" = "Success" ] || { bad "复位 :: Photos 数据未清掉（读到：$out）"; return 1; }
+    log "复位 :: Photos 自家数据已清（第三方 fixture 复位，自家进程一枚没动）"
 }
 # 首启/升级弹框统一收口：不同 Photos 版本/状态各弹各的——
 #   登出备份壁 "Sign in to back up"（无跳过钮，点外区 scrim 撤）、
@@ -117,12 +147,12 @@ dismiss_popups() {
 }
 # 人工"移入废纸篓"前置（测试通道手指，产品不背这条：模板的职责是清空回收站，不是把照片扔进去）
 prime_trash() {
-    local tag="S5SEEDR$1"
+    local tag="$SEED_NS"R$1
     $ADB shell "am force-stop com.google.android.apps.photos" >/dev/null 2>&1; sleep 1
     $ADB shell monkey -p com.google.android.apps.photos -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 8
     dump_idle
     dismiss_popups
-    local i j lbl
+    local i j lbl one
     for i in 1 2; do
         if [ "$i" -eq 1 ]; then lbl="$SEED_LABEL_A"; else lbl="$SEED_LABEL_B"; fi
         # 转场/重排后首帧 dump 可能整屏无种子标签（实测 run2 第 2 张 NOHIT 即此）：复采到出现为止；
@@ -134,13 +164,36 @@ prime_trash() {
         done
         tapn "$lbl" 3 || { bad "前置 :: 第 $i 张（$lbl）开种子缩略图失败"; return 1; }
         tapn "Delete$" 2 || { bad "前置 :: 第 $i 张点不到查看器 Delete"; return 1; }
+        # 教育框必须先收，再点确认框：`pm clear` 之后 Photos 首碰移篓会弹
+        # "Items moved to trash are removed from all folders" + "Got it"，它和确认框可以同屏都在树里——
+        # 旧顺序（先点 Move to trash、事后才看 Got it）那一投打在浮层上，等于没点，
+        # 于是"两张都确认了、只有一张改名"（09-26 r5 轮 1 实锤，正是本脚本新加的复位把首启浮层重新武装了）。
+        dump_idle
+        j=0
+        while grep -q 'text="Got it"' "$XHOST" && [ "$j" -lt 3 ]; do
+            echo "# 第 $i 张 :: 移篓浮层在场，先收 Got it（第 $((j + 1)) 次）" >> "$RAW"
+            tapn "^Got it$" 2; j=$((j + 1))
+        done
         # "Move to trash" 行（精确等值，锁掉上面那句说明文字——两节点中心差 128px，误点说明=白点）
         dump_idle
-        tapn "^Move to trash$" 3 || { bad "前置 :: 第 $i 张点不到 Move to trash 行"; return 1; }
+        grep -q "Failed to trash" "$XHOST" && {
+            bad "前置 :: 第 $i 张 :: Photos 直接回了 'Failed to trash'（第三方 fixture 坏态，非产品非脚本；复位口=pm clear com.google.android.apps.photos，本脚本已前置该复位）"; return 1; }
+        tapn "^Move to trash$" 3 || { bad "前置 :: 第 $i 张点不到 Move to trash 行（确认框缺席＝Photos 侧状态问题，产品模板只负责清空回收站，不负责把照片扔进去）"; return 1; }
         # 登出态 Photos 首碰移篓弹 "Items moved to trash are removed from all folders" + Got it
         # （pm clear 后必现，run8 实锤：不点 Got it 则整条移篓动作被拦，种子从未进篓——
         # 旧 .trashed 残骸还会冒充"已进篓"计数，故下面的判据同时改成只认本轮两条种子行本身）
         grep -q "removed from all folders" "$XHOST" && tapn "^Got it$" 3
+        # 逐枚沉降复核：MediaProvider 的"改名进篓"是异步的——09-26 r4 实锤两枚都当场确认了，
+        # 循环外那一次读只看到 1 枚改名（可见残=1 篓内=1），另一枚几秒后才落盘。
+        # 判据一字不松（仍要求盘上真改名），只是不再把"还在飞"读成"没做成"。
+        one=$( [ "$i" -eq 1 ] && echo "${tag}A.png" || echo "${tag}B.png" )
+        j=0
+        while [ "$j" -lt 15 ]; do
+            $ADB shell "ls /sdcard/DCIM/Camera/" | grep -q "$one" || break
+            sleep 1; j=$((j + 1))
+        done
+        [ "$j" -lt 15 ] || bad "前置 :: 第 $i 张确认移篓后 15s 仍未见改名（$one 还挂在盘上）——本格不记干净绿"
+        [ "$j" -gt 0 ] && echo "# 第 $i 张改名沉降用了 $j 秒（$one）" >> "$RAW"
         $ADB shell "input keyevent 4"; sleep 2; dump_idle
     done
     # 进篓真判据=盘上改名事实：本代可见种子归零 + 篓内本代恰好 2 条（历代残骸不算——run9/10 中断轮
@@ -154,10 +207,17 @@ prime_trash() {
 
 # ---- T0 结构面：Gmail/Discord 装载（S5-R7：只验装载+落账，不验业务步，不代人登录）----
 load_tpl() { # $1=id $2=期望步数 → 断言 load ok + ledger written origin=template
+    # 轮询而不是固定 sleep：`am start` 之后那条 ok 行是"落账写完"才打的，冷启/在跑时 2s 不够
+    # （09-26 v1.0.6 首轮 T0a/T0b 红、同一枚字节手工复跑 3s 内即绿，就是这个读数窗）。
+    # 轮询只放宽"等多久才去看"，一寸判据都不放松：终态行没出现照样红。
     MSYS_NO_PATHCONV=1 $ADB shell "am start -f 536870912 -n com.anytouch.app/.MainActivity --ez keep_fg true --es template_load $1" >/dev/null 2>&1
-    sleep 2
-    logs | grep -aq "S5SMOKE template load ok id=$1 .* steps=$2 " && \
-    logs | grep -aq "model ledger written origin=template steps=$2"
+    local i=0
+    while [ "$i" -lt 10 ]; do
+        logs | grep -aq "S5SMOKE template load ok id=$1 .* steps=$2 " && \
+            logs | grep -aq "model ledger written origin=template steps=$2" && return 0
+        sleep 1; i=$((i + 1))
+    done
+    return 1
 }
 if load_tpl gmail_cleanup 4; then pass "T0a :: gmail_cleanup 装载面绿（4 步落账 origin=template，未执行任何业务步）"; else bad "T0a :: gmail_cleanup 装载判据不满足"; fi
 if load_tpl discord_checkin 5; then pass "T0b :: discord_checkin 装载面绿（5 步落账 origin=template，未执行任何业务步）"; else bad "T0b :: discord_checkin 装载判据不满足"; fi
@@ -167,6 +227,9 @@ sleep 2
 if logs | grep -aq "template load refused gate=LOADER id=bogus_x"; then pass "T0c :: 脏 id 被装载器拒并留痕（一步不落）"; else bad "T0c :: 脏 id 没被拒或没留痕"; fi
 
 # ---- T1..Tn 相册模板全链实证（S5-R7 唯一"业务步设备实证"档）----
+# 清残先行（判据 6 侧写：历代残骸不清，本轮"回收站清空"的磁盘终判就成了别人的账）
+purge_seed_residue || { log "整轮作废：清残未立住，本轮不记产品红"; exit 2; }
+reset_photos_fixture || { log "整轮作废：Photos fixture 复位未立住，本轮不记产品红"; exit 2; }
 R=1
 while [ "$R" -le "$ROUNDS" ]; do
     log "—— 轮 $R/$ROUNDS ——"

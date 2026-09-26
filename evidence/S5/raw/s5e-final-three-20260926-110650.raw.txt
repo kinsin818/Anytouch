@@ -1,0 +1,28 @@
+# s5e-final-three 预检 ok · api=34 1080x2340 vc=7
+# 靶机=sdk_gphone64_x86_64 · SAVED=s5eprobe · E9_APK=未给
+# [F1] receipt=09-26 03:07:28.313  9205  9205 I AnytouchRun: S1SMOKE ok=4 total=4 stopped=false stop=- elapsed=19s
+# [F2] task=[{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"f1_wait","type":"wait","target":null,"value":{"ms":1200},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+# [tap_open] 档 85 :: 锚(393,691)→点(393,606) · 命中格已见 0 · mInputShown=false · 锚界=bounds="[209,654][577,728]"
+# [tap_open] 档 85 :: 往下走满 3 格仍不见面板 → 退回起点换档
+# [tap_open] 档 0 :: 锚(393,691)→点(393,691) · 命中格已见 0 · mInputShown=false · 锚界=bounds="[209,654][577,728]"
+# [F3] receipt=09-26 03:08:35.714  9205  9205 I AnytouchRun: S1SMOKE ok=0 total=1 stopped=true stop="PASSWORD:password" retry_lines=0
+# [F6] 09-26 03:10:00.636  9205  9205 I AnytouchRun: S5ESMOKE step retry round=1 action=m1 index=0 retry=1/2 failure=LocatorMiss
+# [F6] 09-26 03:10:16.552  9205  9205 I AnytouchRun: S5ESMOKE step retry round=1 action=m1 index=0 retry=2/2 failure=LocatorMiss
+# [F9] saved_tasks.json=[{"name":"s5eprobe","actions":[{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"f9_wait","type":"wait","target":null,"value":{"ms":300},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]}]
+# [tap_open] 档 85 :: 锚(885,1032)→点(885,947) · 命中格已见 0 · mInputShown=false · 锚界=bounds="[830,1005][940,1060]"
+# [F14] 面板格: step_insert_cancel_0
+# [F14] 面板格: step_insert_content_desc_0
+# [F14] 面板格: step_insert_instance_0
+# [F14] 面板格: step_insert_name_0
+# [F14] 面板格: step_insert_no_coordinate_hint
+# [F14] 面板格: step_insert_panel_0
+# [F14] 面板格: step_insert_path_0
+# [F14] 面板格: step_insert_resource_id_0
+# [F14] 面板格: step_insert_text_0
+# [F14] 面板格: step_insert_toggle_0
+# [F14] 面板格: step_insert_toggle_1
+# [F14] 面板格: step_insert_toggle_2
+# [F14] 面板格: step_insert_type_click
+# [F14] 面板格: step_insert_type_type_text
+# [F14] 面板格: step_insert_type_wait
+# [F16] 脏存档=[{"name":"f16dirty","actions":[{"action_id":"d1","type":"swipe","target":null,"value":{"dir":"up"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]}]

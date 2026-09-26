@@ -1,0 +1,21 @@
+# s5g-server-activation 20260926-103051 · 靶机=14 api=7 1080x2340
+# E9_APK=app/build/outputs/apk/debug/app-debug.apk md5=d61b9867fcdf164d73ed236ce61f76e1（机上 pull 回来逐字同值）· 服务器 health=[{"ok": true, "service": "anytouch-activate"}]
+# 通道：靶机 45.32.63.177:8443 → 本机中继 → 机上正规服务（产品代码零改动，TLS 端到端仍在 APP 侧校验）
+# R1 终态行：09-26 02:31:14.809  6010  6010 I AnytouchRun: S5FSMOKE activation ok tail=5BWQ via=adb_inject seats=1/2
+# R2 终态行：09-26 02:31:17.523  6010  6010 I AnytouchRun: S5FSMOKE activation ok tail=5BWQ via=adb_inject seats=1/2
+# R3 终态行：09-26 02:31:19.215  6010  6010 W AnytouchRun: S5FSMOKE activation refused gate=SERVER_INVALID via=adb_inject detail=Activation code invalid. It isn't on the list of codes issued with your purchase, so check it against your receipt - or contact the seller if you bought it recently. Nothing was unlocked.
+# R4 服务器侧两格：{"ok": true, "seats_used": 1, "seats_total": 2} / {"ok": true, "seats_used": 2, "seats_total": 2}
+# R4 设备终态行：09-26 02:31:44.880  6010  6010 W AnytouchRun: S5FSMOKE activation refused gate=SERVER_SEATS_FULL via=adb_inject detail=This code has already been activated on 2 devices, maximum reached. Contact the seller to free one of them, then try again here. Nothing was unlocked.
+# R4 错 token 解绑（必须 403）：{"ok": false, "reason": "forbidden"}
+# R4 清 staging：{"ok": true, "removed": 3, "staging_left": 0, "buyer_left": 0}
+# R5a 终态行：09-26 02:32:03.412  6010  6010 W AnytouchRun: S5FSMOKE activation refused gate=SERVER_UNREACHABLE via=adb_inject detail=Activation needs a network connection. The server could not be reached, so this code was not checked at all. Nothing was unlocked.
+# R5b 终态行：09-26 02:32:43.237  6010  6010 W AnytouchRun: S5FSMOKE activation refused gate=SERVER_UNREACHABLE via=adb_inject detail=Activation needs a network connection. The server could not be reached, so this code was not checked at all. Nothing was unlocked.
+# R6 假靶起机读数：LISTEN=LISTEN 0      5            0.0.0.0:8444      0.0.0.0:*   
+IMPOSTOR_SPKI=ed926ba374ea8c8c
+# R6 换靶读数（rc=0）：relay :: down（DNAT 已撤、隧道已杀；靶机回到真不可达那一态）
+relay :: 端口 18443 上应答的是别的证书（e3b0c44298fc1c14 ≠ 期望 ed926ba374ea8c8c）——先把旧隧道拆干净再换靶
+relay :: up · 靶机 45.32.63.177:8443 → 10.0.2.2:18443 → 机上 127.0.0.1:8444 · 对面证书实测 ed926ba374ea8c8c（本轮期望 ed926ba374ea8c8c）
+# R6 通道正证探测（走中继对面）：{"ok": true, "service": "anytouch-activate"}
+# R6 设备终态行：09-26 02:33:26.941  6010  6010 W AnytouchRun: S5FSMOKE activation refused gate=SERVER_UNREACHABLE via=adb_inject detail=Activation needs a network connection. The server could not be reached, so this code was not checked at all. Nothing was unlocked.
+# R7 计数装置自检：游标之后 health 行=（探测体 [{"ok": true, "service": "anytouch-activa]）
+# cleanup rc=2（中继已撤、飞行已关、机上正规服务已复用在位）

@@ -147,7 +147,7 @@ PYEOF
   && ok "落败 6 路逐条明回 seats_full（不是超时/断连/空应答被误当成拒绝）" \
   || bad "落败方拒因不齐：seats_full=$RACE_FULL，其余 $((8 - RACE_OK - RACE_FULL)) 路见上行原文"
 
-echo "==> [7/7] 管理口鉴权 + lease-staging + buyer 段不被租"
+echo "==> [7/8] 管理口鉴权 + lease-staging + buyer 段不被租"
 R=$(post /api/admin/lease-staging '{"admin_token":"wrong-token"}')
 [ "$(field "$R" reason)" = "forbidden" ] && ok "错 token → 403 forbidden" || bad "鉴权没挡住：$R"
 R=$(post /api/deactivate "{\"code\":\"$STG1\",\"device_hash\":\"$H1\"}")
@@ -185,6 +185,21 @@ over = conn.execute("SELECT code, COUNT(*) c FROM bindings GROUP BY code HAVING 
 assert not over, f"有码绑定数超过 2 台：{over}"
 PYEOF
 ok "全表复查：任何一枚码绑定数都 ≤2"
+
+echo "==> [8/8] reset-staging：一键清测试段，buyer 段一枚不许被清"
+# 先给 buyer 段真绑一台（走公开激活口，不是硬插）：重置口若写成"清全表"，被清掉的就是这一格。
+R=$(post /api/activate "{\"code\":\"$BUYER\",\"device_hash\":\"$H4\"}")
+[ "$(field "$R" ok)" = "True" ] && ok "buyer 段绑定一台成功（本轮重置口的对照格）" || bad "buyer 段绑不上：$R"
+R=$(post /api/admin/reset-staging '{"admin_token":"wrong-token"}')
+[ "$(field "$R" reason)" = "forbidden" ] && ok "reset-staging 错 token → forbidden" || bad "重置口鉴权没挡住：$R"
+R=$(post /api/admin/reset-staging "{\"admin_token\":\"$TOKEN\"}")
+[ "$(field "$R" ok)" = "True" ] && ok "reset-staging 成立 removed=$(field "$R" removed)" || bad "重置失败：$R"
+[ "$(field "$R" staging_left)" = "0" ] && ok "测试段绑定清零（下一轮从干净额度起跑）" || bad "staging 仍剩 $(field "$R" staging_left)"
+[ "$(field "$R" buyer_left)" = "1" ] && ok "买家段那条绑定原样在册（重置口按 kind 收窄，越不了界）" || bad "buyer 段计数=$(field "$R" buyer_left)（应 1）"
+R=$(post /api/admin/lease-staging "{\"admin_token\":\"$TOKEN\"}")
+[ "$(field "$R" kind)" = "staging" ] && ok "重置后可再租（测试段额度回来了）" || bad "重置后仍租不到：$R"
+R=$(post /api/activate "{\"code\":\"$BUYER\",\"device_hash\":\"$H4\"}")
+[ "$(field "$R" ok)" = "True" ] && [ "$(field "$R" seats_used)" = "1" ]   && ok "buyer 那台重置后仍在册（幂等重放 seats=1，没被顺手解绑）" || bad "buyer 绑定被重置口动了：$R"
 
 echo
 echo "CONTRACT pass=$PASS fail=$FAIL"

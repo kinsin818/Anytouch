@@ -2,6 +2,7 @@ package com.anytouch.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,7 +39,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.anytouch.app.activation.ActivationCode
 import com.anytouch.app.activation.ActivationCopy
+import com.anytouch.app.activation.ActivationRemote
 import com.anytouch.app.activation.ActivationState
 import com.anytouch.app.activation.ActivationVerdict
 import com.anytouch.app.activation.ProFeature
@@ -49,6 +52,7 @@ import com.anytouch.app.activation.maskedTail
 import com.anytouch.app.activation.proGateOf
 import com.anytouch.app.activation.proRejectionAfterChange
 import com.anytouch.app.activation.userCopy
+import com.anytouch.app.compile.ActivationChannel
 import com.anytouch.app.compile.ByokGateway
 import com.anytouch.app.compile.byokContextFlagOf
 import com.anytouch.app.platform.AndroidActivationDisk
@@ -76,10 +80,12 @@ import com.anytouch.app.ui.StepListEditor
 import com.anytouch.byok.executorSupportedActionTypes
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 任务注入窗 + 录制控制窗（S2-ONDEVICE 主窗窄口）：
@@ -117,6 +123,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private val savedScope = CoroutineScope(SupervisorJob() + savedExecutor.asCoroutineDispatcher())
+
+    /**
+     * 激活校验专用的串行线（S5-g）：一次 Unlock 要等服务器最慢 10 秒，这一格存在的全部理由就是
+     * **不能在那 10 秒里把用户按在主线程上**（StrictMode 会当场罚 NetworkOnMainThread，
+     * 而罚单变成"点了没反应"就是买家眼里的坏 App）。
+     *
+     * 只要一个 worker：真人点 Unlock 与 `--es activation_code` 注入共用同一个入口，两条并发时
+     * 若各起一条线程，"最后写盘的那份说了算"就没有定义——同 [savedExecutor] 那条律。
+     * 这条线不排后台复核：已激活的机器永远不会走到这里（判据 5 的那半边）。
+     */
+    private val activationExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "anytouch-activate")
+    }
+
+    private val activationScope = CoroutineScope(SupervisorJob() + activationExecutor.asCoroutineDispatcher())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -162,6 +183,7 @@ class MainActivity : ComponentActivity() {
                     val activationTail by AppState.activationTail.collectAsState()
                     val proRejection by AppState.proRejection.collectAsState()
                     val activationMessage by AppState.activationMessage.collectAsState()
+                    val activationBusy by AppState.activationBusy.collectAsState()
                     // 激活对话框：只在点「Activate」时开，成功/取消都收（解锁态本身常驻下面那格回显，不靠对话框）
                     var showActivation by remember { mutableStateOf(false) }
                     var activationDraft by remember { mutableStateOf("") }
@@ -216,8 +238,17 @@ class MainActivity : ComponentActivity() {
                         }
                         // 同一句输码结论：框开着在框里说（[ActivationDialog]），框关着在这里说。
                         // 只留一份文字、两处按互斥呈现——冷启动走注入通道时框是关的，没这一格那句拒因就永不上屏。
+                        // "正在问服务器"另立一枚 tag（`activation_checking`）：它与拒因共用 activationMessage 那一格，
+                        // 混在同一枚 tag 里，脚本就会把"结论还没回来"读成"这枚码被拒了"——那是假红。
                         if (!showActivation) {
-                            activationMessage?.let {
+                            if (activationBusy) {
+                                Text(
+                                    ActivationCopy.CHECKING,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.testTag("activation_checking"),
+                                )
+                            }
+                            activationMessage?.takeIf { !activationBusy }?.let {
                                 Text(
                                     it,
                                     color = MaterialTheme.colorScheme.error,
@@ -549,6 +580,7 @@ class MainActivity : ComponentActivity() {
                                 draft = activationDraft,
                                 onDraft = { activationDraft = it },
                                 message = activationMessage,
+                                busy = activationBusy,
                                 onConfirm = { submitActivation(activationDraft, "ui_button") },
                                 onDismiss = { showActivation = false },
                             )
@@ -569,6 +601,11 @@ class MainActivity : ComponentActivity() {
         // 收掉存档那条串行线：窗都不在了，排队中的刷新没有该去的屏（写口本身是同目录改名，不会留半本）。
         savedScope.cancel()
         savedExecutor.shutdown()
+        // 激活那条线同理：窗没了，那一次"等服务器"的结论也就没有该去的屏。
+        // 已经出门的请求不做取消（服务器那一格要么已绑要么没绑，超时就是没绑），
+        // 但**绝不**让它在屏都没了之后还去翻镜像——所以这里同样是 cancel + shutdown。
+        activationScope.cancel()
+        activationExecutor.shutdown()
         super.onDestroy()
     }
 
@@ -1015,26 +1052,71 @@ class MainActivity : ComponentActivity() {
 
     /**
      * 一次输码（对话框「Unlock」与 adb 注入 `--es activation_code` **同一入口、同一校验器**）：
-     * 判据住 `ActivationStore`/`ActivationCode`，此处只做三件事——分流、上屏、留痕。
+     * 判据住 `ActivationStore`/`ActivationCode`，联网那一步住 [ActivationChannel]，
+     * 此处只做四件事——分流、发一次请求、上屏、留痕。
      * 测试通道**没有旁路**：这一枚 extra 不接受"直接置位"，它送的还是那 18 个字符，
      * 脏码在这里同样落拒因档（与真人逐字同一条路径，附页 §3 判据 10）。
      *
-     * @return true=已解锁且已落盘（对话框据此收起；被拒时框留着，让人改那一位错的字）。
+     * **v1.0.6 起这一步是异步的**（本地判据当场出结论，服务器那一格最慢 10 秒：连接/读取各 8 秒封顶），
+     * 所以返回值从 Boolean 收成 Unit：对话框从来没收过返回值（`onConfirm` 是 `() -> Unit`），
+     * 解锁态由 `activation_state` 那一格常驻回显说话。
+     *
+     * 异步带来一条**如实登记的边界**：同一条 intent 里"既给码又派发别的动作"时，后面那些动作读到的是
+     * **上一次**的激活态——本机此刻还没等到服务器。v1.0.5 同步时那一格是顺的，现在不是。
+     * 今天盘上没有一支脚本这么发（`activation_code` 只与 `activation_reset` 同框，两支都是激活面），
+     * 所以不动判据；真要在一条 intent 里混发，测试面必须改成"等终态行落屏再发下一框"（附页 §4）。
      */
-    private fun submitActivation(rawCode: String, via: String): Boolean {
-        val verdict = activationStore.submit(rawCode)
-        val unlocked = verdict == ActivationVerdict.UNLOCKED
-        publishActivation(activationStore.state())
-        if (unlocked) {
-            AppState.activationMessage.value = null
-            // 只回显尾四位：整枚能解锁的串不进日志（与 API Key 同律，红线 H 的精神面）
-            Log.i(TAG, "S5FSMOKE activation ok tail=${activationStore.state().tail} via=$via")
-        } else {
-            val copy = ActivationCopy.refusal(verdict)
-            AppState.activationMessage.value = copy
-            Log.w(TAG, "S5FSMOKE activation refused gate=$verdict via=$via detail=$copy")
+    private fun submitActivation(rawCode: String, via: String) {
+        // 双击/连点保护：一次请求已经在路上，就**绝不再发第二次**——
+        // 每一次出门都可能在服务器上占掉一格额度，"手快两下把两台机器的份用光"是真实投诉面（裁 1）。
+        if (AppState.activationBusy.value) {
+            Log.w(TAG, "S5FSMOKE activation duplicate refused via=$via detail=${ActivationCopy.CHECKING}")
+            AppState.activationMessage.value = ActivationCopy.CHECKING
+            return
         }
-        return unlocked
+        val local = ActivationCode.classify(rawCode)
+        if (local != ActivationVerdict.UNLOCKED) {
+            // 形状都没对就不出门：一次请求都不发（省一次额度，也保住"五种手滑各说一句"那六条既有判据）
+            refuseActivation(local, null, via)
+            return
+        }
+        AppState.activationBusy.value = true
+        AppState.activationMessage.value = ActivationCopy.CHECKING
+        activationScope.launch {
+            val remote = ActivationChannel.verify(applicationContext, rawCode)
+            // 落盘排在这里（不在主线程）：写盘本身要以"读回来真是这四个字符"为准
+            val verdict = activationStore.submit(rawCode, remote)
+            withContext(Dispatchers.Main) {
+                AppState.activationBusy.value = false
+                publishActivation(activationStore.state())
+                if (verdict == ActivationVerdict.UNLOCKED) {
+                    AppState.activationMessage.value = null
+                    // 只回显尾四位：整枚能解锁的串不进日志（与 API Key 同律，红线 H 的精神面）
+                    Log.i(
+                        TAG,
+                        "S5FSMOKE activation ok tail=${activationStore.state().tail} via=$via${seatsEcho(remote)}",
+                    )
+                } else {
+                    refuseActivation(verdict, remote, via)
+                }
+            }
+        }
+    }
+
+    /** 额度数字的日志片段（`seats=1/2`）：只有数字，不带码也不带设备标识，读日志的人看不出是哪台机器。 */
+    private fun seatsEcho(remote: ActivationRemote?): String {
+        val allowed = remote as? ActivationRemote.Allowed ?: return ""
+        return " seats=${allowed.seatsUsed ?: "?"}/${allowed.seatsTotal ?: "?"}"
+    }
+
+    /**
+     * 一次没成的输码：文字与档位同源（[ActivationCopy.refusal] 是拒因的唯一住处，抄第二份=两套真值），
+     * 红字必上屏、留痕必落字——框开着在框里说，框关着在首页那格说（同 v1.0.5 那条互斥呈现律）。
+     */
+    private fun refuseActivation(verdict: ActivationVerdict, remote: ActivationRemote?, via: String) {
+        val copy = ActivationCopy.refusal(verdict)
+        AppState.activationMessage.value = copy
+        Log.w(TAG, "S5FSMOKE activation refused gate=$verdict via=$via${seatsEcho(remote)} detail=$copy")
     }
 
     /**
@@ -1116,6 +1198,7 @@ class MainActivity : ComponentActivity() {
         draft: String,
         onDraft: (String) -> Unit,
         message: String?,
+        busy: Boolean,
         onConfirm: () -> Unit,
         onDismiss: () -> Unit,
     ) {
@@ -1135,7 +1218,15 @@ class MainActivity : ComponentActivity() {
                 )
                 Text(ActivationCopy.SCOPE, style = MaterialTheme.typography.bodySmall)
                 // 同一句结论在框内说时，首页那一格让位（`if (!showActivation)`）：一句话两处呈现，只留一份文字
-                message?.let {
+                // 正在等服务器时同样另立 tag，理由与首页那两格一样（"还没结论"不等于"被拒"）
+                if (busy) {
+                    Text(
+                        ActivationCopy.CHECKING,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("activation_checking"),
+                    )
+                }
+                message?.takeIf { !busy }?.let {
                     Text(
                         it,
                         color = MaterialTheme.colorScheme.error,
@@ -1145,7 +1236,9 @@ class MainActivity : ComponentActivity() {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
+                        // 等服务器的那十秒里按钮必须按不动：连点=连发请求=可能替同一枚码多占额度（裁 1 的投诉面）
                         onClick = onConfirm,
+                        enabled = !busy,
                         modifier = Modifier.testTag("activation_confirm"),
                     ) { Text(ActivationCopy.CONFIRM) }
                     OutlinedButton(

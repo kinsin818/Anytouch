@@ -1,7 +1,9 @@
 # Anytouch
 
 **Say the task in plain English — your own AI model turns it into concrete, editable steps on your
-Android phone. After that, playback runs 100% on-device: no model, no account, no network.**
+Android phone. After that, playback runs 100% on-device: no model, no account, no network. The one
+thing that ever talks to us is the single request that activates a code on a new device — see
+[Privacy policy](#privacy-policy-plain-words).**
 
 Anytouch is a bring-your-own-key (BYOK) Android automation app. Unlike macro recorders, you don't
 edit scripts or record blind click-coordinates: you describe what you want ("open the page where
@@ -98,9 +100,25 @@ and abort loudly with the reason instead of failing silently).
 ## Privacy policy (plain words)
 
 - **Your API key** is stored encrypted with your phone's hardware Keystore, in app-private
-  storage. It is sent only to the endpoint you configure, only during compile, and never to us —
-  there is no "us" to send it to: the app contains no analytics, no crash reporting, no
-  telemetry, no account system and no first-party server of any kind.
+  storage. It is sent only to the endpoint you configure, only during compile, and never to us:
+  the activation request described below cannot carry it, and the app contains no analytics, no
+  crash reporting, no telemetry and no account system.
+- **There is one first-party endpoint, and it is called once per device.** Since v1.0.6 the code
+  you buy is checked against a server we run the first time it is entered on a device (up to and
+  including v1.0.5 the same codes were checked entirely on-device, and that local check is still
+  the first gate). That single request carries exactly two things: the code you typed, and a
+  truncated SHA-256 hash of the device's `ANDROID_ID`. What the server keeps is the code and which
+  device hashes have used it — at most 2 seats per code — with the time each seat was taken. It
+  keeps no name, no email, no phone number, no task, no step, no prompt, no screen text. Its
+  request log records the requester's IP address (used to throttle repeated failed attempts), the
+  last 4 characters of a code and the first 8 characters of a device hash; a full code or a full
+  hash is never written to a log. The endpoint and its deploy record are in the open:
+  [`server/activation/`](server/activation) and [`evidence/S5g/`](evidence/S5g).
+- **After that first request, nothing more goes to us.** Playback, step editing, saving a task and
+  re-launching never call that endpoint; an activated device keeps working with the radio off, and
+  that is a shipped acceptance check rather than a claim (airplane-mode evidence in
+  [`evidence/S5g/`](evidence/S5g)). The flip side, stated plainly: the check is fail-closed, so a
+  device that has *never* activated cannot do it without a route to that endpoint.
 - **Your screen content**: only with the *use on-screen words* switch on, the app uploads the
   visible text labels and element ids of the current screen, with the exact line count displayed
   on screen. Input-field contents, password fields and screenshots are excluded by design and
@@ -110,7 +128,10 @@ and abort loudly with the reason instead of failing silently).
   not pixels.
 - **Clear credentials** deletes both the encrypted blob and the Keystore key, and re-reads to
   confirm they are gone.
-- Removing the app removes everything: there is no cloud copy because there is no cloud.
+- **Uninstalling removes everything the app holds on the phone** — tasks, steps, keys, activation
+  state. The one record that survives is the seat binding on that endpoint (code, device-hash head,
+  timestamp), and freeing a seat is a single admin call against it — a "I never changed my phone
+  but a seat is gone" case is recoverable, not final.
 
 ## Open-source license
 
