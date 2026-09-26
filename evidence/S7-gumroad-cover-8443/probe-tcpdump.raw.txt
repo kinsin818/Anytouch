@@ -1,0 +1,107 @@
+# S7-T2 服务器侧同窗抓包原文（三端口对照 · win5）
+
+命令（主窗可用同一条复现，靶机 root@45.32.63.177）：
+
+```
+mkdir -p /tmp/s7; : > /tmp/s7/tcpdump5.txt
+nohup timeout 300 tcpdump -ni enp1s0 -nn -l \
+  'tcp port 22 or tcp port 443 or tcp port 8443' -c 20000 \
+  > /tmp/s7/tcpdump5.txt 2>/tmp/s7/tcpdump5.err < /dev/null &
+```
+
+窗口服区（本机 UTC）：**2026-09-26 08:36:34 – 08:41:34**
+外部三发探测全部落在这一窗内（`probe-external.raw.txt` §1 的 E3/E4/E5）：
+8443 @ 08:36:5x（job 4d8a21ack4b2）、443 @ 08:37:5x（4d8a2738k3d6）、22 @ 08:38:4x（4d8a2d1fk6ff）。
+
+抓包进程存活与计数自证（`/tmp/s7/tcpdump5.err` 全文）：
+
+```
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on enp1s0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17 packets captured
+17 packets received by filter
+0 packets dropped by kernel
+```
+`stat`：`2026-09-26 08:41:34.766571377 +0000 2581 /tmp/s7/tcpdump5.txt` ⇒ 进程跑到自己的 300s 超时才退出，
+文件末次写入=窗尾；中间没包不是"抓包早退"，是**确实没包到达网卡**。
+
+## 目的端口计数（win5 全文 17 行，逐行原文见 `capture-win5-3port.raw.txt`）
+
+| 目的端口 | 到达包数 | 来源 |
+|---|---|---|
+| 22 | 9 | 全部 `209.248.0.98`（= 本施工窗 ssh 自己的出口 IP） |
+| 443 | **0** | — |
+| 8443 | **0** | — |
+| （本机发回方向 45.32.63.177.22） | 8 | ssh 回包 |
+
+⇒ 59 个 check-host 节点在 8443 / 443 / 22 三个端口上**一个包都没打到这台机**，
+包括那枚对自己报 "Connected" 的 ua3（104.28.192.94）。
+
+## 同窗抓包原文（win5，17 行全量，无删减）
+
+```
+08:36:34.781266 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 1078177986, win 126, options [nop,nop,TS val 3867436866 ecr 980709703], length 0
+08:36:34.789286 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 61, win 126, options [nop,nop,TS val 3867436874 ecr 980709711], length 0
+08:36:34.859173 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [P.], seq 0:36, ack 61, win 126, options [nop,nop,TS val 3867436944 ecr 980709711], length 36
+08:36:34.899289 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 36, win 41, options [nop,nop,TS val 980709870 ecr 3867436944], length 0
+08:36:36.752301 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 61:121, ack 36, win 41, options [nop,nop,TS val 980711723 ecr 3867436944], length 60
+08:36:36.765965 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 121:245, ack 36, win 41, options [nop,nop,TS val 980711736 ecr 3867436944], length 124
+08:36:36.766445 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 245:281, ack 36, win 41, options [nop,nop,TS val 980711737 ecr 3867436944], length 36
+08:36:36.766498 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 281:369, ack 36, win 41, options [nop,nop,TS val 980711737 ecr 3867436944], length 88
+08:36:36.801251 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 121, win 126, options [nop,nop,TS val 3867438886 ecr 980711723], length 0
+08:36:36.814912 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 245, win 126, options [nop,nop,TS val 3867438900 ecr 980711736], length 0
+08:36:36.815320 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 281, win 126, options [nop,nop,TS val 3867438901 ecr 980711737], length 0
+08:36:36.815397 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 369, win 126, options [nop,nop,TS val 3867438901 ecr 980711737], length 0
+08:36:36.883203 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [P.], seq 36:132, ack 369, win 126, options [nop,nop,TS val 3867438968 ecr 980711737], length 96
+08:36:36.883275 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 132, win 41, options [nop,nop,TS val 980711854 ecr 3867438968], length 0
+08:36:36.887060 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [F.], seq 369, ack 132, win 41, options [nop,nop,TS val 980711857 ecr 3867438968], length 0
+08:36:36.936277 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [F.], seq 132, ack 370, win 126, options [nop,nop,TS val 3867439021 ecr 980711857], length 0
+08:36:36.936330 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 133, win 41, options [nop,nop,TS val 980711907 ecr 3867439021], length 0
+```
+
+## 另一窗（win3，08:19:22–08:34:22，覆盖 E1/E2/E6/E7）的端口与来源计数
+
+全量原文 421,321 B / 2,793 行在 `capture-win3.raw.txt`（其中 99% 是本窗 ssh 自身流量）。
+
+```
+目的 22   : 1704 包   来源全部 = 209.248.0.98（本窗 ssh 出口）
+目的 80   :    7 包   来源 = 104.23.221.26（Cloudflare 段，真实公网主动入站）
+目的 443  :    0
+目的 8443 :    0
+目的 9999 :    0
+ICMP      :    0（同期 59 节点各发 4 个 echo，见 E6）
+```
+两条要点：
+1. **7 个来自 104.23.221.26 打 `:80` 的包**证明：抓包姿势看得见公网主动入站，这台机也确实在收公网入站。
+   ⇒ "59 节点对 22/443/8443 全零到达"不是 tcpdump 姿势错，而是那些探测包根本没到机。
+2. win4（08:24:48–08:31:48，含 ICMP 与 9999）同样：8443/443/9999/80/icmp 到达计数全 0，
+   原文 `capture-win4.raw.txt`（35,483 B）。win1/win2 见 `capture-win1.raw.txt`／`capture-win2.raw.txt`。
+
+## 机内防火墙排除项（与抓包同机同时段取）
+
+```
+$ iptables -S | head
+-P INPUT ACCEPT
+-P FORWARD ACCEPT
+-P OUTPUT ACCEPT
+...
+-A INPUT -p tcp -m tcp --dport 9000 -j DROP
+```
+`nft list ruleset` 的 INPUT 链：`policy accept` + 仅 `tcp dport 9000 ... drop`，ufw-* 链全空。
+⇒ **8443 上的超时不是机内 netfilter 丢的**（netfilter 在网卡抓包点之后，而抓包点就没见到包）。
+
+## 收尾自证
+
+```
+$ pgrep -a tcpdump
+none (all captures stopped by their own timeouts)      # 08:35:41 与 08:42:26 两次核对，无遗留抓包进程
+$ ss -ltnp   # 见 ss-after.txt
+与 ss-before.txt 逐行一致：没有新增任何监听，8443 仍是那一个 python3(pid=140520)
+```
+
+## 追加（同批，口径精确化，不覆盖上方原文）
+
+上方"与 ss-before.txt 逐行一致"一句机械复核后收紧口径：脚本取 `LISTEN` 开头行比对，
+`ss-before.txt` 全量监听表 **7 行**与 `ss-after.txt` **7 行逐行一致**；`ss-before.txt` 另有第 8 行
+`LISTEN 0      5            0.0.0.0:8443      0.0.0.0:*`，那是同文件末尾 `=== listening 8443 ===`
+一段 grep 摘录对同一条 8443 行的**重复**，不构成新增监听。443 在两度读数里都不存在任何监听（v4/v6 皆无）。

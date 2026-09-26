@@ -1,0 +1,28 @@
+2026-09-26T08:32:27+00:00
+=== ip addr (public on iface?) ===
+    inet 45.32.63.177/22 metric 100 brd 45.32.63.255 scope global dynamic enp1s0
+=== self-check via public IP ===
+{"ok": true, "service": "anytouch-activate"}
+HTTP=200 time=0.048565
+=== journal last 3 lines ===
+Sep 26 07:58:57 vultr python3[140520]: 127.0.0.1 "POST /api/activate HTTP/1.1" 200 -
+Sep 26 07:58:57 vultr python3[140520]: activate ok code=E7DA device=d9bdcb01 seats=1 kind=staging
+Sep 26 08:32:27 vultr python3[140520]: 45.32.63.177 "GET /api/health HTTP/1.1" 200 -
+=== ss-after ===
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                                    
+LISTEN 0      4096      127.0.0.54:53        0.0.0.0:*    users:(("systemd-resolve",pid=8539,fd=20))
+LISTEN 0      128          0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=53252,fd=6))           
+LISTEN 0      4096         0.0.0.0:80        0.0.0.0:*    users:(("docker-proxy",pid=106124,fd=8))  
+LISTEN 0      5            0.0.0.0:8443      0.0.0.0:*    users:(("python3",pid=140520,fd=3))       
+LISTEN 0      4096   127.0.0.53%lo:53        0.0.0.0:*    users:(("systemd-resolve",pid=8539,fd=18))
+LISTEN 0      128             [::]:22           [::]:*    users:(("sshd",pid=53252,fd=7))           
+LISTEN 0      4096            [::]:80           [::]:*    users:(("docker-proxy",pid=106128,fd=8))  
+=== docker ps after ===
+ai-congress-online | 0.0.0.0:80->8000/tcp, [::]:80->8000/tcp | Up 4 days
+ai-congress-redis | 6379/tcp | Up 4 days
+=== capture sizes ===
+   130 /tmp/s7/tcpdump.txt
+   359 /tmp/s7/tcpdump2.txt
+   757 /tmp/s7/tcpdump3.txt
+   226 /tmp/s7/tcpdump4.txt
+  1472 total

@@ -1,0 +1,18 @@
+08:36:34.781266 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 1078177986, win 126, options [nop,nop,TS val 3867436866 ecr 980709703], length 0
+08:36:34.789286 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 61, win 126, options [nop,nop,TS val 3867436874 ecr 980709711], length 0
+08:36:34.859173 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [P.], seq 0:36, ack 61, win 126, options [nop,nop,TS val 3867436944 ecr 980709711], length 36
+08:36:34.899289 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 36, win 41, options [nop,nop,TS val 980709870 ecr 3867436944], length 0
+08:36:36.752301 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 61:121, ack 36, win 41, options [nop,nop,TS val 980711723 ecr 3867436944], length 60
+08:36:36.765965 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 121:245, ack 36, win 41, options [nop,nop,TS val 980711736 ecr 3867436944], length 124
+08:36:36.766445 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 245:281, ack 36, win 41, options [nop,nop,TS val 980711737 ecr 3867436944], length 36
+08:36:36.766498 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [P.], seq 281:369, ack 36, win 41, options [nop,nop,TS val 980711737 ecr 3867436944], length 88
+08:36:36.801251 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 121, win 126, options [nop,nop,TS val 3867438886 ecr 980711723], length 0
+08:36:36.814912 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 245, win 126, options [nop,nop,TS val 3867438900 ecr 980711736], length 0
+08:36:36.815320 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 281, win 126, options [nop,nop,TS val 3867438901 ecr 980711737], length 0
+08:36:36.815397 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [.], ack 369, win 126, options [nop,nop,TS val 3867438901 ecr 980711737], length 0
+08:36:36.883203 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [P.], seq 36:132, ack 369, win 126, options [nop,nop,TS val 3867438968 ecr 980711737], length 96
+08:36:36.883275 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 132, win 41, options [nop,nop,TS val 980711854 ecr 3867438968], length 0
+08:36:36.887060 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [F.], seq 369, ack 132, win 41, options [nop,nop,TS val 980711857 ecr 3867438968], length 0
+08:36:36.936277 IP 209.248.0.98.20440 > 45.32.63.177.22: Flags [F.], seq 132, ack 370, win 126, options [nop,nop,TS val 3867439021 ecr 980711857], length 0
+08:36:36.936330 IP 45.32.63.177.22 > 209.248.0.98.20440: Flags [.], ack 133, win 41, options [nop,nop,TS val 980711907 ecr 3867439021], length 0
+

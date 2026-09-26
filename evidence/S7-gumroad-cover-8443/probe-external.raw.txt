@@ -1,0 +1,84 @@
+# S7-T2 外部 vantage 读数原文（check-host.net + 本机出网对照）
+
+采集窗：2026-09-26 16:13–16:41（本地 +08:00）／08:13–08:41 UTC
+靶：`45.32.63.177`（Vultr，公网 IP 直接配在 `enp1s0`，见 `ss-after.txt` 第 2–3 行）
+通道：Qoder 内置浏览器（页面级读取，节点结果逐条取自 DOM），非本机 curl 直连
+每个 job 的永久报告链接一并登记（第三方可复核）：
+
+## 1. TCP 检查（check-host.net /check-tcp，max_hits=60，59 个节点回结果）
+
+| # | 目标 | 时刻(UTC) | 报告链接 | Connected | timed out | refused |
+|---|---|---|---|---|---|---|
+| E1 | 45.32.63.177:**8443** | 08:17:5x | https://check-host.net/check-report/4d89957dk519 | 1 | 57 | 0 |
+| E2 | 45.32.63.177:**22** | 08:20:5x | https://check-host.net/check-report/4d89a319k34d | 1 | 58 | 0 |
+| E3 | 45.32.63.177:**8443** | 08:36:5x | https://check-host.net/check-report/4d8a21ack4b2 | 见 §4 注 | — | — |
+| E4 | 45.32.63.177:**443** | 08:37:5x | https://check-host.net/check-report/4d8a2738k3d6 | 0 | 58 | 0 |
+| E5 | 45.32.63.177:**22** | 08:38:4x | https://check-host.net/check-report/4d8a2d1fk6ff | 1 | 58 | 0 |
+
+那一枚唯一报 "Connected" 的节点，逐字原文（E1/E2 同一条）：
+
+```
+Ukraine, Kyiv | Node | ua3.node.check-host.net | IP | 104.28.192.94 | Datacenter | CloudFlare
+| ISP | h2.nexus | AS number | AS13335 (bgp.tools) | Connected | 0.002 s | 45.32.63.177
+```
+（E2/E5 同一节点报 `Connected 0.003 s`；其余 58 节点一律 `Connection timed out`。）
+
+## 2. 对照读数（同一 vantage、同一台靶、其它协议/端口）
+
+| # | 检查 | 时刻(UTC) | 报告链接 | 结果 |
+|---|---|---|---|---|
+| E6 | ICMP ping 45.32.63.177 | 08:24:5x | https://check-host.net/check-report/4d89bee6ka9e | **59/59 节点 0/4 回包**（100% 丢包） |
+| E7 | HTTP http://45.32.63.177/ （80 端口有 docker-proxy 在听） | 08:30:5x | https://check-host.net/check-report/4d89ede3k268 | 59 节点全 `Connection timed out` |
+| E8 | Traceroute 45.32.63.177（6 节点） | 08:27:0x | https://check-host.net/check-report/4d89d1a5k666 | 各节点最后一跳可见 `63.216.242.46` / `63.218.250.78`（Cogent 骨干），此后 `* * *` 直至超时，未出现靶 IP |
+
+## 3. 本机出网对照（同一台 Windows 施工机，读数一律**作废登记**，只为留证）
+
+```
+$ curl -sk --max-time 20 https://45.32.63.177:8443/api/health
+HTTP=000 time=20.009623                      # 超时
+$ curl -sk --max-time 15 https://45.32.63.177/api/health   # 443，机上无监听
+HTTP=000 exit=28
+$ timeout 15 bash -c 'echo > /dev/tcp/45.32.63.177/443'  -> rc=0   # 假成功
+$ timeout 15 bash -c 'echo > /dev/tcp/45.32.63.177/9999' -> rc=0   # 假成功（9999 无任何监听、且机内防火墙只 DROP 9000）
+```
+同一时刻服务器侧抓包（`capture-win3.raw.txt`）对 443/9999/8443 的到达包计数 = **0 / 0 / 0**
+⇒ 本机 `/dev/tcp` 与部分 curl 的"成功/失败"由透明拦截层给出，**本机读数不作数**（S5-g 旧账复现一次，未变）。
+
+## 4. 三个必须写下来的读数矛盾（本批 T2 真正的收获）
+
+1. **E3 与 E1 同参重跑不一致**：E1 报 1 Connected / 57 timeout，E3 在同一页面抓取时 59 行结果单元尚未落定（DOM 里既无 `Connected` 也无 `timed out` 字样），说明该站的节点结果是在页面流式追加的，**单次快照的计数不是稳定读数**。E4/E5 是在结果落定后抓的，计数完整。
+2. **E2/E5 把 22 端口也判成"58/59 超时"**，而 22 端口此刻正 carrying 本窗口的 ssh 会话（`ss -ltnp` 有 sshd 绑 `0.0.0.0:22`，抓包里 08:36–08:41 有 9 个包真实到达）。⇒ **同一个工具、同一台靶、同一个时间窗，对一个"证明可用"的端口给出的读数是"全超时"**。这个工具对 45.32.63.177 的任何超时读数因此不能归因到端口。
+3. **E1/E2/E5 的 1 枚 "Connected" 全部来自同一节点 ua3（104.28.192.94，Datacenter 标 CloudFlare，AS13335）**，且时延 2–3 ms（Kyiv→靶物理上不成立），并且该节点对 80 的 HTTP 检查（E7）报的又是 `Connection timed out`。**同一节点在同一台靶上对 22/8443 通、对 80 不通**——三条读数互斥，故该枚 "Connected" 判为 vantage 侧假读数，**不采信**（也不反过来用它下"8443 已开放"的结论）。
+4. 机内防火墙排除项：`iptables -S` = `-P INPUT ACCEPT`，INPUT 链上只有一条 `-p tcp --dport 9000 -j DROP`，ufw 各链为空 ⇒ **8443 的超时不是机内 netfilter 造成的**；而 tcpdump 在 `enp1s0`（公网 IP 就配在这张卡上）对 22/443/8443 的外部到达包计数为 0，**netfilter 之前就没包**，所以也不是"到了机口被本地丢"。
+
+## 5. 服务器侧对同一批探测的到达计数（决定性对照，原文见 capture-win*.raw.txt）
+
+| 抓包窗 | 区间(UTC) | 目的 22 | 目的 80 | 目的 443 | 目的 8443 | 目的 9999 | ICMP | 非本机源 |
+|---|---|---|---|---|---|---|---|---|
+| win1 | 08:13:29–08:16:19 | 70 | 0 | 0 | 0 | — | — | 0 |
+| win2 | 08:15:24–08:22:04 | 176 | 0 | 0 | 0 | — | — | 0 |
+| win3 | 08:19:22–08:34:22 | 1704 | **7** | 0 | 0 | 0 | — | **7 个包 = 104.23.221.26→:80** |
+| win4 | 08:24:48–08:31:48 | (含在 win3) | 0 | 0 | 0 | 0 | **0** | 0 |
+| win5（三端口同窗，E3/E4/E5 全在此窗） | 08:36:36–08:41:36 | 9 | — | **0** | **0** | — | — | **0** |
+
+- win3/win5 里 22 端口的包 **100% 来自 209.248.0.98**（本窗口 ssh 自己的出口），59 个 check-host 节点**一个包都没到达网卡**。
+- win3 抓到 7 个来自 `104.23.221.26`（Cloudflare 段）打 `:80` 的真实公网入站 ⇒ **这台机确实能收到公网主动入站**，且抓包姿势看得见（这条与 S5-g 旧账"80 有真实公网流量在进"一致）。
+- 8443 自部署以来的全部服务日志（`journalctl -u anytouch-activate -o cat`，共 342 行）里出现过的客户端 IP 只有两种：`127.0.0.1` ×163（本机契约冒烟）与 `45.32.63.177` ×5（本批机内自打 health）。**至今没有任何外部 IP 打到过 8443。**
+
+## 6. 定性实验（机内自发起到自己的公网 IP，用来钉"服务在公网 IP 上是活的"）
+
+```
+$ date -Is
+2026-09-26T08:32:27+00:00
+$ ip -4 addr show enp1s0 | grep inet
+    inet 45.32.63.177/22 metric 100 brd 45.32.63.255 scope global dynamic enp1s0
+$ curl -sk --max-time 15 https://45.32.63.177:8443/api/health
+{"ok": true, "service": "anytouch-activate"}
+HTTP=200 time=0.048565
+$ journalctl -u anytouch-activate -n 3 --no-pager
+Sep 26 07:58:57 vultr python3[140520]: 127.0.0.1 "POST /api/activate HTTP/1.1" 200 -
+Sep 26 07:58:57 vultr python3[140520]: activate ok code=E7DA device=d9bdcb01 seats=1 kind=staging
+Sep 26 08:32:27 vultr python3[140520]: 45.32.63.177 "GET /api/health HTTP/1.1" 200 -
+```
+（journal 里的 `code=E7DA` 是**尾四位**，`device=d9bdcb01` 是设备哈希头 8 位，均非整码；整码不落日志是 S5-g 既有纪律。）
+这条只证"服务在公网 IP 的 8443 上应答"，**不证**"买家打得通"——发起方就是这台机自己。
