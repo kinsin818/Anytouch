@@ -1,0 +1,17 @@
+# 产品直连激活探测 2026-09-26T15:19:51+08:00 · 码=尾四位 C0YN（整码不落任何日志/文件）
+机上当前态: 未激活(Upgrade to Pro 在屏) · 无中继无DNAT(见 probe-8443.txt §0)
+t=3s state= rejection= checking=0
+t=6s state= rejection= checking=0
+t=9s state= rejection= checking=0
+t=12s state= rejection= checking=0
+t=15s state= rejection= checking=0
+t=18s state= rejection= checking=0
+t=21s state= rejection= checking=0
+t=24s state= rejection= checking=0
+t=27s state= rejection= checking=0
+t=30s state= rejection= checking=0
+t=33s state= rejection= checking=0
+t=36s state= rejection= checking=0
+t=39s state= rejection= checking=0
+t=42s state= rejection= checking=0
+t=45s state= rejection= checking=0

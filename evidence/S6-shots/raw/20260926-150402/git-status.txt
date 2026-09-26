@@ -1,0 +1,4 @@
+# git status --short (captured 2026-09-26T15:04:02+08:00)
+commit HEAD: 34e8a5e92f746df644aedfcea48f1e47283563f8
+?? evidence/S6-shots/
+---end---

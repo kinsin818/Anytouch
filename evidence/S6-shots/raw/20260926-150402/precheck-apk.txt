@@ -1,0 +1,26 @@
+# S6 跑前对账 (captured 2026-09-26T15:04:29+08:00)
+
+## 盘上 APK（将被安装的同一枚）
+path: D:\Anytouch\app\build\outputs\apk\debug\app-debug.apk
+bytes: 9389205
+md5: d61b9867fcdf164d73ed236ce61f76e1
+口径对照: v1.0.6 发布字节账面 = 9,389,205B / md5 d61b9867fcdf164d73ed236ce61f76e1 (STATUS S5-g 行 + evidence/S5g/v106-acceptance.md)
+
+## aapt2 dump badging (package 版本)
+package: name='com.anytouch.app' versionCode='7' versionName='1.0.6' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+
+## 自发布 commit 70daffd 以来代码路径 diff（空=当前源码==发布字节源码）
+$ git diff 70daffd..HEAD --name-only -- app/ core/ byok/ contracts/ build.gradle.kts settings.gradle.kts gradle/ scripts/ci-local.sh
+(以上为空输出)
+
+## 70daffd..HEAD 全部改动文件（全为文档/账面件）
+README.md
+STATUS.md
+docs/onboarding-gumroad-en.md
+evidence/S5g/raw/v106-docs-check-20260926-130150.raw.txt
+evidence/S5g/v106-acceptance.md
+orders/ANYTOUCH-S5-delivery-ORDER.md
+orders/METRICS.md
+orders/RULINGS-20260922.md
+
+## git status --short 原文见同目录 git-status.txt

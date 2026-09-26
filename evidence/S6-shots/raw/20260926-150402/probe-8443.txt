@@ -1,0 +1,115 @@
+# S6 8443 直连探测（开工第一步）captured 2026-09-26T15:06:00+08:00
+靶机: emulator-5554 (avd34, API34) ; 产品端点 https://45.32.63.177:8443/api/health
+
+## 0. 残留 DNAT 检查（必须无 45.32.63.177 重定向，否则探测打在假靶上不作数）
+$ adb -s emulator-5554 shell iptables -t nat -L NAT -n 2>/dev/null | grep 45.32
+(grep 退出码=1 — 1=无命中=干净)
+
+## 1. 对照组：AVD 内打 api.github.com:443（证明 AVD 出网本身活着）
+nc-rc=0
+
+## 2. 正式探测：AVD 内 curl -k -s -S -m 20 https://45.32.63.177:8443/api/health
+
+curl-rc=0
+/system/bin/sh: curl: inaccessible or not found
+
+## 3. 备用探测（AVD 无 curl 时）：toybox nc TCP 握手
+nc-rc=0
+
+## 4. 反面对照（判定 nc 读数是否可信）：同 IP 明知无监听的 9999 端口
+$ adb -s emulator-5554 shell "toybox nc -w 8 45.32.63.177 9999 </dev/null >/dev/null; echo nc-rc=$?"
+nc-rc=0
+对照读法: 9999 也 rc=0 ⇒ nc 通道被宿主拦截池污染, 上面第2/3步的 rc=0 不作数
+          9999 rc!=0 而 8443 rc=0 ⇒ TCP 判据有效
+
+## 5. 主机侧同口径对拍（Windows Git Bash, 出网曾被透明拦截污染, 仅作旁证）
+host-9999-open
+host-8443-open
+
+## 6. 主机侧 TLS 内容级探测（判定拦截池是否真转发）：openssl s_client 取对端证书 SPKI
+期望（正规服务自签，部署账在册）: SPKI 前16位 = 3d7146a142f8d08f
+实测 SPKI: [e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855]
+issuer/subject:
+
+## 7. TLS 内 GET /api/health（主机侧，同 TLS 会话）
+
+## 8. 探测器自证（openssl 管线本身是好的）：打 Cloudflare 443 取 SPKI
+96d43a697cb7b6aa
+(上一行应为 16 位十六进制非空，若非空=>管线正常，8443 那次空=对端零字节)
+
+## 9. 机内对照（ssh 进服务器打自己回环，证明服务活着）
+$ ssh root@45.32.63.177 "curl -sk --max-time 10 https://127.0.0.1:8443/api/health"
+{"ok": true, "service": "anytouch-activate"}
+LISTEN 0      5            0.0.0.0:8443      0.0.0.0:*    users:(("python3",pid=140520,fd=3))       
+
+## 10. 定性实验：服务器机内 tcpdump 抓 8443 SYN，同窗本机从外部打 3 次
+--- 机上抓包 + 本机发起 + 回读计数（原文如下）---
+== tcpdump 输出 ==
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on enp1s0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+--- 上面若 '0 packets captured' 且无机内自环(127.0.0.1 不抓 enp1s0)，说明本机发出的探测 SYN 没到服务器 ---
+
+## 11. 第三方节点定性对拍：check-host.net 打 8443，同窗机上 tcpdump 抓 enp1s0
+check-host 请求回显: <html lang="en">
+<head></head>
+<body>
+
+<form id="continue" method="get" enctype="application/x-www-form-urlencoded" action="/check-http">
+    <input type="hidden" name="host" value="https://45.32.63.177:8443/api/health"></input>
+    <input type="hidden" name="max_redirects" value="0"></input>
+  <input type="hidden" name="csrf_token" value="760443686df9872648ee5bf75d8aa695027f7759"></input>
+  <input type="submit" value="Continue"></input>
+</form>
+
+<script>
+  var form = document.getElementById("continue");
+  form.style.display = "none";
+  form.submit();
+</script>
+
+</body>
+</html>
+request_id=
+
+## 11b. check-host.net 两步法（cookie+csrf）请求 8443 检测
+csrf=76044368…(长度 40)
+第二次回显: <!DOCTYPE html>
+<html lang="en" class="dark:bg-neutral-900 dark:text-gray-300">
+  <head>
+    <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#171717" />
+<title>Check 
+request_id=
+
+## 11c. 带 X-Requested-With 取 JSON
+回显: <!DOCTYPE html>
+<html lang="en" class="dark:bg-neutral-900 dark:text-gray-300">
+  <head>
+    <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#171717" />
+<title>Check website performance and response
+: Check host - online website monitoring
+</title>
+<meta name="keywo
+RID=
+
+## 12. 产品直连激活探测（决定性，无中继无DNAT）2026-09-26T15:22:30+08:00
+注入: am start -f 536870912 -n com.anytouch.app/.MainActivity --ez keep_fg true --es activation_code <staging 码 尾四位 C0YN, 整码不落盘>
+logcat 原文(设备时钟 07:21:49.910):
+W AnytouchRun: S5FSMOKE activation refused gate=SERVER_UNREACHABLE via=adb_inject detail=Activation needs a network connection. The server could not be reached, so this code was not checked at all. Nothing was unlocked.
+机内 journalctl 探测窗口内 activate 行 = 0（"No entries"，尾四位 grep 命中 0）⇒ 请求未到达服务器
+屏上拒因见 ui-dump-activation-rejection.xml + scan/activation-rejection-frame.png
+
+## 结论（AVD 侧）
+- AVD 直连 https://45.32.63.177:8443 = 不可达（TCP 层读数被宿主拦截池污染不作数；TLS 层零字节；产品自身 8 秒 fail-closed SERVER_UNREACHABLE；服务器机内 journal 零收到）。
+- 同窗机内 tcpdump(enp1s0, tcp port 8443) 抓本机外部探测 3 发 = 0 packets，且服务在听(0.0.0.0:8443, health 200)。
+- 归因边界不洗: 无法区分'Vultr 入站仍未放行'与'本机出网对该地址段丢弃'（该 Windows 机历史上对 80 端口也全超时而 80 有真实公网流量，S5-g 账面在册）。主窗复现命令见 §10 与 §12。
+- staging 码 C0YN 未被消费（未校验=不占格，服务器端零绑定）。

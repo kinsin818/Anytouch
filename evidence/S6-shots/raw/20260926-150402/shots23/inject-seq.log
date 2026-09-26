@@ -1,0 +1,8 @@
+--------- beginning of main
+09-26 07:45:15.899  1540  1540 I AnytouchRun: S2SMOKE record inject accepted events=4 target=com.android.settings
+09-26 07:45:18.033  1540  1540 I AnytouchRun: S2SMOKE compiled ok actions=3 drops=0 merged=0 events=4 target=com.android.settings
+09-26 07:45:18.033  1540  1540 I AnytouchRun: S2SMOKE-STEP index=0 type=click value={"text":"Connected devices"}
+09-26 07:45:18.033  1540  1540 I AnytouchRun: S2SMOKE-STEP index=1 type=click value={"text":"Connection preferences"}
+09-26 07:45:18.034  1540  1540 I AnytouchRun: S2SMOKE-STEP index=2 type=click value={"text":"Bluetooth"}
+09-26 07:45:18.034  1540  1540 I AnytouchRun: S2SMOKE-TASK [{"action_id":"rec-0001","type":"click","target":null,"value":{"text":"Connected devices"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0002","type":"click","target":null,"value":{"text":"Connection preferences"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}},{"action_id":"rec-0003","type":"click","target":null,"value":{"text":"Bluetooth"},"source":"node","safety":{"viewport_ok":true,"click_enabled":true,"requires_transition":false}}]
+09-26 07:45:21.158  1540  4164 I AnytouchRun: S5ESMOKE saved task op=save ok name="Bluetooth toggle" steps=3 total=1 via=adb_inject

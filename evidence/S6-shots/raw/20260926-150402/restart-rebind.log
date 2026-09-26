@@ -1,0 +1,7 @@
+# process restart + rebind 2026-09-26T15:17:03+08:00（AOSP 口径：force-stop 不清无障碍条目，雷13 是 MIUI 特例；重绑手法同 s1-smoke step4）
+$ settings delete/put enabled_accessibility_services（强制重绑）
+Starting: Intent { cmp=com.anytouch.app/.MainActivity }
+-- bound? --
+1
+-- pid --
+5153

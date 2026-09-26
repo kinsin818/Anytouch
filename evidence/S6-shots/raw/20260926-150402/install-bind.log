@@ -1,0 +1,10 @@
+# install+a11y-bind 2026-09-26T15:11:37+08:00  ANDROID_SERIAL=emulator-5554 (K40 7ae4bfee 零指令)
+$ adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+Performing Streamed Install
+Success
+$ settings delete secure enabled_accessibility_services; put ...
+$ dumpsys accessibility | grep Bound
+Bound services:{Service[label=Anytouch Executor, feedbackType[FEEDBACK_GENERIC
+# 机上包对账（pull 回来比 md5）
+installed md5: d61b9867fcdf164d73ed236ce61f76e1  (期望 d61b9867fcdf164d73ed236ce61f76e1)
+    versionCode=7 minSdk=26 targetSdk=34
