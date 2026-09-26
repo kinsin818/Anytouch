@@ -47,8 +47,8 @@
 ## 5. 未定性与待裁（不冒充已证）
 
 - **8443 对真实买家可达与否仍未定性**（v1.0.6 判据之外的一件事，服务器批已登记）：本机出网被透明拦截，公网多节点探测与 tcpdump 定性实验互相矛盾于"包有没有到机"，因此账面既不写"已对全球可用"也不写"被拦死"。需老板的手二选一：Vultr Firewall 加 Inbound TCP 8443（或给 API Key 由我加），或手机蜂窝直打 `/api/health`。**设备面所有绿都是在"中继对面=真服务器"下取的，不依赖公网可达性。**
-- 买家件 `docs/onboarding-gumroad-en.md` 已认变更，但**通篇没有一节教买家怎么输入激活码**——属生意面文案，未擅动，待老板裁。
-- README 的 Features 段没有为三项 Pro 能力加"需要激活码"的公开条目（v1.0.5 批同样没加）：隐私段与 Release 正文已如实陈述"付费墙在哪、锁什么"，是否在功能清单上公开点明付费点仍待老板裁。
+- 买家件 `docs/onboarding-gumroad-en.md` 已认变更，但**通篇没有一节教买家怎么输入激活码**——属生意面文案，未擅动，待老板裁 → **09-26 下午老板面令判「做」，已落地，见 §7 追加段**。
+- README 的 Features 段没有为三项 Pro 能力加"需要激活码"的公开条目（v1.0.5 批同样没加）：隐私段与 Release 正文已如实陈述"付费墙在哪、锁什么"，是否在功能清单上公开点明付费点仍待老板裁 → **09-26 下午老板面令判「做」，已落地，见 §7 追加段**。
 - 本轮之前有一次"脚本运行期被编辑"的违规轮已作废入册；`ui-english-sweep` 早前一次 `ledger :: 走位不合格` 红在重跑后自行消失，**机制未定性**，按未解释但未复现照登。
 
 ## 6. 发布账（先建后记，本节建成时发布动作已全部完成）
@@ -65,3 +65,14 @@
 
 **自纠两条（写在自己的汇总件里，不另开文件圆）**：本件初稿把判据 12 那行写成"两处 `up to and including v1.0.5`"与"旧 Release 五枚不回改"——实测 Release 正文该句只有一处（夹 markdown 加粗，纯字面 grep 会 0 命中，另一处是同义句），且旧版是六枚不是五枚；两处均已按实改。另 RULINGS 本批落地段原写"MD5 一字未进本仓"不成立（仓内 `md5` 四处命中全在注释里解释为何不用它），已改成"MD5 未作为任何哈希原语进代码"。
 
+## 7. 追加段（09-26 下午，老板面令两件·纯文档）
+
+本节按「证据只追加不回改」写入；§5 中那两条「待老板裁」就地标注结案并指向本节，原文一字未删。
+
+- **老板裁定**：买家件补一节「怎么输激活码」；README Features 段公开点明 **$6.99 解锁三个高级功能**。
+- **落地**：commit `a609831`（推 `origin/main`，`1a43ef7..a609831`），README.md +8 行／docs/onboarding-gumroad-en.md +57 行，**删除 0 行**，APK·产品码·脚本·安全门禁零改动。
+- README Features 首条：$6.99 一枚码·至多 2 台·三功能（repeating a task over several rounds / your own saved task list / hand-adding a step），同条逐字列免费面（录制·编译·单发·步序账·三模板·停止球·高危确认·15 秒默认拒·无障碍门禁·执行期零网络）＋既有口径「墙只会多拒一次，绝不取代或放松任何一道安全档，由单元测试钉住」。
+- 买家件新节四块：三功能对照表（屏上控件字面 `Repetitions (1-100)`／`Interval seconds (1-60)`／`My tasks`／插步面板 `no x/y to fill in here`）、`How to enter it` 五步（`Activate` → `Enter your activation code` → `Activation code (ANY-XXXX-XXXX-XXXX)` → `Unlock`／`Cancel` → 等服务器那句 → 成功句只回显尾四位 → 拒因一律以 `Nothing was unlocked.` 收尾）、`If it says no` 四行（无网／2 座位已满／码不在册／校验位不符）、`What that one request carries`（只送码与 ANDROID_ID 截断哈希、服务器只留码＋设备哈希头 8 位＋占座时刻、TLS 指纹固定不匹配即拒、已激活设备此后永不联网、**首次激活无网会失败**这条代价照写、恢复出厂会留座故解绑口是唯一兜底）。
+- **机器核（43 项 PASS／fails=0）**：两文件 CJK=0；禁写口径零命中（piracy／hack-proof／tamper-proof／crack／unbreakable／secure against／anti-piracy／protects against）；全码字面量零出现（唯一 `ANY-XXXX-XXXX-XXXX` 为占位符）；文中 15 枚加粗上屏串逐条先在产品源码 grep 命中才写入；新节与 `## Privacy, in one paragraph` 各只出现一次；README 内 `6.99` 恰好 2 处（同一条内）；`git diff --check` 干净。**逐字原文 43 行 PASS 入册：`raw/v106-docs-check-20260926-130150.raw.txt`**（1,976 B，脚本退出码 0，末行 `RESULT fails=0`）。
+- **价格口径来源**：$6.99 由老板 09-26 面令逐字给出（「公开点明 $6.99 解锁三个高级功能」），主窗未自创付款条款（one-time／lifetime／退款一类字样一律未写）。
+- **本窗一条过程账（入方法账，不入产品罪）**：会话内多次出现与盘上不符的文件回显（一份「README 242 行且含未授权中文句」的假象、以及把主窗没写过的句子渲染进结果的情形）。处置＝不采信任何单次回显，改以 `git diff --stat` 行级计数＋python 字节口径（长度／sha256／逐行 ascii 转义）复核，推送前再从 commit 反查全部新增行；两枚文件的新增行与主窗所写逐字一致，已确认。

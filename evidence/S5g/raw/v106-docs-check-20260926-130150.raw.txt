@@ -1,0 +1,51 @@
+PASS README.md CJK=0
+PASS README.md no-banned:piracy
+PASS README.md no-banned:hack-proof
+PASS README.md no-banned:tamper-proof
+PASS README.md no-banned:crack
+PASS README.md no-banned:unbreakable
+PASS README.md no-banned:cannot be bypassed
+PASS README.md no-banned:secure against
+PASS README.md no-banned:anti-piracy
+PASS README.md no-banned:protects against
+PASS buyer CJK=0
+PASS buyer no-banned:piracy
+PASS buyer no-banned:hack-proof
+PASS buyer no-banned:tamper-proof
+PASS buyer no-banned:crack
+PASS buyer no-banned:unbreakable
+PASS buyer no-banned:cannot be bypassed
+PASS buyer no-banned:secure against
+PASS buyer no-banned:anti-piracy
+PASS buyer no-banned:protects against
+PASS README.md no-full-code-literal
+PASS buyer no-full-code-literal
+PASS source-has:Enter your activation code
+PASS source-has:Activation code (ANY-XXXX-XXXX-XXXX)
+PASS source-has:Checking this code with the activation
+PASS source-has:Repetitions (1-100)
+PASS source-has:Interval seconds (1-60)
+PASS source-has:My tasks
+PASS source-has:no x/y to fill in here
+PASS source-has:Upgrade to Pro
+PASS source-has:Activation successful. Pro features ar
+PASS source-has:Nothing was unlocked.
+PASS source-has:This code has already been activated o
+PASS source-has:Activation needs a network connection.
+PASS source-has:Activation code invalid.
+PASS source-has:its last two letters don't match the f
+PASS source-has:Cancel
+PASS guide-quotes:Enter your activation code
+PASS guide-quotes:Activation code (ANY-XXXX-XXXX-XXX
+PASS guide-quotes:Checking this code with the activa
+PASS guide-quotes:This code has already been activat
+PASS guide-quotes:Activation needs a network connect
+PASS guide-quotes:Repetitions (1-100)
+PASS guide-quotes:Interval seconds (1-60)
+PASS guide-quotes:no x/y to fill in here
+PASS guide-quotes:Nothing was unlocked.
+PASS guide-section-once
+PASS guide-privacy-once
+PASS readme-price-bullet-once
+PASS readme-699-twice-max
+RESULT fails=0
