@@ -21,7 +21,7 @@
 | 9 | 结构锁：联网代码只住 `:byok`、执行路径 import 不到、付费墙两条旧锁不放松 | PASS | `ActivationNetworkLockTest.kt`＋`ActivationTransportTest.kt`；JVM 576/0/0/0（口径件见 §2） |
 | 10 | 旧账不回归（同一枚字节） | PASS | `device-smoke` ALL PASS（`.smoke-tmp/v106-devicesmoke.log`，10:57）／`ui-smoke` 51 PASS·0 FAIL·0 SKIP（`.smoke-tmp/r2-uismoke.log`）／`s5d` 15/15（`.smoke-tmp/r4-s5d.log`）／`s5e` 36/36（`.smoke-tmp/r3-s5e.log`）／Photos 5 轮 13/13（判据 6）／`ui-english-sweep` 93 串上屏 CJK=0（`.smoke-tmp/r2-english.log`） |
 | 11 | 红线 A–I 全清且没为过红线改红线 | PASS | `evidence/S5g/raw/v106-ci-local-20260926-121639.log` 尾段九行全 clean＋`[4/4] ci-local PASS`，本次运行 CI-RC=0；`git diff scripts/ci-local.sh` 行数=0 |
-| 12 | 对外改口（裁 4） | 见 §3 | README 隐私段＋README:4 已如实；`evidence/S5g/release-v106-notes.md` 明写"from this version … against our server"且两处写"up to and including v1.0.5 … on-device"；旧 Release 五枚不回改；发布账先建后记 |
+| 12 | 对外改口（裁 4） | 已建（发布账见 §6） | README 隐私段＋README:4 已如实；`evidence/S5g/release-v106-notes.md` 首句 "from this version a purchase code is validated against our server"，旧口径逐字点名**一处** "Up to and including **v1.0.5** the same codes were checked entirely on the device"（夹加粗，纯字面 grep 会 0 命中）＋同义一句 "Everything before this release validated it on the phone"；README 侧同样**一处**；旧 Release 六枚（v1.0.0~v1.0.5）不回改；发布账先建后记 |
 
 ## 2. JVM 口径（干净重跑＋单变体分模块 XML，四列全脚本累加）
 
@@ -50,3 +50,18 @@
 - 买家件 `docs/onboarding-gumroad-en.md` 已认变更，但**通篇没有一节教买家怎么输入激活码**——属生意面文案，未擅动，待老板裁。
 - README 的 Features 段没有为三项 Pro 能力加"需要激活码"的公开条目（v1.0.5 批同样没加）：隐私段与 Release 正文已如实陈述"付费墙在哪、锁什么"，是否在功能清单上公开点明付费点仍待老板裁。
 - 本轮之前有一次"脚本运行期被编辑"的违规轮已作废入册；`ui-english-sweep` 早前一次 `ledger :: 走位不合格` 红在重跑后自行消失，**机制未定性**，按未解释但未复现照登。
+
+## 6. 发布账（先建后记，本节建成时发布动作已全部完成）
+
+| 项 | 值 |
+|---|---|
+| commit | `70daffd`（163 文件）推 `origin/main`，范围 `27dabdb..70daffd`（同批带上此前未推的 `c070b70`/`853dc9b` 两枚服务器件） |
+| tag | annotated `v1.0.6` → `70daffd`，已推远端 |
+| Release | `https://github.com/kinsin818/Anytouch/releases/tag/v1.0.6`（id 397080914，`published=2026-09-26T04:23:55Z`，draft=False／prerelease=False，现为 latest：`/releases/latest` 302 → `.../tag/v1.0.6`） |
+| 正文 | 远端回读 2684 字符，与 `evidence/S5g/release-v106-notes.md` 逐字 **IDENTICAL** |
+| 资产 | `app-debug.apk` 9,389,205 B（asset id 589912715），GitHub 侧 digest `sha256:d91ec5c7fa1b6527b5101cf916b9b8613ddbfa6f2d46660c7f0ed3f16e2c81fd` |
+| 匿名回对 | **无凭据** curl 直链（地址从未登录页面路径取）→ HTTP 200 / 9,389,205 B / md5 `d61b9867fcdf164d73ed236ce61f76e1` / sha256 同值，与盘上被测那一枚 `cmp` 逐字节相同 |
+| 旧版 | v1.0.0~v1.0.5 六版正文与资产一字未回改（大小 9,374,132／9,348,476／9,290,901／9,335,775／9,356,437／9,532,419 原样在册），仅 Latest 徽标移位 |
+
+**自纠两条（写在自己的汇总件里，不另开文件圆）**：本件初稿把判据 12 那行写成"两处 `up to and including v1.0.5`"与"旧 Release 五枚不回改"——实测 Release 正文该句只有一处（夹 markdown 加粗，纯字面 grep 会 0 命中，另一处是同义句），且旧版是六枚不是五枚；两处均已按实改。另 RULINGS 本批落地段原写"MD5 一字未进本仓"不成立（仓内 `md5` 四处命中全在注释里解释为何不用它），已改成"MD5 未作为任何哈希原语进代码"。
+
