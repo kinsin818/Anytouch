@@ -131,6 +131,63 @@ Known vocabulary gap, stated honestly: the current step vocabulary (click / scro
 wait) cannot express *bulk* "mark as read" in Gmail (no long-press / IME-submit step type exists
 yet), so the Gmail template ships as the unread-**triage** subset above — not a bulk cleaner.
 
+## Unlocking the three Pro features (your purchase code)
+
+**$6.99 buys one activation code.** It unlocks three things, and it works on up to **2 devices**:
+
+| Unlocked by your code | What it gives you |
+|---|---|
+| Repeating a task over several rounds | **Repetitions (1-100)** and **Interval seconds (1-60)** on the run screen |
+| Your own saved task list | **My tasks** — save a step ledger, reload it after a reboot, delete it |
+| Hand-adding a step | Insert a node-based step into a ledger yourself; this panel has **no x/y to fill in here**, because coordinates are not a thing this app uses |
+
+**What is already yours without a code**: recording, compiling, running a task once, editing the
+step ledger, the three preset templates, the floating stop ball, the high-risk confirm, the
+15-second default-refusal, the accessibility gate, and zero-network execution. Unlocking changes
+what you can *add*, never what is *checked* — a code never relaxes a safety gate, and that
+ordering is pinned by unit tests.
+
+### How to enter it
+
+The words in **bold** below are verbatim off the screen.
+
+1. Open Anytouch and tap **Activate** — it sits at the top of the screen. Wherever a Pro feature is
+   still locked you see a short **Upgrade to Pro** hint instead of that feature's controls.
+2. The dialog is titled **Enter your activation code**. Type the code from your receipt into the
+   field labelled **Activation code (ANY-XXXX-XXXX-XXXX)** — 18 characters: `ANY`, then three groups
+   of four, a dash between each group. Dashes included, lowercase accepted; paste beats typing.
+3. Tap **Unlock** (or **Cancel** to back out — cancelling does nothing at all). For a second you see
+   **Checking this code with the activation server - it takes a second, please keep this dialog
+   open.** That single request is the only time the app ever phones us, and only ever while you are
+   entering a code.
+4. On success the screen reads **Activation successful. Pro features are unlocked on this device
+   (code ending …-XXXX)**. Only the last four characters of your code ever appear on screen or in a
+   log; the code itself is not kept on the phone. The three features light up immediately — no
+   restart.
+5. If it refuses, the message names which of the two things went wrong (the code's shape, or the
+   server's answer) and always ends with **Nothing was unlocked.** Nothing changed on the device
+   either way, so you can correct it and try again.
+
+### If it says no
+
+| On screen | What it means | What to do |
+|---|---|---|
+| **Activation needs a network connection.** | The code was not checked at all. | Turn on mobile data (or leave the Wi-Fi that blocks the endpoint), tap **Unlock** again. |
+| **This code has already been activated on 2 devices, maximum reached.** | The code is fine; both seats are taken. | Contact the seller to free one — a phone you factory-reset or lost still holds a seat until someone frees it. |
+| **Activation code invalid.** | It isn't on the list of codes issued with purchases. | Check it against your receipt character by character; if you bought it recently, contact the seller. |
+| **its last two letters don't match the first two** | Right shape, mistyped. | Copy it again from your receipt. |
+
+### What that one request carries
+
+The code, plus one identifier for this device — a truncated SHA-256 hash of its Android ID. Not your
+name, not your email, not your API key, not your tasks, not your screen text. What the server keeps
+is the code and which device hashes have used it (at most 2 seats), with the time each seat was
+taken. The call goes out over TLS with a pinned certificate fingerprint; if the fingerprint doesn't
+match, the app refuses the response. **A device that already activated needs no network at all, ever
+again** — but a *first-time* activation does fail without a connection, and says so. The identifier
+is per device, so a factory reset or a new signing key can leave a seat occupied by a device that no
+longer exists: that is what the seat-freeing support call above is for.
+
 ## Privacy, in one paragraph
 
 Your API key and your screen content are only ever sent to the endpoint you configured, only while

@@ -20,6 +20,14 @@ never screen coordinates — and refuses to act on anything it cannot match, hon
 
 ## Features (current build)
 
+- **What is free and what is $6.99** — recording, compiling, running a task once, the step ledger,
+  the three preset templates, the floating stop ball, the high-risk confirm and every other safety
+  gate are free on every device; nothing in that list needs a code. A **$6.99** purchase adds one
+  activation code, and that code unlocks three advanced features on up to **2 devices**:
+  *repeating a task over several rounds*, *your own saved task list*, and *hand-adding a step*.
+  The code is verified by our server once per device (since v1.0.6; up to and including v1.0.5 the
+  same codes were verified on the phone). The wall only ever adds a refusal — it never replaces or
+  relaxes one of the safety gates above, and that is locked by unit tests, not by intent.
 - **AI compile with your own key** — any OpenAI-compatible endpoint (`/v1/chat/completions`).
   The app ships with zero bundled AI access.
 - **Hardware-encrypted key storage** — API keys are sealed with the Android Keystore
