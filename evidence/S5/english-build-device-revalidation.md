@@ -83,3 +83,13 @@ $6.99 的海外付费用户看着像调试框。军令第 ① 条要"地道英�
 AVD 原生镜像 ≠ 海外真机（与 T3-R4 已裁验收面同向）；harness 定点 tap 是用户手指的替身，非产品触控路径；
 本轮只兑付 photos_cleanup 全链，Gmail/Discord 仍停在装载面（S5-R7 原判，不代人登录）；
 英文界面 CJK 零命中的另一半证据在 `evidence/S5/cjk-literal-inventory.md`（静态 99 条豁免清单 + 顶到底走位扫描 55 条上屏文案）。
+
+## §S8c 复验追加（2026-09-26，施工窗 S8c；上方 §2 那段欠格陈述**一字未删**，本段只追加）
+
+军令 `D:\Qoder\ops\orders\ANYTOUCH-S8c-K40清byok七行欠格-ORDER-20260926.md` 令在 K40 真机清这 7 行。到场结果：**未起跑，仍欠 7 格**，落点 `evidence/S8c-k40-byok-debt/`（`S8c-report.md` / `precheck-apk.txt` / `debt-ledger.md` + `raw/20260926-175045-7ae4bfee/`）。
+
+- 跑到并能复对的前置全绿了：K40 在线（`7ae4bfee` / `M2012K11AC` / arm64 真机，不命中脚本 IS_EMU 名单）；机上包原本是 `0.1.0-s1 / versionCode 1`（md5 `37d2e199…`）**不合格**，已按工单装 GitHub 发布件——本次匿名直链回对 HTTP 200、9,389,205 B、md5 `d61b9867fcdf164d73ed236ce61f76e1`，`install -r -g` 后机上 base.apk md5 与之**逐字同值**，`versionName=1.0.6 / versionCode=7`、`INTERNET: granted=true`；无障碍已绑（`Anytouch Executor` capabilities=33，第三方原条目未摘，原值留档）。
+- 卡住的一条（本批最重）：**机上今天仍存着老板那把 Key** —— 只读探屏见 `byok_key_tail` = `Key saved on this device: ***JgYp`（同帧截图 `raw/…/precheck-screen-keyed.png`；`install -r` 保留 /data 与 Keystore 别名，尾 4 位与 09-24 S3-E 那把同源）。`byok-smoke.sh` 在 `KEY_PRESENT=1` 档下，E1→E4 之后直入 `run_key_group`，**第一格外呼点就是 E5a 真 HTTPS 编译**；本批军令写死"一律不走真请求"⇒ 当场停跑。未起跑因此**没有任何一格 PASS**，也没有末行计数可入册（未造第二份"看起来跑过"的件）。
+- 真模型请求消耗 **0**：`logcat -d -s AnytouchRun:*` 全量 3 行在册，`S3SMOKE compile` 计数 **0**；S4 额度仍 **6/8 定格未动**。
+- 上方 §2 那句"折中取证=…第 24 行，与被 grep 的串同源同形"仍按原口径计，**不折成 E1l 的绿**（那是 `ui-english-sweep.sh` 的顶到底走位扫描，不是 byok-smoke 的判据）。
+- 本轮新挖两条事实（请随 S8c 一并裁）：①**带钥组一轮到底=3 次真请求**（E5a、E8 的 `ai_compile true`、E10 off 档各一次；E9 与 E11 自身零消耗），而 S4 只剩 2 ⇒ 与 §2-4 在册的「剩 2<全链 3」同源，**"下一次真机批清完 7 行"在额度不动的边界内结构上不成立**；②**E9c 那两行其实零消耗**（`install -r` 同构建 + 现读尾 4 位），够不到只因排在 E5/E8 之后 ⇒ 若裁一条"判据只加不减"的零消耗档/重排，零额度可清 4 行（#1 #4 #5 #6），余 3 行（#2 #3 #7）要老板手指点一次「清除本机凭据」（点完可用 `scripts/byok-credential-inject.sh` 零消耗把 Key 填回，尾 4 仍 `JgYp`）。三条路径算术见 `evidence/S8c-k40-byok-debt/debt-ledger.md` §C。

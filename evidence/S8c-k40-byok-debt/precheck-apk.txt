@@ -1,0 +1,103 @@
+ANYTOUCH-S8c 跑前对账原文（施工对象 D:\Anytouch，靶机 K40 7ae4bfee）
+记录时刻：2026-09-26 17:50~17:55（本机 +0800）　记录人：S8c worker 窗
+本批不构建任何东西（无并行 Gradle）；装的是 GitHub 已发布 v1.0.6 现成件。
+
+=====================================================================
+1) adb devices -l 原文（开工复跑，同 raw/20260926-175045-7ae4bfee/adb-devices.txt）
+=====================================================================
+List of devices attached
+7ae4bfee               device product:alioth model:M2012K11AC device:alioth transport_id:7
+emulator-5554          device product:sdk_gphone64_x86_64 model:sdk_gphone64_x86_64 device:emu64xa transport_id:4
+
+⇒ K40 在线（工单 §0 时机成立）。emulator-5554 本窗零指令（正被 S8a 批独占）。
+⇒ 多设备在场 ⇒ export ANDROID_SERIAL=7ae4bfee（byok-smoke.sh:3-4,205-209）。
+⇒ 型号串 ro.product.model=M2012K11AC / abi arm64-v8a / wm size 1080x2400：真机，不命中脚本 IS_EMU 名单
+   （*sdk_gphone*|*Emulator*|*vbox*|*Google_API*）⇒ 本轮所有结论按真机口径，禁写成模拟器结论，反向亦然。
+
+独占核对：
+  - tasklist //FI "IMAGENAME eq adb.exe" → 仅 1 枚 adb.exe（PID 3960，adb server 本体），无第二窗驱动设备
+  - tasklist tcpdump.exe → 无匹配进程；tasklist java.exe → 无匹配（⇒ 无并行 Gradle）
+  - /tmp/*.lock → 仅三枚 09-16/09-20 的 dumate-dv-* 旧件（与设备无关，未动）；/tmp/rwfilelock 内为 09-22/09-23 MyOCR 旧锁（未动）
+  - byok-smoke.sh 自身不加锁 ⇒ 本窗单跑，未并发任何设备脚本
+
+=====================================================================
+2) 机上包对账 —— 首轮不合格，已按工单 §2-2 换装已发布件
+=====================================================================
+【装前（不合格）】
+  dumpsys package com.anytouch.app:
+    versionCode=1 minSdk=26 targetSdk=34
+    versionName=0.1.0-s1
+    lastUpdateTime=2026-09-24 15:43:00
+    codePath=/data/app/~~t0CKcy2MYmgJ9GUdkRRAgw==/com.anytouch.app-r1qI1uxMyGSIBCPwk75wNg==
+  机上 base.apk md5 = 37d2e1999a6e302413db857f15084f9b　size = 9,273,307 B
+⇒ 与工单要求的 1.0.6 / 7 不符（S1 期中文旧包）。按 §2-2「不符 → 先装已发布件」执行。
+
+【已发布件身份：本次匿名回对（不凭盘上旧件）】
+  GET https://github.com/kinsin818/Anytouch/releases/download/v1.0.6/app-debug.apk
+  http=200  size_download=9,389,205  落盘 .smoke-tmp/s8c-anon-v106.apk
+  md5 = d61b9867fcdf164d73ed236ce61f76e1
+  cmp .smoke-tmp/s8c-anon-v106.apk .smoke-tmp/anon-v106.apk → 逐字节相同（与 v1.0.6 发布字节账面同值）
+  （注：api.github.com 匿名档 403 rate limit，改用未登录的 release expanded_assets 页取资产名 app-debug.apk，再走直链回对）
+
+【装法与装后】
+  adb -s 7ae4bfee install -r -g D:/Anytouch/.smoke-tmp/s8c-anon-v106.apk → Performing Streamed Install / Success
+  （-r 覆盖安装 ⇒ /data 与 Keystore 别名保留，未 force-stop、未 uninstall、未 pm clear）
+  装后 dumpsys package com.anytouch.app:
+    versionCode=7 minSdk=26 targetSdk=34
+    versionName=1.0.6
+    lastUpdateTime=2026-09-26 17:51:48
+    codePath=/data/app/~~-uwgDxG_dW4Xiwmx9bKhdw==/com.anytouch.app-iW_dn3dTMKl7CM0CGOc3uw==
+  机上 base.apk md5 = d61b9867fcdf164d73ed236ce61f76e1  ←＝发布件逐字同值
+  权限：android.permission.INTERNET: granted=true（S4 那批补的那条，装机后复核）
+
+【无障碍绑定（脚本前置，byok-smoke.sh:210-212）】
+  原值（留档以备复原）：enabled_accessibility_services = com.mmnn.oce/.xk_Service　accessibility_enabled = 1
+  本窗追加式写入：com.anytouch.app/.service.AnytouchAccessibilityService:com.mmnn.oce/.xk_Service（第三方"暴力熊"原条目未被摘除）
+  复核 dumpsys accessibility →
+    Bound services 见 Service[label=Anytouch Executor, capabilities=33, eventTypes=[CLICKED, LONG_CLICKED, TEXT_CHANGED, WINDOW_STATE_CHANGED, SCROLLED]]
+    Enabled services:{com.mmnn.oce/.xk_Service}, {com.anytouch.app/.service.AnytouchAccessibilityService}
+  ⇒ 与 evidence/S2/t3-k40-first-contact.md 记录的 K40 口径一致（国行 MIUI 13 对 adb 写 a11y 配置不设卡，capabilities=33）
+
+=====================================================================
+3) HEAD 与那 7 行的今日有效性
+=====================================================================
+  git pull --rebase → Already up to date.　HEAD = 7cd3e57
+  app/build.gradle.kts: versionCode = 7 / versionName = "1.0.6"（与所装发布件同版）
+  app/src/main/kotlin/com/anytouch/app/ui/ByokPanel.kt:144
+    keyTail?.let { "Key saved on this device: $it" } ?: "No key saved on this device",
+  ⇒ 两串与 HEAD 脚本 grep 字面逐字对得上；本批不构建，以 v1.0.6 验这 7 行成立（工单 §1-4）。
+
+  commit 5b2c3c1 对 scripts/byok-smoke.sh 的改动行数实测=7（git show 5b2c3c1 -- scripts/byok-smoke.sh 取 +/- 行）：
+    #1 tail_read=$(page_line 'ey saved on this device[^"<]*')
+    #2 if printf '%s' "$tail_read" | grep -q 'No key saved on this device'; then
+    #3     KEY_PRESENT=0; pass "E1l 凭据状态行说「No key saved on this device」 :: [$tail_read]"
+    #4 elif printf '%s' "$tail_read" | grep -q 'Key saved on this device: \*\*\*'; then
+    #5         tail_before=$(printf '%s' "$(page_line 'Key saved on this device: [^\"<]*')" | sed 's/Key saved on this device: //')
+    #6     tail_after=$(printf '%s' "$(page_line 'Key saved on this device: [^\"<]*')" | sed 's/Key saved on this device: //')
+    #7         assert_ui "E11b 屏上回到「No key saved on this device」" 'No key saved on this device'
+
+=====================================================================
+4) 决定性的一条：机上当前是"带钥档"（KEY_PRESENT=1）
+=====================================================================
+  只读探屏（未跑 byok-smoke.sh，故不构成任何一格 PASS）：
+    主窗起窗 → 逐屏 uiautomator dump（不注入任何意图、不发编译）
+    p2.xml 命中：resource-id="byok_key_tail" 且 text 含「ey saved on this device: ***JgYp」
+    同帧截图 raw/20260926-175045-7ae4bfee/precheck-screen-keyed.png（202,967 B）
+    Key 形态自检：grep -ao '[A-Za-z0-9]\{24,\}' 全部探针 dump → 命中 0（屏上只有尾 4 位）
+  logcat -d -s AnytouchRun:*（本轮全量，raw/…/logcat-anytouchrun-dump.txt，共 3 行）
+    09-26 09:40:41 … config loaded tail=***JgYp notice=你的 Key 只发往这一个地址：integrate.api.nvidia.com
+    09-26 17:52:06 … config loaded tail=***JgYp notice=Your key is sent to exactly this one address: …
+    'S3SMOKE compile' 计数 = 0　⇒ 真模型请求消耗 0，S4 额度仍 6/8 未动
+  ⇒ 尾四位 JgYp 与 evidence/S3/slice-e2-k40-key.md 那把同源，`install -r` 后仍在机上。
+  ⇒ 按 byok-smoke.sh 流程，KEY_PRESENT=1 ⇒ E2/E3 自动 SKIP、E5~E11 进入 run_key_group，
+     而 run_key_group 第一格 E5a 就是一次真 HTTPS 编译 ⇒ 本批"一律不走真请求"的分寸下当场停跑。
+
+=====================================================================
+5) git status --short 原文（写本件时）
+=====================================================================
+?? .s8c-probe/
+?? c1.xml
+?? evidence/S8a-v107/
+?? evidence/S8c-k40-byok-debt/
+?? tmpchk.png
+（`c1.xml` / `tmpchk.png` / `evidence/S8a-v107/` 非本窗产物，属另窗在场工作，本窗不动、不提交。）

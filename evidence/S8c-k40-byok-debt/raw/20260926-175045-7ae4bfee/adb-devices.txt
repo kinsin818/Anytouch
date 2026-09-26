@@ -1,0 +1,4 @@
+List of devices attached
+7ae4bfee               device product:alioth model:M2012K11AC device:alioth transport_id:7
+emulator-5554          device product:sdk_gphone64_x86_64 model:sdk_gphone64_x86_64 device:emu64xa transport_id:4
+
